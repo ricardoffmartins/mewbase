@@ -12,6 +12,10 @@ import com.tesco.mewbase.log.impl.file.FileAccess;
 import com.tesco.mewbase.log.impl.file.FileLogManager;
 import com.tesco.mewbase.log.impl.file.FileLogManagerOptions;
 import com.tesco.mewbase.log.impl.file.faf.AFFileAccess;
+import com.tesco.mewbase.query.QueryContext;
+import com.tesco.mewbase.query.QueryInfo;
+import com.tesco.mewbase.query.QueryManager;
+import com.tesco.mewbase.query.impl.QueryManagerImpl;
 import com.tesco.mewbase.server.Server;
 import com.tesco.mewbase.server.ServerOptions;
 import com.tesco.mewbase.server.impl.transport.net.NetTransport;
@@ -25,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -41,6 +46,7 @@ public class ServerImpl implements Server {
     private final LogManager logManager;
     private final DocManager docManager;
     private final FunctionManager functionManager;
+    private final QueryManager queryManager;
     private final Set<Transport> transports = new ConcurrentHashSet<>();
 
     private static final String SYSTEM_BINDER_PREFIX = "_mb.";
@@ -56,6 +62,7 @@ public class ServerImpl implements Server {
         this.logManager = new FileLogManager(vertx, options, faf);
         this.docManager = new LmdbDocManager(serverOptions.getDocsDir(), vertx);
         this.functionManager = new FunctionManagerImpl(docManager, logManager);
+        this.queryManager = new QueryManagerImpl();
     }
 
     protected ServerImpl(ServerOptions serverOptions) {
@@ -114,6 +121,16 @@ public class ServerImpl implements Server {
         return functionManager.deleteFunction(functionName);
     }
 
+    @Override
+    public boolean installQuery(String queryName, String binderName, BiConsumer<QueryContext, BsonObject> queryConsumer) {
+        return queryManager.installQuery(queryName, binderName, queryConsumer);
+    }
+
+    @Override
+    public boolean deleteQuery(String queryName) {
+        return queryManager.deleteQuery(queryName);
+    }
+
     protected void removeConnection(ConnectionImpl connection) {
         connections.remove(connection);
     }
@@ -124,6 +141,10 @@ public class ServerImpl implements Server {
 
     protected DocManager docManager() {
         return docManager;
+    }
+
+    protected QueryManager queryManager() {
+        return queryManager;
     }
 
     private CompletableFuture<Void> startTransports() {

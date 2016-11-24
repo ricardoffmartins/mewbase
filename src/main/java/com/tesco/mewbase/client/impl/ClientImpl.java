@@ -130,8 +130,8 @@ public class ClientImpl implements Client, ClientFrameHandler {
 
 
     @Override
-    public void findMatching(String binderName, BsonObject matcher, Consumer<QueryResult> resultHandler,
-                             Consumer<Throwable> exceptionHandler) {
+    public void executeQuery(String binderName, String queryName, BsonObject params,
+                             Consumer<QueryResult> resultHandler, Consumer<Throwable> exceptionHandler) {
         CompletableFuture<Void> cf = new CompletableFuture<>();
         if (exceptionHandler != null) {
             cf.exceptionally(t -> {
@@ -141,7 +141,8 @@ public class ClientImpl implements Client, ClientFrameHandler {
         }
         BsonObject frame = new BsonObject();
         frame.put(Protocol.QUERY_BINDER, binderName);
-        frame.put(Protocol.QUERY_MATCHER, matcher);
+        frame.put(Protocol.QUERY_NAME, queryName);
+        frame.put(Protocol.QUERY_PARAMS, params);
 
         writeQuery(frame, resultHandler, cf);
     }

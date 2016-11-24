@@ -68,9 +68,9 @@ public class LmdbDocManager implements DocManager {
     }
 
     @Override
-    public DocReadStream getMatching(String binderName, Function<BsonObject, Boolean> matcher) {
+    public DocReadStream openStream(String binderName) {
         DBHolder holder = getDBHolder(binderName);
-        return new LmdbReadStream(holder, matcher);
+        return new LmdbReadStream(holder);
     }
 
     @Override
@@ -164,17 +164,15 @@ public class LmdbDocManager implements DocManager {
 
         private final Transaction tx;
         private final EntryIterator iter;
-        private final Function<BsonObject, Boolean> matcher;
         private Consumer<BsonObject> handler;
         private boolean paused;
         private boolean hasMore;
         private boolean handledOne;
         private boolean closed;
 
-        LmdbReadStream(DBHolder holder, Function<BsonObject, Boolean> matcher) {
+        LmdbReadStream(DBHolder holder) {
             this.tx = holder.env.createReadTransaction();
             this.iter = holder.db.iterate(tx);
-            this.matcher = matcher;
         }
 
         @Override
@@ -236,7 +234,7 @@ public class LmdbDocManager implements DocManager {
 
                     byte[] val = entry.getValue();
                     BsonObject doc = new BsonObject(Buffer.buffer(val));
-                    if (handler != null && matcher.apply(doc)) {
+                    if (handler != null) {
                         hasMore = iter.hasNext();
                         handler.accept(doc);
                         handledOne = true;

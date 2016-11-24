@@ -39,7 +39,7 @@ public class FunctionManagerImpl implements FunctionManager {
     }
 
     @Override
-    public boolean installFunction(String name, String channel, Function<BsonObject, Boolean> eventFilter,
+    public synchronized boolean installFunction(String name, String channel, Function<BsonObject, Boolean> eventFilter,
                                    String binderName, Function<BsonObject, String> docIDSelector,
                                    BiFunction<BsonObject, Delivery, BsonObject> function) {
         if (functions.containsKey(name)) {

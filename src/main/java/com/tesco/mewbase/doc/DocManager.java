@@ -13,12 +13,11 @@ public interface DocManager {
     String ID_FIELD = "id";
 
     /**
-     * Get a document in a named binder matching the filter
+     * Open a stream on the specified binder
      *
-     * @param binder  name of binder to put the document to
-     * @param matcher matching function for documents
+     * @param binder  name of binder
      */
-    DocReadStream getMatching(String binder, Function<BsonObject, Boolean> matcher);
+    DocReadStream openStream(String binder);
 
     /**
      * Get a document in a named binder with the given id

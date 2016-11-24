@@ -5,6 +5,7 @@ import com.tesco.mewbase.common.SubDescriptor;
 import com.tesco.mewbase.doc.DocManager;
 import com.tesco.mewbase.doc.DocReadStream;
 import com.tesco.mewbase.log.Log;
+import com.tesco.mewbase.query.QueryInfo;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -29,7 +30,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     private final Context context;
     private final Map<Integer, SubscriptionImpl> subscriptionMap = new ConcurrentHashMap<>();
     private final PriorityQueue<WriteHolder> pq = new PriorityQueue<>();
-    private final Map<Integer, QueryState> queryStates = new ConcurrentHashMap<>();
+    private final Map<Integer, QueryExecution> queryExecutions = new ConcurrentHashMap<>();
     private boolean authorised;
     private int subSeq;
     private long writeSeq;
@@ -180,20 +181,31 @@ public class ConnectionImpl implements ServerFrameHandler {
         checkContext();
         checkAuthorised();
         int queryID = frame.getInteger(Protocol.QUERY_QUERYID);
-        String docID = frame.getString(Protocol.QUERY_DOCID);
         String binder = frame.getString(Protocol.QUERY_BINDER);
-        BsonObject matcher = frame.getBsonObject(Protocol.QUERY_MATCHER);
+        String docID = frame.getString(Protocol.QUERY_DOCID);
         DocManager docManager = server().docManager();
         if (docID != null) {
+            // Query by ID
             CompletableFuture<BsonObject> cf = docManager.get(binder, docID);
             cf.thenAccept(doc -> writeQueryResult(doc, queryID, true));
-        } else if (matcher != null) {
-            // TODO currently just use select all
-            DocReadStream rs = docManager.getMatching(binder, doc -> true);
-            QueryState holder = new QueryState(this, queryID, rs);
-            rs.handler(holder);
-            queryStates.put(queryID, holder);
-            rs.start();
+        } else {
+            String queryName = frame.getString(Protocol.QUERY_NAME);
+            if (queryName != null) {
+                // Server defined query
+                BsonObject params = frame.getBsonObject(Protocol.QUERY_PARAMS);
+                QueryInfo queryInfo = server.queryManager().getQuery(queryName);
+                if (queryInfo == null) {
+                    // TODO handle this
+                } else {
+                    DocReadStream readStream = docManager.openStream(queryInfo.binderName);
+                    QueryExecution state = new QueryExecution(this, queryID, readStream, params,
+                                                              queryInfo.queryConsumer);
+                    queryExecutions.put(queryID, state);
+                    readStream.start();
+                }
+            } else {
+                // TODO handle this
+            }
         }
     }
 
@@ -210,9 +222,9 @@ public class ConnectionImpl implements ServerFrameHandler {
                 logAndClose("No bytes in QueryAck");
                 return;
             }
-            QueryState queryState = queryStates.get(queryID);
-            if (queryState != null) {
-                queryState.handleAck(bytes);
+            QueryExecution queryExecution = queryExecutions.get(queryID);
+            if (queryExecution != null) {
+                queryExecution.handleAck(bytes);
             }
         }
     }
@@ -324,15 +336,15 @@ public class ConnectionImpl implements ServerFrameHandler {
     }
 
     protected void removeQueryState(int queryID) {
-        queryStates.remove(queryID);
+        queryExecutions.remove(queryID);
     }
 
     protected void close() {
         authorised = false;
         transportConnection.close();
         server.removeConnection(this);
-        for (QueryState queryState : queryStates.values()) {
-            queryState.close();
+        for (QueryExecution queryExecution : queryExecutions.values()) {
+            queryExecution.close();
         }
     }
 

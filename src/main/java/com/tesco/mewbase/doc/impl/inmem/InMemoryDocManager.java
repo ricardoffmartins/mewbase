@@ -43,7 +43,7 @@ public class InMemoryDocManager implements DocManager {
     }
 
     @Override
-    public DocReadStream getMatching(String binderName, Function<BsonObject, Boolean> matcher) {
+    public DocReadStream openStream(String binderName) {
         return null;
     }
 

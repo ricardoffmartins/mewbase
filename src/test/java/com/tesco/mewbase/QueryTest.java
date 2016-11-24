@@ -57,7 +57,7 @@ public class QueryTest extends ServerTestBase {
 
         Async async = context.async();
         AtomicInteger cnt = new AtomicInteger();
-        client.findMatching(TEST_BINDER1, new BsonObject(), qr -> {
+        client.executeQuery(TEST_BINDER1, new BsonObject(), qr -> {
             String expectedID = getID(cnt.getAndIncrement());
             log.trace("Got doc {}", qr.document());
             context.assertEquals(expectedID, qr.document().getString("id"));
@@ -80,7 +80,7 @@ public class QueryTest extends ServerTestBase {
     public void testFindMatchingNoConnect(TestContext context) throws Exception {
         Client client2 = Client.newClient(vertx, new ClientOptions().setHost("uiqhwiuqwdui"));
         Async async = context.async();
-        client2.findMatching(TEST_BINDER1, new BsonObject(), qr -> {
+        client2.executeQuery(TEST_BINDER1, new BsonObject(), qr -> {
             context.fail("should not be called");
         }, t -> async.complete());
         client2.close();
@@ -89,7 +89,7 @@ public class QueryTest extends ServerTestBase {
     @Test
     public void testFindMatchingNoDocuments(TestContext context) throws Exception {
         Async async = context.async();
-        client.findMatching(TEST_BINDER1, new BsonObject(), qr -> {
+        client.executeQuery(TEST_BINDER1, new BsonObject(), qr -> {
             context.assertNull(qr.document());
             context.assertTrue(qr.isLast());
             async.complete();

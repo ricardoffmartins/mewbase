@@ -27,7 +27,7 @@ public interface Client {
 
     CompletableFuture<BsonObject> findByID(String binderName, String id);
 
-    void findMatching(String binderName, BsonObject matcher,
+    void executeQuery(String binderName, String queryName, BsonObject params,
                       Consumer<QueryResult> resultHandler, Consumer<Throwable> exceptionHandler);
 
     CompletableFuture<Subscription> subscribe(SubDescriptor subDescriptor, Consumer<ClientDelivery> handler);

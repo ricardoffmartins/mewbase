@@ -120,7 +120,7 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         // Add some docs in another binder
         addDocs(TEST_BINDER2, numDocs);
 
-        stream = docManager.getMatching(TEST_BINDER1, doc -> true);
+        stream = docManager.openStream(TEST_BINDER1);
 
         Async async = testContext.async();
 
@@ -138,36 +138,6 @@ public abstract class DocManagerTest extends MewbaseTestBase {
     }
 
     @Test
-    public void testStreamWithFilter(TestContext testContext) throws Exception {
-
-        // Add some docs
-        int numDocs = 100;
-        addDocs(TEST_BINDER1, numDocs);
-
-        // Add some docs in another binder
-        addDocs(TEST_BINDER2, numDocs);
-
-        stream = docManager.getMatching(TEST_BINDER1, doc -> {
-            int docNum = doc.getInteger("docNum");
-            return docNum >= 10 && docNum < 90;
-        });
-
-        Async async = testContext.async();
-
-        AtomicInteger docCount = new AtomicInteger(10);
-        stream.handler(doc -> {
-            int expectedNum = docCount.getAndIncrement();
-            int docNum = doc.getInteger("docNum");
-            assertEquals(expectedNum, docNum);
-            if (expectedNum == 89) {
-                async.complete();
-            }
-        });
-
-        stream.start();
-    }
-
-    @Test
     public void testStreamPauseResume(TestContext testContext) throws Exception {
 
         // Add some docs
@@ -177,7 +147,7 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         // Add some docs in another binder
         addDocs(TEST_BINDER2, numDocs);
 
-        stream = docManager.getMatching(TEST_BINDER1, doc -> true);
+        stream = docManager.openStream(TEST_BINDER1);
 
         Async async = testContext.async();
 

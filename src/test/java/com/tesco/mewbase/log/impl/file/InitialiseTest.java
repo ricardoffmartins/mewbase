@@ -203,7 +203,6 @@ public class InitialiseTest extends LogTestBase {
         });
     }
 
-
     @Test
     public void test_start_with_missing_file_number(TestContext testContext) throws Exception {
         test_start_with_invalid_info_file(testContext, () -> {

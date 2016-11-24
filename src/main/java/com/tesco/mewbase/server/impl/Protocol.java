@@ -84,6 +84,9 @@ public class Protocol {
     public static final String QUERY_MATCHER = "matcher";
     public static final String QUERY_DOCID = "docID";
 
+    public static final String QUERY_NAME = "name";
+    public static final String QUERY_PARAMS = "params";
+
     public static final String QUERYRESULT_QUERYID = "queryID";
     public static final String QUERYRESULT_RESULT = "result";
     public static final String QUERYRESULT_LAST = "last";
