@@ -2,7 +2,7 @@
 
 ## The problem
 
-Smart organisations now realise that it's vital to keep track of all the streams of events they produce.
+Many organisations now realise that it's vital to keep track of all the streams of events they produce.
 
 Examples of streams of events might be:
 
@@ -82,7 +82,7 @@ Mewbase will be designed from scratch to cope with very large datasets and optim
 
 Some of the features / future features:
 
-* Multiple event logs scaling to petabyte size
+* Multiple event logs scaling to large sizes
 * Horizontal scalability via sharding/partitioning
 * Replication
 * Event persistence
@@ -104,7 +104,6 @@ Some of the features / future features:
 * Fully embeddable
 * Standalone option
 * Log archiving
-* Client helpers for event sourcing (?)
 * Completely non blocking, and reactive APIS
 * Live persistent queries - sends more matching data to client as it arrives on server 
 * Sidecars for node.js/go
@@ -132,3 +131,24 @@ irc.freenode.net#mewbase
 ## Roadmap
 
 Roadmap and other pages are on the [wiki](https://github.com/Tesco/mewbase/wiki)
+
+## Build and run
+
+Mewbase can be run embedded in any Java application (see examples).
+
+It can also be run as a standalone server, to do this:
+
+    mvn clean package
+
+This creates a distribution `tar.gz` and `.zip` in the `target` directory
+
+Unzip this where you want to install the server
+
+    unzip target/mewbase-0.1-SNAPSHOT-bin.zip
+
+Run it
+
+    mewbase-0.1-SNAPSHOT/bin/mew
+    
+Tip: put the directory `mewbase-0.1-SNAPSHOT/bin` on your `PATH` environment variable so you can run `mew`
+from anywhere.   

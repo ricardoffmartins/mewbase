@@ -21,7 +21,7 @@
             <directory>src/main/scripts</directory>
             <outputDirectory>bin</outputDirectory>
             <includes>
-                <include>mew.sh</include>
+                <include>mew</include>
                 <include>mew.bat</include>
             </includes>
             <fileMode>0755</fileMode>
