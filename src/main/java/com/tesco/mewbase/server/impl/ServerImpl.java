@@ -1,7 +1,5 @@
 package com.tesco.mewbase.server.impl;
 
-import com.tesco.mewbase.bson.BsonObject;
-import com.tesco.mewbase.common.Delivery;
 import com.tesco.mewbase.doc.DocManager;
 import com.tesco.mewbase.doc.impl.lmdb.LmdbDocManager;
 import com.tesco.mewbase.log.Log;
@@ -9,8 +7,6 @@ import com.tesco.mewbase.log.LogManager;
 import com.tesco.mewbase.log.impl.file.FileAccess;
 import com.tesco.mewbase.log.impl.file.FileLogManager;
 import com.tesco.mewbase.log.impl.file.faf.AFFileAccess;
-import com.tesco.mewbase.projection.Projection;
-import com.tesco.mewbase.projection.ProjectionBuilder;
 import com.tesco.mewbase.projection.ProjectionManager;
 import com.tesco.mewbase.projection.impl.ProjectionManagerImpl;
 import com.tesco.mewbase.server.MewAdmin;
@@ -24,8 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Created by tim on 22/09/16.
@@ -109,7 +103,6 @@ public class ServerImpl implements Server {
         connections.clear();
         return CompletableFuture.allOf(all);
     }
-
 
 
     protected void removeConnection(ConnectionImpl connection) {

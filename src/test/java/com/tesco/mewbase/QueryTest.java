@@ -108,7 +108,7 @@ public class QueryTest extends ServerTestBase {
 
 
     protected void installInsertProjection() {
-        server.admin().buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy( ev -> true)
+        server.admin().buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy(ev -> true)
                 .identifiedBy(ev -> ev.getString("id"))
                 .as((basket, del) -> del.event()).create();
     }

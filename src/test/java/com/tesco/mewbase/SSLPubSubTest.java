@@ -26,7 +26,7 @@ public class SSLPubSubTest extends ServerTestBase {
 
     @Override
     protected ServerOptions createServerOptions(File logDir) {
-       ServerOptions serverOptions = new ServerOptions()
+        ServerOptions serverOptions = new ServerOptions()
                 .setChannels(new String[]{TEST_CHANNEL_1, TEST_CHANNEL_2})
                 .setLogDir(logDir.getPath())
                 .setDocsDir(docsDir.getPath());

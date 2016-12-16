@@ -1,7 +1,7 @@
 package com.tesco.mewbase.server;
 
-import com.tesco.mewbase.auth.impl.NoAuthAuthProvider;
 import com.tesco.mewbase.auth.MewbaseAuthProvider;
+import com.tesco.mewbase.auth.impl.NoAuthAuthProvider;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServerOptions;
 

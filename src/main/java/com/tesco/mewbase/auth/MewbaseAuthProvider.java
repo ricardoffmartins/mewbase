@@ -5,9 +5,7 @@ import com.tesco.mewbase.bson.BsonObject;
 import java.util.concurrent.CompletableFuture;
 
 /**
- *
  * User-facing interface for authenticating users.
- *
  */
 public interface MewbaseAuthProvider {
 
@@ -26,7 +24,7 @@ public interface MewbaseAuthProvider {
      *
      * @param authInfo the auth information
      * @return a CompletableFuture containing a MewbaseUser where authorization operations can be performed
-     *         on it
+     * on it
      */
     CompletableFuture<MewbaseUser> authenticate(BsonObject authInfo);
 }

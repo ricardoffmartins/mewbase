@@ -19,7 +19,7 @@ import static org.junit.Assert.*;
 public class OptionsTest extends MewbaseTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(OptionsTest.class);
-    private static final int fsize = 4*1024;
+    private static final int fsize = 4 * 1024;
 
     @Test
     public void testClientOptions() throws Exception {
@@ -70,9 +70,9 @@ public class OptionsTest extends MewbaseTestBase {
         options.setPreallocateSize(fsize);
         options.setMaxRecordSize(fsize);
 
-        assert(options.getMaxLogChunkSize() == fsize);
-        assert(options.getPreallocateSize() == fsize);
-        assert(options.getMaxRecordSize() == fsize);
-        assert(options.getReadBufferSize() == fsize);
+        assert (options.getMaxLogChunkSize() == fsize);
+        assert (options.getPreallocateSize() == fsize);
+        assert (options.getMaxRecordSize() == fsize);
+        assert (options.getReadBufferSize() == fsize);
     }
 }

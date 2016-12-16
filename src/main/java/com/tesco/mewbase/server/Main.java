@@ -1,7 +1,6 @@
 package com.tesco.mewbase.server;
 
 import com.tesco.mewbase.client.MewException;
-import com.tesco.mewbase.server.impl.ServerImpl;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
