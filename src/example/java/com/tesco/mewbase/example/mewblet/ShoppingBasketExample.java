@@ -17,7 +17,6 @@ public class ShoppingBasketExample {
     public static void main(String[] args) {
         try {
             new ShoppingBasketExample().example();
-            System.in.read();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,6 +51,9 @@ public class ShoppingBasketExample {
         BsonObject basket = client.findByID("baskets", "basket1111").get();
 
         System.out.println("Basket is: " + basket);
+
+        client.close().get();
+        server.stop().get();
     }
 
 }

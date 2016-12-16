@@ -13,6 +13,7 @@ import com.tesco.mewbase.server.MewAdmin;
 import com.tesco.mewbase.server.Server;
 import com.tesco.mewbase.server.ServerOptions;
 import com.tesco.mewbase.server.impl.transport.net.NetTransport;
+import com.tesco.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.ConcurrentHashSet;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ public class ServerImpl implements Server {
     private final static Logger logger = LoggerFactory.getLogger(ServerImpl.class);
 
     private final ServerOptions serverOptions;
+    private final boolean ownVertx;
     private final Vertx vertx;
     private final Set<ConnectionImpl> connections = new ConcurrentHashSet<>();
     private final LogManager logManager;
@@ -41,8 +43,9 @@ public class ServerImpl implements Server {
     public static final String DURABLE_SUBS_BINDER_NAME = SYSTEM_BINDER_PREFIX + "durableSubs";
     private static final String[] SYSTEM_BINDERS = new String[]{DURABLE_SUBS_BINDER_NAME};
 
-    protected ServerImpl(Vertx vertx, ServerOptions serverOptions) {
+    protected ServerImpl(Vertx vertx, boolean ownVertx, ServerOptions serverOptions) {
         this.vertx = vertx;
+        this.ownVertx = ownVertx;
         if (vertx.isClustered()) {
             // Usage of locks in projection manager disallows clustered vert.x
             throw new IllegalStateException("Clustered Vert.x not supported");
@@ -57,7 +60,7 @@ public class ServerImpl implements Server {
     }
 
     protected ServerImpl(ServerOptions serverOptions) {
-        this(Vertx.vertx(), serverOptions);
+        this(Vertx.vertx(), true, serverOptions);
     }
 
     @Override
@@ -80,15 +83,20 @@ public class ServerImpl implements Server {
 
     @Override
     public synchronized CompletableFuture<Void> stop() {
-        CompletableFuture[] all = new CompletableFuture[1 + 1 + 1];
-        int i = 0;
-        all[i++] = stopTransports();
-        all[i++] = docManager.close();
-        all[i] = logManager.close();
+        CompletableFuture<Void> cfStopTransports = stopTransports();
+        CompletableFuture<Void> cfStopDocManager = docManager.close();
+        CompletableFuture<Void> cfStopLogManager = logManager.close();
+        CompletableFuture<Void> cf = CompletableFuture.allOf(cfStopTransports, cfStopDocManager, cfStopLogManager);
         connections.clear();
-        return CompletableFuture.allOf(all);
+        if (ownVertx) {
+            cf = cf.thenCompose(v -> {
+                AsyncResCF<Void> cfCloseVertx = new AsyncResCF<>();
+                vertx.close(cfCloseVertx);
+                return cfCloseVertx;
+            });
+        }
+        return cf;
     }
-
 
     protected void removeConnection(ConnectionImpl connection) {
         connections.remove(connection);

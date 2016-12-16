@@ -44,5 +44,8 @@ public class PubSubExample {
 
         // Publish to the channel
         client.publish("orders", new BsonObject().put("foo", "bar"));
+
+        client.close().get();
+        server.stop().get();
     }
 }
