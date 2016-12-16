@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -43,6 +44,16 @@ public class ProjectionManagerImpl implements ProjectionManager {
     @Override
     public ProjectionBuilder buildProjection(String name) {
         return new ProjectionBuilderImpl(name, this);
+    }
+
+    @Override
+    public Set<String> getProjectionNames() {
+        return projections.keySet();
+    }
+
+    @Override
+    public Projection getProjection(String projectionName) {
+        return projections.get(projectionName);
     }
 
     private class ProjectionImpl implements Projection {

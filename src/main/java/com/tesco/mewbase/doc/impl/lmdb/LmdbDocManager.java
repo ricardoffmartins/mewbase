@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -135,6 +136,11 @@ public class LmdbDocManager implements DocManager {
             fut.complete(true);
         }, res);
         return res;
+    }
+
+    @Override
+    public Set<String> getBinderNames() {
+        return databases.keySet();
     }
 
     private void createIfDoesntExists(File dir) {

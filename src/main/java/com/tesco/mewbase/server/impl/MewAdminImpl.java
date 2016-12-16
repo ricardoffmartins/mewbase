@@ -4,7 +4,7 @@ import com.tesco.mewbase.projection.Projection;
 import com.tesco.mewbase.projection.ProjectionBuilder;
 import com.tesco.mewbase.server.MewAdmin;
 
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -34,21 +34,23 @@ public class MewAdminImpl implements MewAdmin {
     }
 
     @Override
-    public List<Projection> listProjections() {
-        //TODO
-        return null;
+    public Set<String> getProjectionNames() {
+        return server.projectionManager().getProjectionNames();
     }
 
     @Override
-    public List<String> listChannels() {
-        //TODO
-        return null;
+    public Projection getProjection(String projectionName) {
+        return server.projectionManager().getProjection(projectionName);
     }
 
     @Override
-    public List<String> listBinders() {
-        //TODO
-        return null;
+    public Set<String> getChannelNames() {
+        return server.logManager().getChannelNames();
+    }
+
+    @Override
+    public Set<String> getBinderNames() {
+        return server.docManager().getBinderNames();
     }
 
 }

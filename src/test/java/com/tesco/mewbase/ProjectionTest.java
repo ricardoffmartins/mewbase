@@ -16,10 +16,14 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -78,15 +82,16 @@ public class ProjectionTest extends ServerTestBase {
     }
 
     @Test
-    public void testUsingBuilder() throws Exception {
-        server.admin().buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1).filteredBy(ev -> true)
-                .onto(TEST_BINDER1).identifiedBy(ev -> ev.getString("basketID"))
-                .as((basket, del) ->
-                        BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
-                .create();
-        Producer prod = client.createProducer(TEST_CHANNEL_1);
-        prod.publish(new BsonObject().put("basketID", TEST_BASKET_ID).put("productID", "prod1").put("quantity", 10)).get();
-        waitUntilNumItems(10);
+    public void testProjectionNames() throws Exception {
+        int numProjections = 10;
+        for (int i = 0; i < numProjections; i++) {
+            registerProjection("projection" + i);
+        }
+        Set<String> names = server.admin().getProjectionNames();
+        assertEquals(numProjections, names.size());
+        for (int i = 0; i < numProjections; i++) {
+            assertTrue(names.contains("projection" + i));
+        }
     }
 
     private void testProjectionRestart(boolean duplicates) throws Exception {
@@ -139,7 +144,11 @@ public class ProjectionTest extends ServerTestBase {
     }
 
     private Projection registerProjection() {
-        return server.admin().buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1).onto(TEST_BINDER1)
+        return registerProjection(TEST_PROJECTION_NAME1);
+    }
+
+    private Projection registerProjection(String projectionName) {
+        return server.admin().buildProjection(projectionName).projecting(TEST_CHANNEL_1).onto(TEST_BINDER1)
                 .filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
                 .as((basket, del) ->
                         BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))

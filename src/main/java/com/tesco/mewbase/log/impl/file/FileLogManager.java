@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -59,6 +60,11 @@ public class FileLogManager implements LogManager {
             arr[i++] = log.close();
         }
         return CompletableFuture.allOf(arr);
+    }
+
+    @Override
+    public Set<String> getChannelNames() {
+        return logs.keySet();
     }
 
     @Override

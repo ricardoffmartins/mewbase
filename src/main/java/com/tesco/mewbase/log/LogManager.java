@@ -1,5 +1,6 @@
 package com.tesco.mewbase.log;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -12,4 +13,6 @@ public interface LogManager {
     CompletableFuture<Boolean> createLog(String channel);
 
     CompletableFuture<Void> close();
+
+    Set<String> getChannelNames();
 }

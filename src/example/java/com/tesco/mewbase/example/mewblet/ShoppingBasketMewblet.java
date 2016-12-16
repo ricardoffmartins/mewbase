@@ -15,7 +15,7 @@ public class ShoppingBasketMewblet implements Mewblet {
         admin.createChannel("orders").get();
         admin.createBinder("baskets").get();
 
-        admin.buildProjection("maintain_basket")                             // projection name
+        admin.buildProjection("maintain_basket")                                // projection name
                 .projecting("orders")                                           // channel name
                 .filteredBy(ev -> ev.getString("eventType").equals("add_item")) // event filter
                 .onto("baskets")                                                // binder name

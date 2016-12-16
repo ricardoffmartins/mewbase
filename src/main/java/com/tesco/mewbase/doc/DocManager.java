@@ -2,6 +2,7 @@ package com.tesco.mewbase.doc;
 
 import com.tesco.mewbase.bson.BsonObject;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -53,5 +54,7 @@ public interface DocManager {
     CompletableFuture<Void> start();
 
     CompletableFuture<Boolean> createBinder(String binderName);
+
+    Set<String> getBinderNames();
 
 }
