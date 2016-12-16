@@ -1,12 +1,10 @@
 <assembly>
     <id>bin</id>
-    <!-- Specifies that our binary distribution is a zip package -->
     <formats>
         <format>zip</format>
         <format>tar.gz</format>
     </formats>
 
-    <!-- Adds the dependencies of our application to the lib directory -->
     <dependencySets>
         <!-- TODO filter out dependencies we don't use -->
         <dependencySet>
