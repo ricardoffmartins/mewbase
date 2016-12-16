@@ -253,7 +253,7 @@ public class FileLog implements Log {
     }
 
     CompletableFuture<BasicFile> openFile(int fileNumber) {
-        File file = new File(options.getLogDir(), getFileName(fileNumber));
+        File file = new File(options.getLogsDir(), getFileName(fileNumber));
         return faf.openBasicFile(file);
     }
 
@@ -340,7 +340,7 @@ public class FileLog implements Log {
     }
 
     private BsonObject loadFileInfo() {
-        File f = new File(options.getLogDir(), getLogInfoFileName());
+        File f = new File(options.getLogsDir(), getLogInfoFileName());
         if (!f.exists()) {
             return null;
         } else {
@@ -356,7 +356,7 @@ public class FileLog implements Log {
 
     private void saveFileInfo(BsonObject info) {
         Buffer buff = info.encode();
-        File f = new File(options.getLogDir(), getLogInfoFileName());
+        File f = new File(options.getLogsDir(), getLogInfoFileName());
         try {
             if (!f.exists()) {
                 if (!f.createNewFile()) {
@@ -370,7 +370,7 @@ public class FileLog implements Log {
     }
 
     private File getFile(int fileNumber) {
-        return new File(options.getLogDir(), getFileName(fileNumber));
+        return new File(options.getLogsDir(), getFileName(fileNumber));
     }
 
     private synchronized void checkCreateNextFile() {
@@ -406,7 +406,7 @@ public class FileLog implements Log {
 
     private CompletableFuture<Void> createAndFillFile(String fileName) {
         AsyncResCF<Void> cf = new AsyncResCF<>();
-        File next = new File(options.getLogDir(), fileName);
+        File next = new File(options.getLogsDir(), fileName);
         vertx.executeBlocking(fut -> {
             createAndFillFileBlocking(next, options.getPreallocateSize());
             fut.complete(null);
@@ -443,7 +443,7 @@ public class FileLog implements Log {
      */
     private void checkAndLoadFiles() {
         Map<Integer, File> fileMap = new HashMap<>();
-        File logDir = new File(options.getLogDir());
+        File logDir = new File(options.getLogsDir());
         File[] files = logDir.listFiles(file -> {
             String name = file.getName();
             int lpos = name.lastIndexOf("-");

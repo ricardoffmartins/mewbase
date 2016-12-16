@@ -67,27 +67,12 @@ public class ServerImpl implements Server {
 
     @Override
     public synchronized CompletableFuture<Void> start() {
-        String[] channels = serverOptions.getChannels();
-        String[] binders = serverOptions.getBinders();
-        CompletableFuture[] all = new CompletableFuture[1 + (channels != null ? channels.length : 0) + 1 +
-                (binders != null ? binders.length : 0) + SYSTEM_BINDERS.length];
+        CompletableFuture[] all = new CompletableFuture[2 + SYSTEM_BINDERS.length];
         int i = 0;
-        // Start the channels
-        if (serverOptions.getChannels() != null) {
-            for (String channel : serverOptions.getChannels()) {
-                all[i++] = logManager.createLog(channel);
-            }
-        }
         all[i++] = docManager.start();
         // Start the system binders
         for (String binder : SYSTEM_BINDERS) {
             all[i++] = docManager.createBinder(binder);
-        }
-        // Start the binders
-        if (serverOptions.getBinders() != null) {
-            for (String binder : serverOptions.getBinders()) {
-                all[i++] = docManager.createBinder(binder);
-            }
         }
         all[i] = startTransports();
         return CompletableFuture.allOf(all);

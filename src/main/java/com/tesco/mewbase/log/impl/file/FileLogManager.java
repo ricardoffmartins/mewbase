@@ -28,10 +28,10 @@ public class FileLogManager implements LogManager {
 
     public FileLogManager(Vertx vertx, ServerOptions options, FileAccess faf) {
         this.vertx = vertx;
-        this.logsDir = new File(options.getLogDir());
+        this.logsDir = new File(options.getLogsDir());
         if (!logsDir.exists()) {
             if (!logsDir.mkdirs()) {
-                throw new MewException("Failed to create directory " + options.getLogDir());
+                throw new MewException("Failed to create directory " + options.getLogsDir());
             }
         }
         this.options = options;

@@ -79,7 +79,7 @@ public class DurableSubTest extends ServerTestBase {
 
         if (restart) {
 
-            System.out.println("Restarting");
+            logger.trace("Restarting");
 
             client.close().get();
 
@@ -90,6 +90,7 @@ public class DurableSubTest extends ServerTestBase {
 
             server = Server.newServer(vertx, serverOptions);
             server.start().get();
+            setupChannelsAndBinders();
 
             client = Client.newClient(vertx, clientOptions);
         }

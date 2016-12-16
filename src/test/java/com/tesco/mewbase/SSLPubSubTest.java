@@ -27,8 +27,7 @@ public class SSLPubSubTest extends ServerTestBase {
     @Override
     protected ServerOptions createServerOptions(File logDir) {
         ServerOptions serverOptions = new ServerOptions()
-                .setChannels(new String[]{TEST_CHANNEL_1, TEST_CHANNEL_2})
-                .setLogDir(logDir.getPath())
+                .setLogsDir(logDir.getPath())
                 .setDocsDir(docsDir.getPath());
 
         serverOptions.getNetServerOptions().setSsl(true).setPemKeyCertOptions(

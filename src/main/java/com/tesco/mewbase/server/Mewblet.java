@@ -5,5 +5,5 @@ package com.tesco.mewbase.server;
  */
 public interface Mewblet {
 
-    void setup(MewAdmin admin);
+    void setup(MewAdmin admin) throws Exception;
 }

@@ -66,7 +66,7 @@ public class Main {
 
             // Adjust the logs and docs dir to point in the distro
             options.setDocsDir(adjustDir(installDir, options.getDocsDir()));
-            options.setLogDir(adjustDir(installDir, options.getLogDir()));
+            options.setLogsDir(adjustDir(installDir, options.getLogsDir()));
 
             server = Server.newServer(options);
             server.start().get();

@@ -27,9 +27,10 @@ public class PubSubExample {
     private void example() throws Exception {
 
         // Setup and start a server
-        ServerOptions options = new ServerOptions().setChannels(new String[]{"orders"});
+        ServerOptions options = new ServerOptions();
         Server server = Server.newServer(options);
         server.start().get();
+        server.admin().createChannel("orders").get();
 
         // Create a client
         Client client = Client.newClient(new ClientOptions());

@@ -110,6 +110,7 @@ public class ProjectionTest extends ServerTestBase {
 
         server = Server.newServer(vertx, serverOptions);
         server.start().get();
+        setupChannelsAndBinders();
 
         client = Client.newClient(vertx, clientOptions);
 

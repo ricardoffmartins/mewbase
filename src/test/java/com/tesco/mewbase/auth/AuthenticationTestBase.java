@@ -4,6 +4,7 @@ import com.tesco.mewbase.MewbaseTestBase;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.*;
 import com.tesco.mewbase.common.SubDescriptor;
+import com.tesco.mewbase.server.MewAdmin;
 import com.tesco.mewbase.server.Server;
 import com.tesco.mewbase.server.ServerOptions;
 import io.vertx.core.net.NetClientOptions;
@@ -42,9 +43,17 @@ public class AuthenticationTestBase extends MewbaseTestBase {
         docsDir = testFolder.newFolder();
         ServerOptions serverOptions = createServerOptions(logDir);
         server = Server.newServer(vertx, serverOptions);
-        CompletableFuture<Void> cfStart = server.start();
-        cfStart.get();
+        server.start().get();
+        setupChannelsAndBinders();
     }
+
+    protected void setupChannelsAndBinders() throws Exception {
+        MewAdmin admin = server.admin();
+        admin.createChannel(TEST_CHANNEL_1).get();
+        admin.createChannel(TEST_CHANNEL_2).get();
+        admin.createBinder(TEST_BINDER1).get();
+    }
+
 
     @Override
     protected void tearDown(TestContext context) throws Exception {
@@ -54,9 +63,8 @@ public class AuthenticationTestBase extends MewbaseTestBase {
     }
 
     protected ServerOptions createServerOptions(File logDir) throws Exception {
-        return new ServerOptions().setChannels(new String[]{TEST_CHANNEL_1, TEST_CHANNEL_2})
-                .setBinders(new String[]{TEST_BINDER1})
-                .setLogDir(logDir.getPath())
+        return new ServerOptions()
+                .setLogsDir(logDir.getPath())
                 .setDocsDir(docsDir.getPath())
                 .setAuthProvider(createAuthProvider());
     }
