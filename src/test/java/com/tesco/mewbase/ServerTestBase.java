@@ -16,7 +16,7 @@ import java.io.File;
  */
 public class ServerTestBase extends MewbaseTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(PubSubTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(PubSubTest.class);
 
     protected Server server;
     protected Client client;

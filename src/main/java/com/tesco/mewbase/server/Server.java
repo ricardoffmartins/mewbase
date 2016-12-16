@@ -8,6 +8,7 @@ import com.tesco.mewbase.server.spi.ServerFactory;
 import io.vertx.core.ServiceHelper;
 import io.vertx.core.Vertx;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -25,11 +26,7 @@ public interface Server {
         return factory.newServer(vertx, serverOptions);
     }
 
-    Projection registerProjection(String name, String channel, Function<BsonObject, Boolean> eventFilter,
-                                  String binderName, Function<BsonObject, String> docIDSelector,
-                                  BiFunction<BsonObject, Delivery, BsonObject> projectionFunction);
-
-    ProjectionBuilder buildProjection(String name);
+    MewAdmin admin();
 
     CompletableFuture<Void> start();
 

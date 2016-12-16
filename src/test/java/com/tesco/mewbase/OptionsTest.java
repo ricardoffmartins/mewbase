@@ -18,7 +18,7 @@ import static org.junit.Assert.*;
 @RunWith(VertxUnitRunner.class)
 public class OptionsTest extends MewbaseTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(OptionsTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(OptionsTest.class);
     private static final int fsize = 4*1024;
 
     @Test

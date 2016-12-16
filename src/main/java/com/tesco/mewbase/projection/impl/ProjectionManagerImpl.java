@@ -28,7 +28,7 @@ import static com.tesco.mewbase.doc.DocManager.ID_FIELD;
  */
 public class ProjectionManagerImpl implements ProjectionManager {
 
-    private final static Logger log = LoggerFactory.getLogger(ProjectionManagerImpl.class);
+    private final static Logger logger = LoggerFactory.getLogger(ProjectionManagerImpl.class);
 
     public static final String PROJECTION_STATE_FIELD = "_mb.lastSeqs";
 
@@ -38,20 +38,6 @@ public class ProjectionManagerImpl implements ProjectionManager {
 
     public ProjectionManagerImpl(ServerImpl server) {
         this.server = server;
-    }
-
-    @Override
-    public Projection registerProjection(String name, String channel, Function<BsonObject, Boolean> eventFilter,
-                                         String binderName, Function<BsonObject, String> docIDSelector,
-                                         BiFunction<BsonObject, Delivery, BsonObject> projectionFunction) {
-        if (projections.containsKey(name)) {
-            throw new IllegalArgumentException("Projection " + name + " already registered");
-        }
-        log.trace("Registering projection " + name);
-        ProjectionImpl holder =
-                new ProjectionImpl(name, channel, binderName, eventFilter, docIDSelector, projectionFunction);
-        projections.put(name, holder);
-        return holder;
     }
 
     @Override
@@ -121,7 +107,7 @@ public class ProjectionManagerImpl implements ProjectionManager {
                                 if (processedSeq != null) {
                                     if (processedSeq >= seq) {
                                         // We've processed this one before, so ignore it
-                                        log.trace("Ignoring event " + seq + " as already processed");
+                                        logger.trace("Ignoring event " + seq + " as already processed");
                                         return CompletableFuture.completedFuture(false);
                                     }
                                 }
@@ -159,7 +145,7 @@ public class ProjectionManagerImpl implements ProjectionManager {
 
                     // 5. handle exceptions
                     .exceptionally(t -> {
-                        log.error("Failed in processing projection " + name, t);
+                        logger.error("Failed in processing projection " + name, t);
                         return null;
                     });
         }
@@ -179,17 +165,30 @@ public class ProjectionManagerImpl implements ProjectionManager {
             subscription.resume();
         }
 
-        @Override
-        public void unregister() {
-            projections.remove(name);
-            subscription.close();
-        }
+//        @Override
+//        public void unregister() {
+//            projections.remove(name);
+//            subscription.close();
+//        }
+//
+//        @Override
+//        public void delete() {
+//            unregister();
+//            subscription.unsubscribe();
+//        }
+    }
 
-        @Override
-        public void delete() {
-            unregister();
-            subscription.unsubscribe();
+    Projection registerProjection(String name, String channel, Function<BsonObject, Boolean> eventFilter,
+                                  String binderName, Function<BsonObject, String> docIDSelector,
+                                  BiFunction<BsonObject, Delivery, BsonObject> projectionFunction) {
+        if (projections.containsKey(name)) {
+            throw new IllegalArgumentException("Projection " + name + " already registered");
         }
+        logger.trace("Registering projection " + name);
+        ProjectionImpl holder =
+                new ProjectionImpl(name, channel, binderName, eventFilter, docIDSelector, projectionFunction);
+        projections.put(name, holder);
+        return holder;
     }
 
 }

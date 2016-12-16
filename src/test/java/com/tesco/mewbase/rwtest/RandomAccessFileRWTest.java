@@ -12,7 +12,7 @@ import java.io.RandomAccessFile;
  */
 public class RandomAccessFileRWTest implements RWTest {
 
-    private final static Logger log = LoggerFactory.getLogger(RandomAccessFileRWTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(RandomAccessFileRWTest.class);
 
     private static final int PAGE_SIZE = 4 * 1024;
 
@@ -21,7 +21,7 @@ public class RandomAccessFileRWTest implements RWTest {
         RandomAccessFile raf = new RandomAccessFile(testFile, "rw");
         long len = testFile.length();
         int its = (int)(len / PAGE_SIZE);
-        log.trace("File length is {} iterations are {}", len, its);
+        logger.trace("File length is {} iterations are {}", len, its);
         byte[] bytes = new byte[PAGE_SIZE];
         int bytesRead;
         int cnt = 0;
@@ -39,7 +39,7 @@ public class RandomAccessFileRWTest implements RWTest {
         RandomAccessFile raf = new RandomAccessFile(testFile, "rw");
         long len = testFile.length();
         int its = (int)(len / PAGE_SIZE);
-        log.trace("File length is {} iterations are {}", len, its);
+        logger.trace("File length is {} iterations are {}", len, its);
         byte[] bytes = TestUtils.randomByteArray(PAGE_SIZE);
         int cnt = 0;
         for (int i = 0; i < its; i++) {

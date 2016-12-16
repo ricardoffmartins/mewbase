@@ -24,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 public class AuthenticationTestBase extends MewbaseTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(AuthenticationTestBase.class);
+    private final static Logger logger = LoggerFactory.getLogger(AuthenticationTestBase.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();

@@ -2,6 +2,7 @@ package com.tesco.mewbase.server;
 
 import com.tesco.mewbase.auth.impl.NoAuthAuthProvider;
 import com.tesco.mewbase.auth.MewbaseAuthProvider;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServerOptions;
 
 import java.util.Arrays;
@@ -13,22 +14,37 @@ public class ServerOptions {
 
     public static final String DEFAULT_HOST = "0.0.0.0";
     public static final int DEFAULT_PORT = 7451;
-    public static final String DEFAULT_DOCS_DIR = "docs";
+    public static final String DEFAULT_DOCS_DIR = "mewdata/docs";
+    public static final String DEFAULT_LOGS_DIR = "mewdata/eventlogs";
+    public static final int DEFAULT_MAX_LOG_CHUNK_SIZE = 4 * 10 * 1024 * 1024;
+    public static final int DEFAULT_PREALLOCATE_SIZE = 0;
+    public static final int DEFAULT_MAX_RECORD_SIZE = 4 * 1024 * 1024;
+    public static final int DEFAULT_READ_BUFFER_SIZE = 4 * 1024;
+
     private String[] channels;
     private NetServerOptions netServerOptions = new NetServerOptions().setPort(DEFAULT_PORT).setHost(DEFAULT_HOST);
     private String docsDir = DEFAULT_DOCS_DIR;
     private String[] binders;
     private MewbaseAuthProvider authProvider = new NoAuthAuthProvider();
-    public static final String DEFAULT_LOG_DIR = "mewlog";
-    public static final int DEFAULT_MAX_LOG_CHUNK_SIZE = 4 * 10 * 1024 * 1024;
-    public static final int DEFAULT_PREALLOCATE_SIZE = 0;
-    public static final int DEFAULT_MAX_RECORD_SIZE = 4 * 1024 * 1024;
-    public static final int DEFAULT_READ_BUFFER_SIZE = 4 * 1024;
-    private String logDir = DEFAULT_LOG_DIR;
+    private String logDir = DEFAULT_LOGS_DIR;
     private int maxLogChunkSize = DEFAULT_MAX_LOG_CHUNK_SIZE;
     private int preallocateSize = DEFAULT_PREALLOCATE_SIZE;
     private int maxRecordSize = DEFAULT_MAX_RECORD_SIZE;
     private int readBufferSize = DEFAULT_READ_BUFFER_SIZE;
+
+    public ServerOptions() {
+    }
+
+    public ServerOptions(JsonObject jsonObject) {
+        JsonObject nso = jsonObject.getJsonObject("netServerOptions");
+        this.netServerOptions = nso == null ? new NetServerOptions() : new NetServerOptions(nso);
+        this.docsDir = jsonObject.getString("docsDir", DEFAULT_DOCS_DIR);
+        this.logDir = jsonObject.getString("logDir", DEFAULT_LOGS_DIR);
+        this.maxLogChunkSize = jsonObject.getInteger("maxLogChunkSize", DEFAULT_MAX_LOG_CHUNK_SIZE);
+        this.preallocateSize = jsonObject.getInteger("preallocateSize", DEFAULT_PREALLOCATE_SIZE);
+        this.maxRecordSize = jsonObject.getInteger("maxRecordSize", DEFAULT_MAX_RECORD_SIZE);
+        this.readBufferSize = jsonObject.getInteger("readBufferSize", DEFAULT_READ_BUFFER_SIZE);
+    }
 
     public String[] getChannels() {
         return channels;

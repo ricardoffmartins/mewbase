@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class AFBasicFile implements BasicFile {
 
-    private final static Logger log = LoggerFactory.getLogger(AFBasicFile.class);
+    private final static Logger logger = LoggerFactory.getLogger(AFBasicFile.class);
 
     private final AsyncFile af;
 

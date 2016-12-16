@@ -14,7 +14,7 @@ import java.nio.channels.FileChannel;
  */
 public class RandomAccessFileWithFileChannelRWTest implements RWTest {
 
-    private final static Logger log = LoggerFactory.getLogger(RandomAccessFileWithFileChannelRWTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(RandomAccessFileWithFileChannelRWTest.class);
 
     private static final int PAGE_SIZE = 4 * 1024;
 
@@ -24,7 +24,7 @@ public class RandomAccessFileWithFileChannelRWTest implements RWTest {
         RandomAccessFile raf = new RandomAccessFile(testFile, "rw");
         long len = testFile.length();
         int its = (int)(len / PAGE_SIZE);
-        log.trace("File length is {} iterations are {}", len, its);
+        logger.trace("File length is {} iterations are {}", len, its);
         byte[] bytes = new byte[PAGE_SIZE];
         int bytesRead;
         int cnt = 0;
@@ -42,7 +42,7 @@ public class RandomAccessFileWithFileChannelRWTest implements RWTest {
         RandomAccessFile raf = new RandomAccessFile(testFile, "rw");
         long len = testFile.length();
         int its = (int)(len / PAGE_SIZE);
-        log.trace("File length is {} iterations are {}", len, its);
+        logger.trace("File length is {} iterations are {}", len, its);
         byte[] bytes = TestUtils.randomByteArray(PAGE_SIZE);
         int cnt = 0;
         FileChannel ch = raf.getChannel();

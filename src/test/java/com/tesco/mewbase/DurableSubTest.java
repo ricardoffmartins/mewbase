@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 @RunWith(VertxUnitRunner.class)
 public class DurableSubTest extends ServerTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(DurableSubTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(DurableSubTest.class);
 
     private static final String TEST_DURABLE_ID = "testdurable";
     private static final int numEvents = 100;
@@ -78,6 +78,8 @@ public class DurableSubTest extends ServerTestBase {
         sub.close();
 
         if (restart) {
+
+            System.out.println("Restarting");
 
             client.close().get();
 

@@ -24,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class MewbaseVertxAuthProvider implements MewbaseAuthProvider {
 
-    private final static Logger log = LoggerFactory.getLogger(MewbaseVertxAuthProvider.class);
+    private final static Logger logger = LoggerFactory.getLogger(MewbaseVertxAuthProvider.class);
 
     private AuthProvider authProvider;
 

@@ -13,6 +13,7 @@ import com.tesco.mewbase.projection.Projection;
 import com.tesco.mewbase.projection.ProjectionBuilder;
 import com.tesco.mewbase.projection.ProjectionManager;
 import com.tesco.mewbase.projection.impl.ProjectionManagerImpl;
+import com.tesco.mewbase.server.MewAdmin;
 import com.tesco.mewbase.server.Server;
 import com.tesco.mewbase.server.ServerOptions;
 import com.tesco.mewbase.server.impl.transport.net.NetTransport;
@@ -31,7 +32,7 @@ import java.util.function.Function;
  */
 public class ServerImpl implements Server {
 
-    private final static Logger log = LoggerFactory.getLogger(ServerImpl.class);
+    private final static Logger logger = LoggerFactory.getLogger(ServerImpl.class);
 
     private final ServerOptions serverOptions;
     private final Vertx vertx;
@@ -40,6 +41,7 @@ public class ServerImpl implements Server {
     private final DocManager docManager;
     private final ProjectionManager projectionManager;
     private final Set<Transport> transports = new ConcurrentHashSet<>();
+    private final MewAdmin mewAdmin;
 
     public static final String SYSTEM_BINDER_PREFIX = "_mb.";
     public static final String DURABLE_SUBS_BINDER_NAME = SYSTEM_BINDER_PREFIX + "durableSubs";
@@ -57,10 +59,16 @@ public class ServerImpl implements Server {
         this.logManager = new FileLogManager(vertx, options, faf);
         this.docManager = new LmdbDocManager(serverOptions.getDocsDir(), vertx);
         this.projectionManager = new ProjectionManagerImpl(this);
+        this.mewAdmin = new MewAdminImpl(this);
     }
 
     protected ServerImpl(ServerOptions serverOptions) {
         this(Vertx.vertx(), serverOptions);
+    }
+
+    @Override
+    public MewAdmin admin() {
+        return mewAdmin;
     }
 
     @Override
@@ -102,16 +110,7 @@ public class ServerImpl implements Server {
         return CompletableFuture.allOf(all);
     }
 
-    public Projection registerProjection(String name, String channel, Function<BsonObject, Boolean> eventFilter,
-                                         String binderName, Function<BsonObject, String> docIDSelector,
-                                         BiFunction<BsonObject, Delivery, BsonObject> projectionFunction) {
 
-        return projectionManager.registerProjection(name, channel, eventFilter, binderName, docIDSelector, projectionFunction);
-    }
-
-    public ProjectionBuilder buildProjection(String name) {
-        return projectionManager.buildProjection(name);
-    }
 
     protected void removeConnection(ConnectionImpl connection) {
         connections.remove(connection);
@@ -123,6 +122,14 @@ public class ServerImpl implements Server {
 
     public DocManager docManager() {
         return docManager;
+    }
+
+    public LogManager logManager() {
+        return logManager;
+    }
+
+    public ProjectionManager projectionManager() {
+        return projectionManager;
     }
 
     public Vertx vertx() {

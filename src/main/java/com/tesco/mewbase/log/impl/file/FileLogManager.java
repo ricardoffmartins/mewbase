@@ -18,19 +18,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FileLogManager implements LogManager {
 
-    private final static Logger log = LoggerFactory.getLogger(FileLogManager.class);
+    private final static Logger logger = LoggerFactory.getLogger(FileLogManager.class);
 
     private final Vertx vertx;
     private final FileAccess faf;
-    private final File logDir;
+    private final File logsDir;
     private final Map<String, FileLog> logs = new ConcurrentHashMap<>();
     private final ServerOptions options;
 
     public FileLogManager(Vertx vertx, ServerOptions options, FileAccess faf) {
         this.vertx = vertx;
-        this.logDir = new File(options.getLogDir());
-        if (!logDir.exists()) {
-            if (!logDir.mkdirs()) {
+        this.logsDir = new File(options.getLogDir());
+        if (!logsDir.exists()) {
+            if (!logsDir.mkdirs()) {
                 throw new MewException("Failed to create directory " + options.getLogDir());
             }
         }
@@ -39,10 +39,16 @@ public class FileLogManager implements LogManager {
     }
 
     @Override
-    public CompletableFuture<Log> createLog(String channel) {
-        FileLog log = new FileLog(vertx, faf, options, channel);
-        logs.put(channel, log);
-        return log.start().thenApply(v -> log);
+    public synchronized CompletableFuture<Boolean> createLog(String channel) {
+        if (!logs.containsKey(channel)) {
+            File logDir = new File(logsDir, channel);
+            boolean newLog = !logDir.exists();
+            FileLog log = new FileLog(vertx, faf, options, channel);
+            logs.put(channel, log);
+            return log.start().thenApply(v -> newLog);
+        } else {
+            return CompletableFuture.completedFuture(false);
+        }
     }
 
     @Override

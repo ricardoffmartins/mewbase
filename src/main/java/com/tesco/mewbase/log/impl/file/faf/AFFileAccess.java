@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class AFFileAccess implements FileAccess {
 
-    private final static Logger log = LoggerFactory.getLogger(AFFileAccess.class);
+    private final static Logger logger = LoggerFactory.getLogger(AFFileAccess.class);
 
 
     private final Vertx vertx;
@@ -30,7 +30,7 @@ public class AFFileAccess implements FileAccess {
         vertx.fileSystem().open(file.getPath(), new OpenOptions().setWrite(true), ar -> {
             if (ar.succeeded()) {
                 if (ar.result() == null) {
-                    log.error("Succeeded in opening file but result is null!");
+                    logger.error("Succeeded in opening file but result is null!");
                 }
                 cf.complete(new AFBasicFile(ar.result()));
             } else {

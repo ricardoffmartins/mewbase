@@ -48,7 +48,7 @@ public class InMemoryDocManager implements DocManager {
     }
 
     @Override
-    public CompletableFuture<Void> createBinder(String binderName) {
+    public CompletableFuture<Boolean> createBinder(String binderName) {
         return null;
     }
 

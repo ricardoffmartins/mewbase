@@ -146,7 +146,6 @@ public class StreamTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numAppendObjects, i -> obj.copy().put("num", i));
 
-
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
         int offset = numAppendObjects - numReadObjects;

@@ -15,13 +15,13 @@ import java.util.Arrays;
  */
 public class RWTestRunner {
 
-    private final static Logger log = LoggerFactory.getLogger(RWTestRunner.class);
+    private final static Logger logger = LoggerFactory.getLogger(RWTestRunner.class);
 
     public static void main(String[] args) {
         try {
             new RWTestRunner().start();
         } catch (Throwable t) {
-            log.error("Failed to run RWTests", t);
+            logger.error("Failed to run RWTests", t);
         }
     }
 
@@ -42,7 +42,7 @@ public class RWTestRunner {
             if (!testFile.delete()) {
                 throw new MewException("Failed to delete test file");
             } else {
-                log.trace("Deleted old test file");
+                logger.trace("Deleted old test file");
             }
         }
         createAndFillFile(testFile, FILE_SIZE);
@@ -61,12 +61,12 @@ public class RWTestRunner {
             try {
                 checkSum = test.testWrite(testFile);
             } catch (Exception e) {
-                log.error("Failed to run test", e);
+                logger.error("Failed to run test", e);
             }
             long end = System.currentTimeMillis();
             long fsMB = FILE_SIZE / (1024 * 1024);
             double rate = 1000 * (fsMB / (double)(end - start));
-            log.info("{} Write time taken {} ms, rate = {} Mb/s cs {}", test.getClass().getName(), end - start, rate, checkSum);
+            logger.info("{} Write time taken {} ms, rate = {} Mb/s cs {}", test.getClass().getName(), end - start, rate, checkSum);
         }
         {
             long start = System.currentTimeMillis();
@@ -74,18 +74,18 @@ public class RWTestRunner {
             try {
                 checkSum = test.testRead(testFile);
             } catch (Exception e) {
-                log.error("Failed to run test", e);
+                logger.error("Failed to run test", e);
             }
             long end = System.currentTimeMillis();
             long fsMB = FILE_SIZE / (1024 * 1024);
             double rate = 1000 * (fsMB / (double)(end - start));
-            log.info("{} read time taken {} ms, rate = {} Mb/s cs {}", test.getClass().getName(), end - start, rate, checkSum);
+            logger.info("{} read time taken {} ms, rate = {} Mb/s cs {}", test.getClass().getName(), end - start, rate, checkSum);
         }
     }
 
 
     private void createAndFillFile(File file, long size) {
-        log.trace("Creating log file {} with size {}", file, size);
+        logger.trace("Creating log file {} with size {}", file, size);
         ByteBuffer buff = ByteBuffer.allocate(MAX_FILL_BUFFER_SIZE);
         try (RandomAccessFile rf = new RandomAccessFile(file, "rw")) {
             FileChannel ch = rf.getChannel();
@@ -105,7 +105,7 @@ public class RWTestRunner {
         } catch (Exception e) {
             throw new MewException("Failed to create test file", e);
         }
-        log.trace("Created test file {} with size {}", file, size);
+        logger.trace("Created test file {} with size {}", file, size);
     }
 
     public static byte[] filledByteArray(int size, byte b) {

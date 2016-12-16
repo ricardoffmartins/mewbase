@@ -21,5 +21,5 @@ public interface ProjectionBuilder {
 
     ProjectionBuilder as(BiFunction<BsonObject, Delivery, BsonObject> projectionFunction);
 
-    Projection register();
+    Projection create();
 }

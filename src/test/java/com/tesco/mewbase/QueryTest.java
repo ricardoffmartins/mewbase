@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RunWith(VertxUnitRunner.class)
 public class QueryTest extends ServerTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(QueryTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(QueryTest.class);
 
     protected Producer prod;
 
@@ -108,8 +108,9 @@ public class QueryTest extends ServerTestBase {
 
 
     protected void installInsertProjection() {
-        server.registerProjection("testproj", TEST_CHANNEL_1, ev -> true, TEST_BINDER1, ev -> ev.getString("id"),
-                (basket, del) -> del.event());
+        server.admin().buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy( ev -> true)
+                .identifiedBy(ev -> ev.getString("id"))
+                .as((basket, del) -> del.event()).create();
     }
 
     protected String getID(int id) {

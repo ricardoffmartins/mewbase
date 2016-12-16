@@ -27,7 +27,7 @@ import static org.junit.Assert.fail;
 @RunWith(VertxUnitRunner.class)
 public class PubSubTest extends ServerTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(PubSubTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(PubSubTest.class);
 
     @Test
     public void testPublishNonExistentChannel() throws Exception {

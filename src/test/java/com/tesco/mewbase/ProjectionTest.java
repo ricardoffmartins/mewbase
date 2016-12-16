@@ -28,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(VertxUnitRunner.class)
 public class ProjectionTest extends ServerTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(ProjectionTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(ProjectionTest.class);
 
     private static final String TEST_PROJECTION_NAME1 = "testproj";
     private static final String TEST_BASKET_ID = "basket1234";
@@ -52,37 +52,13 @@ public class ProjectionTest extends ServerTestBase {
     }
 
     @Test
-    public void testUnregister() throws Exception {
-        Projection projection = registerProjection();
-
-        sendEvents(10);
-
-        waitUntilNumItems(10);
-
-        projection.unregister();
-
-        sendEvents(10);
-        Thread.sleep(500);
-
-        // Still 10 as projection unregistered
-        BsonObject basket = client.findByID(TEST_BINDER1, TEST_BASKET_ID).get();
-        assertEquals(10, (int)basket.getBsonObject("products").getInteger("prod1"));
-
-        // Reregister
-        registerProjection();
-
-        // The rest be processed now
-        waitUntilNumItems(20);
-    }
-
-    @Test
     public void testPauseResume(TestContext testContext) throws Exception {
         AtomicInteger cnt = new AtomicInteger();
         AtomicReference<Projection> projRef = new AtomicReference<>();
         AtomicBoolean paused = new AtomicBoolean();
-        Projection projection = server.registerProjection(TEST_PROJECTION_NAME1, TEST_CHANNEL_1, ev -> true,
-                TEST_BINDER1, ev -> ev.getString("basketID"),
-                (basket, del) -> {
+        Projection projection = server.admin().buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1)
+                .onto(TEST_BINDER1).filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
+                .as((basket, del) -> {
                     testContext.assertFalse(paused.get());
                     if (cnt.incrementAndGet() == 5) {
                         projRef.get().pause();
@@ -93,8 +69,8 @@ public class ProjectionTest extends ServerTestBase {
                         });
                     }
                     return BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID"));
-                }
-        );
+                })
+                .create();
         projRef.set(projection);
         Producer prod = client.createProducer(TEST_CHANNEL_1);
         prod.publish(new BsonObject().put("basketID", TEST_BASKET_ID).put("productID", "prod1").put("quantity", 10)).get();
@@ -103,11 +79,11 @@ public class ProjectionTest extends ServerTestBase {
 
     @Test
     public void testUsingBuilder() throws Exception {
-        server.buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1).filteredBy(ev -> true)
+        server.admin().buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1).filteredBy(ev -> true)
                 .onto(TEST_BINDER1).identifiedBy(ev -> ev.getString("basketID"))
                 .as((basket, del) ->
                         BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
-                .register();
+                .create();
         Producer prod = client.createProducer(TEST_CHANNEL_1);
         prod.publish(new BsonObject().put("basketID", TEST_BASKET_ID).put("productID", "prod1").put("quantity", 10)).get();
         waitUntilNumItems(10);
@@ -162,9 +138,11 @@ public class ProjectionTest extends ServerTestBase {
     }
 
     private Projection registerProjection() {
-        return server.registerProjection(TEST_PROJECTION_NAME1, TEST_CHANNEL_1, ev -> true, TEST_BINDER1, ev -> ev.getString("basketID"),
-                (basket, del) -> BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID"))
-        );
+        return server.admin().buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1).onto(TEST_BINDER1)
+                .filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
+                .as((basket, del) ->
+                        BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
+                .create();
     }
 
     private void waitUntilNumItems(int numItems) {

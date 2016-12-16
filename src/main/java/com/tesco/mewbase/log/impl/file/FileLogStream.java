@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  */
 public class FileLogStream implements LogReadStream {
 
-    private final static Logger log = LoggerFactory.getLogger(FileLogStream.class);
+    private final static Logger logger = LoggerFactory.getLogger(FileLogStream.class);
 
     private final FileLog fileLog;
     private final SubDescriptor subDescriptor;
@@ -242,7 +242,7 @@ public class FileLogStream implements LogReadStream {
         if (exceptionHandler != null) {
             exceptionHandler.accept(t);
         } else {
-            log.error("Failed to read", t);
+            logger.error("Failed to read", t);
         }
     }
 
@@ -273,7 +273,7 @@ public class FileLogStream implements LogReadStream {
             }
         } catch (RejectedExecutionException e) {
             // Can happen if pool is being shutdown
-            log.warn("Read rejected as pool being shutdown", e);
+            logger.warn("Read rejected as pool being shutdown", e);
         }
     }
 
@@ -286,7 +286,7 @@ public class FileLogStream implements LogReadStream {
         resetParser();
         int headFileNumber = fileLog.getFileNumber();
         if (headFileNumber < fileNumber) {
-            log.warn("Invalid file number {} head {}", fileNumber, headFileNumber);
+            logger.warn("Invalid file number {} head {}", fileNumber, headFileNumber);
             return;
         }
         openFileStream((fileNumber + 1) * fileSize, false);

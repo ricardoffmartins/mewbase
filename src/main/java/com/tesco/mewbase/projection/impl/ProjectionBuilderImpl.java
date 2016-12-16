@@ -15,14 +15,14 @@ import java.util.function.Function;
 public class ProjectionBuilderImpl implements ProjectionBuilder {
 
     private final String projectionName;
-    private final ProjectionManager projectionManager;
+    private final ProjectionManagerImpl projectionManager;
     private String channelName;
     private Function<BsonObject, Boolean> eventFilter = doc -> true;
     private String binderName;
     private Function<BsonObject, String> docIDSelector;
     private BiFunction<BsonObject, Delivery, BsonObject> projectionFunction;
 
-    public ProjectionBuilderImpl(String projectionName, ProjectionManager projectionManager) {
+    public ProjectionBuilderImpl(String projectionName, ProjectionManagerImpl projectionManager) {
         this.projectionName = projectionName;
         this.projectionManager = projectionManager;
     }
@@ -58,7 +58,7 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
     }
 
     @Override
-    public Projection register() {
+    public Projection create() {
         if (channelName == null) {
             throw new IllegalStateException("Please specify a channel name");
         }
