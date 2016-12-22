@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -120,11 +121,11 @@ public class LmdbDocManager implements DocManager {
     }
 
     @Override
-    public CompletableFuture<Void> createBinder(String binderName) {
+    public synchronized CompletableFuture<Boolean> createBinder(String binderName) {
         if (databases.containsKey(binderName)) {
-            throw new MewException("Already a binder called " + binderName);
+            return CompletableFuture.completedFuture(false);
         }
-        AsyncResCF<Void> res = new AsyncResCF<>();
+        AsyncResCF<Boolean> res = new AsyncResCF<>();
         exec.executeBlocking(fut -> {
             File dbDir = new File(docsDir, "binder-" + binderName);
             createIfDoesntExists(dbDir);
@@ -132,9 +133,14 @@ public class LmdbDocManager implements DocManager {
             env.open(dbDir.getPath(), Constants.NOTLS);
             Database db = env.openDatabase();
             databases.put(binderName, new DBHolder(env, db));
-            fut.complete(null);
+            fut.complete(true);
         }, res);
         return res;
+    }
+
+    @Override
+    public Set<String> getBinderNames() {
+        return databases.keySet();
     }
 
     private void createIfDoesntExists(File dir) {

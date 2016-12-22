@@ -5,8 +5,8 @@ import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.MewException;
 import com.tesco.mewbase.log.Log;
 import com.tesco.mewbase.log.impl.file.faf.AFFileAccess;
-import com.tesco.mewbase.util.AsyncResCF;
 import com.tesco.mewbase.server.ServerOptions;
+import com.tesco.mewbase.util.AsyncResCF;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.TestContext;
 
@@ -53,7 +53,7 @@ public class LogTestBase extends MewbaseTestBase {
     }
 
     protected ServerOptions getOptions() {
-        return new ServerOptions().setLogDir(logDir.getPath());
+        return new ServerOptions().setLogsDir(logDir.getPath());
     }
 
     protected void startLog() throws Exception {
@@ -81,7 +81,7 @@ public class LogTestBase extends MewbaseTestBase {
 
     protected void saveFileInfo(BsonObject info) {
         Buffer buff = info.encode();
-        File f = new File(options.getLogDir(), getLogInfoFileName(TEST_CHANNEL_1));
+        File f = new File(options.getLogsDir(), getLogInfoFileName(TEST_CHANNEL_1));
         try {
             if (!f.exists()) {
                 if (!f.createNewFile()) {
@@ -168,7 +168,7 @@ public class LogTestBase extends MewbaseTestBase {
     }
 
     protected void assertNumFiles(String channel, int expected) {
-        File[] files = listLogFiles(new File(options.getLogDir()), channel);
+        File[] files = listLogFiles(new File(options.getLogsDir()), channel);
         assertEquals(expected, files.length);
     }
 

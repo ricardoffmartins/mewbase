@@ -140,12 +140,11 @@ public class StreamTest extends LogTestBase {
                                long startPos)
             throws Exception {
         options = new ServerOptions().setMaxLogChunkSize(maxLogChunkSize).
-                setReadBufferSize(readBuffersize).setMaxRecordSize(maxRecordSize).setLogDir(logDir.getPath());
+                setReadBufferSize(readBuffersize).setMaxRecordSize(maxRecordSize).setLogsDir(logDir.getPath());
         startLog();
 
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numAppendObjects, i -> obj.copy().put("num", i));
-
 
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
@@ -182,7 +181,7 @@ public class StreamTest extends LogTestBase {
     public void test_pause_resume_in_retro(TestContext testContext) throws Exception {
         int fileSize = objLen * 20;
         options = new ServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogDir(logDir.getPath());
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogsDir(logDir.getPath());
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
@@ -226,7 +225,7 @@ public class StreamTest extends LogTestBase {
     public void test_stream_from_negative_position(TestContext testContext) throws Exception {
         int fileSize = objLen * 20;
         options = new ServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogDir(logDir.getPath());
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogsDir(logDir.getPath());
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
@@ -243,7 +242,7 @@ public class StreamTest extends LogTestBase {
     public void test_stream_from_past_head(TestContext testContext) throws Exception {
         int fileSize = objLen * 20;
         options = new ServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogDir(logDir.getPath());
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogsDir(logDir.getPath());
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
@@ -261,7 +260,7 @@ public class StreamTest extends LogTestBase {
     public void test_stream_from_last_written(TestContext testContext) throws Exception {
         int fileSize = objLen * numObjects + 10;
         options = new ServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogDir(logDir.getPath());
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogsDir(logDir.getPath());
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
@@ -298,7 +297,7 @@ public class StreamTest extends LogTestBase {
     public void test_stream_active_from_zero(TestContext testContext) throws Exception {
         int fileSize = objLen * numObjects + 10;
         options = new ServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogDir(logDir.getPath());
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogsDir(logDir.getPath());
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
@@ -328,7 +327,7 @@ public class StreamTest extends LogTestBase {
     public void test_pause_resume_active_retro_active(TestContext testContext) throws Exception {
         int fileSize = objLen * numObjects + 10;
         options = new ServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogDir(logDir.getPath());
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogsDir(logDir.getPath());
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
@@ -377,7 +376,7 @@ public class StreamTest extends LogTestBase {
     public void test_pause_resume_active_active(TestContext testContext) throws Exception {
         int fileSize = objLen * numObjects + 10;
         options = new ServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogDir(logDir.getPath());
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogsDir(logDir.getPath());
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
@@ -453,7 +452,7 @@ public class StreamTest extends LogTestBase {
 
         int fileSize = objLen * numObjects / 5 + objLen / 2;
         options = new ServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogDir(logDir.getPath());
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen).setLogsDir(logDir.getPath());
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 

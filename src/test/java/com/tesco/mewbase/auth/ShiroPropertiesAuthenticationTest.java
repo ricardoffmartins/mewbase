@@ -30,9 +30,8 @@ public class ShiroPropertiesAuthenticationTest extends AuthenticationTestBase {
     }
 
     protected ServerOptions createServerOptions(File logDir) {
-        return new ServerOptions().setChannels(new String[]{TEST_CHANNEL_1, TEST_CHANNEL_2})
-                .setBinders(new String[]{TEST_BINDER1})
-                .setLogDir(logDir.getPath()).setDocsDir(docsDir.getPath())
+        return new ServerOptions()
+                .setLogsDir(logDir.getPath()).setDocsDir(docsDir.getPath())
                 .setAuthProvider(new MewbaseVertxAuthProvider(createShiroAuthProvider()));
     }
 

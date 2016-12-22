@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 @RunWith(VertxUnitRunner.class)
 public class DurableSubTest extends ServerTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(DurableSubTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(DurableSubTest.class);
 
     private static final String TEST_DURABLE_ID = "testdurable";
     private static final int numEvents = 100;
@@ -79,6 +79,8 @@ public class DurableSubTest extends ServerTestBase {
 
         if (restart) {
 
+            logger.trace("Restarting");
+
             client.close().get();
 
             server.stop().get();
@@ -88,6 +90,7 @@ public class DurableSubTest extends ServerTestBase {
 
             server = Server.newServer(vertx, serverOptions);
             server.start().get();
+            setupChannelsAndBinders();
 
             client = Client.newClient(vertx, clientOptions);
         }

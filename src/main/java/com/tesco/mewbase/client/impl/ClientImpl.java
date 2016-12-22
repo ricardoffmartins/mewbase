@@ -26,7 +26,7 @@ import java.util.function.Function;
  */
 public class ClientImpl implements Client, ClientFrameHandler {
 
-    private final static Logger log = LoggerFactory.getLogger(ClientImpl.class);
+    private final static Logger logger = LoggerFactory.getLogger(ClientImpl.class);
 
     private final AtomicInteger sessionSeq = new AtomicInteger();
     private final AtomicInteger requestIDSequence = new AtomicInteger();

@@ -16,6 +16,6 @@ public class ServerFactoryImpl implements ServerFactory {
 
     @Override
     public Server newServer(Vertx vertx, ServerOptions serverOptions) {
-        return new ServerImpl(vertx, serverOptions);
+        return new ServerImpl(vertx, false, serverOptions);
     }
 }

@@ -5,8 +5,8 @@ import com.tesco.mewbase.client.MewException;
 import com.tesco.mewbase.common.SubDescriptor;
 import com.tesco.mewbase.log.Log;
 import com.tesco.mewbase.log.LogReadStream;
-import com.tesco.mewbase.util.AsyncResCF;
 import com.tesco.mewbase.server.ServerOptions;
+import com.tesco.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class FileLog implements Log {
 
-    private final static Logger log = LoggerFactory.getLogger(FileLog.class);
+    private final static Logger logger = LoggerFactory.getLogger(FileLog.class);
 
     private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
     private static final String LOG_INFO_FILE_TAIL = "-log-info.dat";
@@ -88,7 +88,7 @@ public class FileLog implements Log {
         if (!currFile.exists()) {
             if (fileNumber == 0 && filePos == 0) {
                 // This is OK, new log
-                log.trace("Creating new log info file for channel {}", channel);
+                logger.trace("Creating new log info file for channel {}", channel);
                 saveInfo(true);
                 // Create a new first file
                 cfCreate = createAndFillFile(getFileName(0));
@@ -142,13 +142,13 @@ public class FileLog implements Log {
             }
             // Move to next file
             if (nextWriteFile != null) {
-                log.trace("Moving to next log file");
+                logger.trace("Moving to next log file");
                 currWriteFile = nextWriteFile;
                 filePos = 0;
                 fileNumber++;
                 nextWriteFile = null;
             } else {
-                log.warn("Eager create of next file too slow, nextFileCF {}", nextFileCF);
+                logger.warn("Eager create of next file too slow, nextFileCF {}", nextFileCF);
                 checkCreateNextFile();
                 // Next file creation is in progress, just wait for it
                 cf = new CompletableFuture<>();
@@ -253,7 +253,7 @@ public class FileLog implements Log {
     }
 
     CompletableFuture<BasicFile> openFile(int fileNumber) {
-        File file = new File(options.getLogDir(), getFileName(fileNumber));
+        File file = new File(options.getLogsDir(), getFileName(fileNumber));
         return faf.openBasicFile(file);
     }
 
@@ -269,7 +269,7 @@ public class FileLog implements Log {
                 try {
                     stream.handle(pos, bsonObject);
                 } catch (Throwable t) {
-                    log.error("Failed to send to subs", t);
+                    logger.error("Failed to send to subs", t);
                 }
             }
         }
@@ -340,7 +340,7 @@ public class FileLog implements Log {
     }
 
     private BsonObject loadFileInfo() {
-        File f = new File(options.getLogDir(), getLogInfoFileName());
+        File f = new File(options.getLogsDir(), getLogInfoFileName());
         if (!f.exists()) {
             return null;
         } else {
@@ -356,7 +356,7 @@ public class FileLog implements Log {
 
     private void saveFileInfo(BsonObject info) {
         Buffer buff = info.encode();
-        File f = new File(options.getLogDir(), getLogInfoFileName());
+        File f = new File(options.getLogsDir(), getLogInfoFileName());
         try {
             if (!f.exists()) {
                 if (!f.createNewFile()) {
@@ -370,7 +370,7 @@ public class FileLog implements Log {
     }
 
     private File getFile(int fileNumber) {
-        return new File(options.getLogDir(), getFileName(fileNumber));
+        return new File(options.getLogsDir(), getFileName(fileNumber));
     }
 
     private synchronized void checkCreateNextFile() {
@@ -387,17 +387,17 @@ public class FileLog implements Log {
                     if (t == null) {
                         nextWriteFile = bf;
                         if (nextFileCF == null) {
-                            log.error("nextFileCF is null");
+                            logger.error("nextFileCF is null");
                         }
                         nextFileCF.complete(null);
                         nextFileCF = null;
                     } else {
-                        log.error("Failed to create next file", t);
+                        logger.error("Failed to create next file", t);
                     }
                     return null;
                 }
             }).exceptionally(t -> {
-                log.error(t.getMessage(), t);
+                logger.error(t.getMessage(), t);
                 return null;
             });
 
@@ -406,7 +406,7 @@ public class FileLog implements Log {
 
     private CompletableFuture<Void> createAndFillFile(String fileName) {
         AsyncResCF<Void> cf = new AsyncResCF<>();
-        File next = new File(options.getLogDir(), fileName);
+        File next = new File(options.getLogsDir(), fileName);
         vertx.executeBlocking(fut -> {
             createAndFillFileBlocking(next, options.getPreallocateSize());
             fut.complete(null);
@@ -415,7 +415,7 @@ public class FileLog implements Log {
     }
 
     private void createAndFillFileBlocking(File file, int size) {
-        log.trace("Creating log file {} with size {}", file, size);
+        logger.trace("Creating log file {} with size {}", file, size);
         ByteBuffer buff = ByteBuffer.allocate(MAX_CREATE_BUFF_SIZE);
         try (RandomAccessFile rf = new RandomAccessFile(file, "rw")) {
             FileChannel ch = rf.getChannel();
@@ -435,7 +435,7 @@ public class FileLog implements Log {
         } catch (Exception e) {
             throw new MewException("Failed to create log file", e);
         }
-        log.trace("Created log file {}", file);
+        logger.trace("Created log file {}", file);
     }
 
     /*
@@ -443,7 +443,7 @@ public class FileLog implements Log {
      */
     private void checkAndLoadFiles() {
         Map<Integer, File> fileMap = new HashMap<>();
-        File logDir = new File(options.getLogDir());
+        File logDir = new File(options.getLogsDir());
         File[] files = logDir.listFiles(file -> {
             String name = file.getName();
             int lpos = name.lastIndexOf("-");
@@ -451,7 +451,7 @@ public class FileLog implements Log {
                 return false;
             }
             if (lpos == -1) {
-                log.warn("Unexpected file in log dir: " + file);
+                logger.warn("Unexpected file in log dir: " + file);
                 return false;
             } else {
                 String chName = name.substring(0, lpos);
@@ -476,7 +476,7 @@ public class FileLog implements Log {
             }
         }
 
-        log.trace("There are {} files in {} for channel {}", files.length, logDir, channel);
+        logger.trace("There are {} files in {} for channel {}", files.length, logDir, channel);
 
         for (int i = 0; i < fileMap.size(); i++) {
             // Check file names are contiguous

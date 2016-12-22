@@ -96,7 +96,7 @@ public class Protocol {
     public static final String QUERYACK_QUERYID = "queryID";
     public static final String QUERYACK_BYTES = "bytes";
 
-    private final static Logger log = LoggerFactory.getLogger(Protocol.class);
+    private final static Logger logger = LoggerFactory.getLogger(Protocol.class);
 
     private final FrameHandler frameHandler;
     private final RecordParser parser;
@@ -186,7 +186,7 @@ public class Protocol {
                 frameHandler.handlePing(frame);
                 break;
             default:
-                log.error("Invalid frame type: " + type);
+                logger.error("Invalid frame type: " + type);
         }
     }
 

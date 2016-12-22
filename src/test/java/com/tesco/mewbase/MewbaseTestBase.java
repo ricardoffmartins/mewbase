@@ -23,7 +23,6 @@ public class MewbaseTestBase {
     protected static final String TEST_BINDER1 = "binder1";
     protected static final String TEST_BINDER2 = "binder2";
 
-
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 

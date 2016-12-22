@@ -31,7 +31,7 @@ public class InitialiseTest extends LogTestBase {
         String subDir = UUID.randomUUID().toString();
         File dir = new File(ftestDir, subDir);
         assertFalse(dir.exists());
-        options = new ServerOptions().setLogDir(dir.getPath());
+        options = new ServerOptions().setLogsDir(dir.getPath());
         startLog(options, TEST_CHANNEL_1);
         assertTrue(dir.exists());
     }
@@ -56,7 +56,7 @@ public class InitialiseTest extends LogTestBase {
         File ld = new File(ftestDir, subDir);
         assertFalse(ld.exists());
         logDir = ld;
-        options = new ServerOptions().setLogDir(ld.getPath());
+        options = new ServerOptions().setLogsDir(ld.getPath());
         startLog(options, TEST_CHANNEL_1);
         verifyInitialFiles(ld, TEST_CHANNEL_1);
     }
@@ -332,7 +332,7 @@ public class InitialiseTest extends LogTestBase {
 
     @Test
     public void test_start_max_record_size_too_large(TestContext testContext) throws Exception {
-        options = new ServerOptions().setMaxRecordSize(DEFAULT_MAX_LOG_CHUNK_SIZE + 1).setLogDir(logDir.getPath());
+        options = new ServerOptions().setMaxRecordSize(DEFAULT_MAX_LOG_CHUNK_SIZE + 1).setLogsDir(logDir.getPath());
         try {
             startLog();
             fail("should throw exception");
@@ -343,7 +343,7 @@ public class InitialiseTest extends LogTestBase {
 
     @Test
     public void test_start_preallocate_size_too_large(TestContext testContext) throws Exception {
-        options = new ServerOptions().setPreallocateSize(DEFAULT_MAX_LOG_CHUNK_SIZE + 1).setLogDir(logDir.getPath());
+        options = new ServerOptions().setPreallocateSize(DEFAULT_MAX_LOG_CHUNK_SIZE + 1).setLogsDir(logDir.getPath());
         try {
             startLog();
             fail("should throw exception");
@@ -354,7 +354,7 @@ public class InitialiseTest extends LogTestBase {
 
     @Test
     public void test_start_max_record_size_too_small(TestContext testContext) throws Exception {
-        options = new ServerOptions().setMaxRecordSize(0).setLogDir(logDir.getPath());
+        options = new ServerOptions().setMaxRecordSize(0).setLogsDir(logDir.getPath());
         try {
             startLog();
             fail("should throw exception");
@@ -365,7 +365,7 @@ public class InitialiseTest extends LogTestBase {
 
     @Test
     public void test_max_log_chunk_size_too_small(TestContext testContext) throws Exception {
-        options = new ServerOptions().setMaxLogChunkSize(0).setLogDir(logDir.getPath());
+        options = new ServerOptions().setMaxLogChunkSize(0).setLogsDir(logDir.getPath());
         try {
             startLog();
             fail("should throw exception");
@@ -376,7 +376,7 @@ public class InitialiseTest extends LogTestBase {
 
     @Test
     public void test_start_negative_preallocate_size(TestContext testContext) throws Exception {
-        options = new ServerOptions().setPreallocateSize(-1).setLogDir(logDir.getPath());
+        options = new ServerOptions().setPreallocateSize(-1).setLogsDir(logDir.getPath());
         try {
             startLog();
             fail("should throw exception");

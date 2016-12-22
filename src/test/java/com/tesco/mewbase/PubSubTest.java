@@ -17,9 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * Created by tim on 26/09/16.
@@ -27,7 +25,7 @@ import static org.junit.Assert.fail;
 @RunWith(VertxUnitRunner.class)
 public class PubSubTest extends ServerTestBase {
 
-    private final static Logger log = LoggerFactory.getLogger(PubSubTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(PubSubTest.class);
 
     @Test
     public void testPublishNonExistentChannel() throws Exception {
@@ -49,7 +47,8 @@ public class PubSubTest extends ServerTestBase {
     public void testSubscribeNonExistentChannel() throws Exception {
         String channel = "nosuchchannel";
         try {
-            client.subscribe(new SubDescriptor().setChannel(channel), del -> {}).get();
+            client.subscribe(new SubDescriptor().setChannel(channel), del -> {
+            }).get();
             fail("Should throw exception");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
