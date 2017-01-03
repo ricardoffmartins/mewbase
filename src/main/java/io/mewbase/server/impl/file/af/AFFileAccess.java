@@ -1,7 +1,7 @@
-package io.mewbase.log.impl.file.faf;
+package io.mewbase.server.impl.file.af;
 
-import io.mewbase.log.impl.file.BasicFile;
-import io.mewbase.log.impl.file.FileAccess;
+import io.mewbase.server.impl.BasicFile;
+import io.mewbase.server.impl.FileAccess;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.OpenOptions;
 import org.slf4j.Logger;

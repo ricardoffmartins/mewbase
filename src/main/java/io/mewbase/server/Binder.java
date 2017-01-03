@@ -10,6 +10,8 @@ import java.util.function.Function;
  */
 public interface Binder {
 
+    String ID_FIELD = "id";
+
     String getName();
 
     /**

@@ -1,6 +1,6 @@
-package io.mewbase.log.impl.file.faf;
+package io.mewbase.server.impl.file.af;
 
-import io.mewbase.log.impl.file.BasicFile;
+import io.mewbase.server.impl.BasicFile;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.AsyncFile;

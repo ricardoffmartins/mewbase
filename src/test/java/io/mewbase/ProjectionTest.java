@@ -3,7 +3,7 @@ package io.mewbase;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
 import io.mewbase.client.Producer;
-import io.mewbase.projection.Projection;
+import io.mewbase.server.Projection;
 import io.mewbase.server.impl.ServerImpl;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;

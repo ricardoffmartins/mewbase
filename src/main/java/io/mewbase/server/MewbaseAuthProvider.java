@@ -1,4 +1,4 @@
-package io.mewbase.auth;
+package io.mewbase.server;
 
 import io.mewbase.bson.BsonObject;
 

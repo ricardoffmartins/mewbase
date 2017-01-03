@@ -1,7 +1,6 @@
 package io.mewbase.server;
 
-import io.mewbase.auth.MewbaseAuthProvider;
-import io.mewbase.auth.impl.NoAuthAuthProvider;
+import io.mewbase.server.impl.auth.NoAuthAuthProvider;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServerOptions;
 

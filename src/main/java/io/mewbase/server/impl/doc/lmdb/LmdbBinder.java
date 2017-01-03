@@ -1,4 +1,4 @@
-package io.mewbase.doc.impl.lmdb;
+package io.mewbase.server.impl.doc.lmdb;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.Binder;

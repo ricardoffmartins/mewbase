@@ -1,4 +1,4 @@
-package io.mewbase.log.impl.file;
+package io.mewbase.server.impl;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;

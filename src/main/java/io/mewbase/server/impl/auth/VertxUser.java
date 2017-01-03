@@ -1,6 +1,6 @@
-package io.mewbase.auth.impl;
+package io.mewbase.server.impl.auth;
 
-import io.mewbase.auth.MewbaseUser;
+import io.mewbase.server.MewbaseUser;
 import io.vertx.ext.auth.User;
 
 public class VertxUser implements MewbaseUser {

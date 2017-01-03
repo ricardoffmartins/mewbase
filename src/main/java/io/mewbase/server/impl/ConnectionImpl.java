@@ -1,7 +1,7 @@
 package io.mewbase.server.impl;
 
-import io.mewbase.auth.MewbaseAuthProvider;
-import io.mewbase.auth.MewbaseUser;
+import io.mewbase.server.MewbaseAuthProvider;
+import io.mewbase.server.MewbaseUser;
 import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.Client;

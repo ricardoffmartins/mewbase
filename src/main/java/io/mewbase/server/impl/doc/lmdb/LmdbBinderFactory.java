@@ -1,8 +1,8 @@
-package io.mewbase.doc.impl.lmdb;
+package io.mewbase.server.impl.doc.lmdb;
 
 import io.mewbase.client.MewException;
 import io.mewbase.server.Binder;
-import io.mewbase.server.BinderFactory;
+import io.mewbase.server.impl.BinderFactory;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;

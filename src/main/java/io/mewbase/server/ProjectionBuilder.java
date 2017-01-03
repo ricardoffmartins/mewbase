@@ -1,4 +1,4 @@
-package io.mewbase.projection;
+package io.mewbase.server;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.common.Delivery;

@@ -1,8 +1,5 @@
 package io.mewbase.server;
 
-import io.mewbase.projection.Projection;
-import io.mewbase.projection.ProjectionBuilder;
-
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 

@@ -1,9 +1,9 @@
-package io.mewbase.projection.impl;
+package io.mewbase.server.impl.proj;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.common.Delivery;
-import io.mewbase.projection.Projection;
-import io.mewbase.projection.ProjectionBuilder;
+import io.mewbase.server.Projection;
+import io.mewbase.server.ProjectionBuilder;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -14,14 +14,14 @@ import java.util.function.Function;
 public class ProjectionBuilderImpl implements ProjectionBuilder {
 
     private final String projectionName;
-    private final ProjectionManagerImpl projectionManager;
+    private final ProjectionManager projectionManager;
     private String channelName;
     private Function<BsonObject, Boolean> eventFilter = doc -> true;
     private String binderName;
     private Function<BsonObject, String> docIDSelector;
     private BiFunction<BsonObject, Delivery, BsonObject> projectionFunction;
 
-    public ProjectionBuilderImpl(String projectionName, ProjectionManagerImpl projectionManager) {
+    public ProjectionBuilderImpl(String projectionName, ProjectionManager projectionManager) {
         this.projectionName = projectionName;
         this.projectionManager = projectionManager;
     }

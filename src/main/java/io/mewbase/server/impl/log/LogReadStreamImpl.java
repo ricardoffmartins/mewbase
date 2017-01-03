@@ -1,7 +1,8 @@
-package io.mewbase.log.impl.file;
+package io.mewbase.server.impl.log;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
+import io.mewbase.server.impl.BasicFile;
 import io.mewbase.server.LogReadStream;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -24,11 +25,11 @@ import java.util.function.Consumer;
  * <p>
  * Created by tim on 22/10/16.
  */
-public class FileLogStream implements LogReadStream {
+public class LogReadStreamImpl implements LogReadStream {
 
-    private final static Logger logger = LoggerFactory.getLogger(FileLogStream.class);
+    private final static Logger logger = LoggerFactory.getLogger(LogReadStreamImpl.class);
 
-    private final FileLog fileLog;
+    private final LogImpl fileLog;
     private final SubDescriptor subDescriptor;
     private final Context context;
     private final int readBufferSize;
@@ -49,8 +50,8 @@ public class FileLogStream implements LogReadStream {
     private RecordParser parser;
     private int recordSize = -1;
 
-    public FileLogStream(FileLog fileLog, SubDescriptor subDescriptor, int readBufferSize,
-                         int fileSize) {
+    public LogReadStreamImpl(LogImpl fileLog, SubDescriptor subDescriptor, int readBufferSize,
+                             int fileSize) {
         this.fileLog = fileLog;
         this.subDescriptor = subDescriptor;
         this.context = Vertx.currentContext();
@@ -164,7 +165,7 @@ public class FileLogStream implements LogReadStream {
         this.ignoreFirst = ignoreFirst;
         this.fileStreamPos = pos;
         // Open a file
-        FileLog.FileCoord coord = fileLog.getCoord(pos);
+        LogImpl.FileCoord coord = fileLog.getCoord(pos);
         fileLog.openFile(coord.fileNumber).handle((bf, t) -> {
             if (t == null) {
                 streamFile = bf;

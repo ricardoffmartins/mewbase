@@ -1,13 +1,12 @@
-package io.mewbase.projection.impl;
+package io.mewbase.server.impl.proj;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
 import io.mewbase.common.Delivery;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.common.impl.DeliveryImpl;
-import io.mewbase.projection.Projection;
-import io.mewbase.projection.ProjectionBuilder;
-import io.mewbase.projection.ProjectionManager;
+import io.mewbase.server.Projection;
+import io.mewbase.server.ProjectionBuilder;
 import io.mewbase.server.Binder;
 import io.mewbase.server.impl.Protocol;
 import io.mewbase.server.impl.ServerImpl;
@@ -24,15 +23,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static io.mewbase.server.Server.ID_FIELD;
+import static io.mewbase.server.Binder.ID_FIELD;
 
 
 /**
  * Created by tim on 30/09/16.
  */
-public class ProjectionManagerImpl implements ProjectionManager {
+public class ProjectionManager {
 
-    private final static Logger logger = LoggerFactory.getLogger(ProjectionManagerImpl.class);
+    private final static Logger logger = LoggerFactory.getLogger(ProjectionManager.class);
 
     public static final String PROJECTION_STATE_FIELD = "_mb.lastSeqs";
 
@@ -40,21 +39,18 @@ public class ProjectionManagerImpl implements ProjectionManager {
 
     private final ServerImpl server;
 
-    public ProjectionManagerImpl(ServerImpl server) {
+    public ProjectionManager(ServerImpl server) {
         this.server = server;
     }
 
-    @Override
     public ProjectionBuilder buildProjection(String name) {
         return new ProjectionBuilderImpl(name, this);
     }
 
-    @Override
     public List<String> listProjectionNames() {
         return new ArrayList<>(projections.keySet());
     }
 
-    @Override
     public Projection getProjection(String projectionName) {
         return projections.get(projectionName);
     }

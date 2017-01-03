@@ -1,4 +1,4 @@
-package io.mewbase.projection.impl;
+package io.mewbase.server.impl.proj;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;

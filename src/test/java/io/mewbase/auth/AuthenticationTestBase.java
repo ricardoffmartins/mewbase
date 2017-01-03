@@ -5,6 +5,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.client.*;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.MewAdmin;
+import io.mewbase.server.MewbaseAuthProvider;
 import io.mewbase.server.ServerOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;

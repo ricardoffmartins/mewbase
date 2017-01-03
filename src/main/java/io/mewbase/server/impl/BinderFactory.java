@@ -1,4 +1,6 @@
-package io.mewbase.server;
+package io.mewbase.server.impl;
+
+import io.mewbase.server.Binder;
 
 import java.util.concurrent.CompletableFuture;
 

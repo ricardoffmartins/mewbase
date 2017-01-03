@@ -1,6 +1,6 @@
 package io.mewbase.auth;
 
-import io.mewbase.auth.impl.MewbaseVertxAuthProvider;
+import io.mewbase.server.impl.auth.MewbaseVertxAuthProvider;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.ServerOptions;
 import io.vertx.core.json.JsonObject;

@@ -2,6 +2,7 @@ package io.mewbase.log;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.Log;
+import io.mewbase.server.impl.ServerImpl;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,8 +72,8 @@ public class InitialiseTest extends LogTestBase {
     @Test
     public void test_when_starting_log_other_channel_files_are_unchanged() throws Exception {
         startLog();
-        server.createLog(TEST_CHANNEL_2).get();
-        Log log2 = server.getLog(TEST_CHANNEL_2);
+        server.createChannel(TEST_CHANNEL_2).get();
+        Log log2 = ((ServerImpl)server).getLog(TEST_CHANNEL_2);
         log2.start().get();
         verifyInitialFiles(logsDir, TEST_CHANNEL_2);
     }

@@ -12,8 +12,6 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface Server {
 
-    String ID_FIELD = "id";
-
     static Server newServer(ServerOptions serverOptions) {
         return factory.newServer(serverOptions);
     }
@@ -28,17 +26,18 @@ public interface Server {
 
     CompletableFuture<Boolean> createBinder(String name);
 
-    CompletableFuture<Boolean> createLog(String channel);
+    List<String> listChannelNames();
 
-    List<String> listLogNames();
+    CompletableFuture<Boolean> createChannel(String channel);
 
-    Log getLog(String channel);
 
+    // TODO not sure if we really need a separate MewAdmin interface...
     MewAdmin admin();
 
     CompletableFuture<Void> start();
 
     CompletableFuture<Void> stop();
+
 
     ServerFactory factory = ServiceHelper.loadFactory(ServerFactory.class);
 

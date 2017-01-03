@@ -2,8 +2,8 @@ package io.mewbase.log;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.log.impl.file.FileLog;
-import io.mewbase.log.impl.file.FileLogStream;
+import io.mewbase.server.impl.log.LogImpl;
+import io.mewbase.server.impl.log.LogReadStreamImpl;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
 import io.vertx.ext.unit.Async;
@@ -188,7 +188,7 @@ public class StreamTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        FileLogStream rs = (FileLogStream)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
         AtomicBoolean paused = new AtomicBoolean();
@@ -250,7 +250,7 @@ public class StreamTest extends LogTestBase {
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         try {
-            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(((FileLog)log).getLastWrittenPos() + 1));
+            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(((LogImpl)log).getLastWrittenPos() + 1));
             fail("Should throw exception");
         } catch (IllegalArgumentException e) {
             // OK
@@ -267,7 +267,7 @@ public class StreamTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(((FileLog)log).getLastWrittenPos()));
+        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(((LogImpl)log).getLastWrittenPos()));
 
         Async async1 = testContext.async();
         Async async2 = testContext.async();
@@ -303,7 +303,7 @@ public class StreamTest extends LogTestBase {
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        FileLogStream rs = (FileLogStream)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
 
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
@@ -333,7 +333,7 @@ public class StreamTest extends LogTestBase {
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        FileLogStream rs = (FileLogStream)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
 
         Async async1 = testContext.async();
         Async async2 = testContext.async();
@@ -382,7 +382,7 @@ public class StreamTest extends LogTestBase {
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        FileLogStream rs = (FileLogStream)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
 
         testContext.assertFalse(rs.isRetro());
 
@@ -460,8 +460,8 @@ public class StreamTest extends LogTestBase {
 
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        FileLogStream rs1 = (FileLogStream)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
-        FileLogStream rs2 = (FileLogStream)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
+        LogReadStreamImpl rs1 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
+        LogReadStreamImpl rs2 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
 
         CountDownLatch latch = new CountDownLatch(2);
 
@@ -471,7 +471,7 @@ public class StreamTest extends LogTestBase {
         latch.await();
     }
 
-    private void handleRecords(FileLogStream rs, TestContext testContext, CountDownLatch latch, int fileSize) {
+    private void handleRecords(LogReadStreamImpl rs, TestContext testContext, CountDownLatch latch, int fileSize) {
         AtomicInteger cnt = new AtomicInteger();
         rs.handler((pos, record) -> {
             testContext.assertEquals("bar", record.getString("foo"));

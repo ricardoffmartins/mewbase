@@ -1,11 +1,13 @@
-package io.mewbase.log.impl.file;
+package io.mewbase.server.impl.log;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Log;
-import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
+import io.mewbase.server.impl.BasicFile;
+import io.mewbase.server.impl.FileAccess;
+import io.mewbase.server.LogReadStream;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -34,9 +36,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>
  * Created by tim on 07/10/16.
  */
-public class FileLog implements Log {
+public class LogImpl implements Log {
 
-    private final static Logger logger = LoggerFactory.getLogger(FileLog.class);
+    private final static Logger logger = LoggerFactory.getLogger(LogImpl.class);
 
     private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
     private static final String LOG_INFO_FILE_TAIL = "-log-info.dat";
@@ -45,7 +47,7 @@ public class FileLog implements Log {
     private final FileAccess faf;
     private final String channel;
     private final ServerOptions options;
-    private final Set<FileLogStream> fileLogStreams = new ConcurrentHashSet<>();
+    private final Set<LogReadStreamImpl> fileLogStreams = new ConcurrentHashSet<>();
 
     private BasicFile currWriteFile;
     private BasicFile nextWriteFile;
@@ -58,7 +60,7 @@ public class FileLog implements Log {
     private long expectedSeq;
     private final PriorityQueue<WriteHolder> pq = new PriorityQueue<>();
 
-    public FileLog(Vertx vertx, FileAccess faf, ServerOptions options, String channel) {
+    public LogImpl(Vertx vertx, FileAccess faf, ServerOptions options, String channel) {
         this.vertx = vertx;
         this.channel = channel;
         this.options = options;
@@ -125,7 +127,7 @@ public class FileLog implements Log {
         if (subDescriptor.getStartPos() > getLastWrittenPos()) {
             throw new IllegalArgumentException("startPos cannot be past head");
         }
-        return new FileLogStream(this, subDescriptor,
+        return new LogReadStreamImpl(this, subDescriptor,
                 options.getReadBufferSize(), options.getMaxLogChunkSize());
     }
 
@@ -239,11 +241,11 @@ public class FileLog implements Log {
         return filePos;
     }
 
-    void removeSubHolder(FileLogStream stream) {
+    void removeSubHolder(LogReadStreamImpl stream) {
         fileLogStreams.remove(stream);
     }
 
-    void readdSubHolder(FileLogStream stream) {
+    void readdSubHolder(LogReadStreamImpl stream) {
         fileLogStreams.add(stream);
     }
 
@@ -271,7 +273,7 @@ public class FileLog implements Log {
     private synchronized void sendToSubs(long pos, BsonObject bsonObject) {
         expectedSeq++;
         lastWrittenPos.set(pos);
-        for (FileLogStream stream : fileLogStreams) {
+        for (LogReadStreamImpl stream : fileLogStreams) {
             if (stream.matches(bsonObject)) {
                 try {
                     stream.handle(pos, bsonObject);
@@ -390,7 +392,7 @@ public class FileLog implements Log {
                 return faf.openBasicFile(next);
             });
             cfBf.handle((bf, t) -> {
-                synchronized (FileLog.this) {
+                synchronized (LogImpl.this) {
                     if (t == null) {
                         nextWriteFile = bf;
                         if (nextFileCF == null) {

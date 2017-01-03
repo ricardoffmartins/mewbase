@@ -1,7 +1,7 @@
 package io.mewbase.server.impl;
 
-import io.mewbase.projection.Projection;
-import io.mewbase.projection.ProjectionBuilder;
+import io.mewbase.server.Projection;
+import io.mewbase.server.ProjectionBuilder;
 import io.mewbase.server.MewAdmin;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public class MewAdminImpl implements MewAdmin {
 
     @Override
     public CompletableFuture<Boolean> createChannel(String channelName) {
-        return server.createLog(channelName);
+        return server.createChannel(channelName);
     }
 
     @Override
@@ -45,7 +45,7 @@ public class MewAdminImpl implements MewAdmin {
 
     @Override
     public List<String> listChannels() {
-        return server.listLogNames();
+        return server.listChannelNames();
     }
 
     @Override

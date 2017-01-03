@@ -2,13 +2,11 @@ package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
-import io.mewbase.doc.impl.lmdb.LmdbBinderFactory;
-import io.mewbase.log.impl.file.FileAccess;
-import io.mewbase.log.impl.file.FileLog;
-import io.mewbase.log.impl.file.faf.AFFileAccess;
-import io.mewbase.projection.ProjectionManager;
-import io.mewbase.projection.impl.ProjectionManagerImpl;
+import io.mewbase.server.impl.doc.lmdb.LmdbBinderFactory;
+import io.mewbase.server.impl.file.af.AFFileAccess;
 import io.mewbase.server.*;
+import io.mewbase.server.impl.log.LogImpl;
+import io.mewbase.server.impl.proj.ProjectionManager;
 import io.mewbase.server.impl.transport.net.NetTransport;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
@@ -68,7 +66,7 @@ public class ServerImpl implements Server {
         this.serverOptions = serverOptions;
         this.faf = new AFFileAccess(vertx);
         this.systemBinderFactory = new LmdbBinderFactory(serverOptions.getDocsDir(), vertx);
-        this.projectionManager = new ProjectionManagerImpl(this);
+        this.projectionManager = new ProjectionManager(this);
         this.mewAdmin = new MewAdminImpl(this);
     }
 
@@ -180,7 +178,7 @@ public class ServerImpl implements Server {
 
     private CompletableFuture<Void> insertBinder(String binderName) {
         // TODO bit weird having the id in the object too??
-        return bindersBinder.put(binderName, new BsonObject().put(ID_FIELD, binderName));
+        return bindersBinder.put(binderName, new BsonObject().put(Binder.ID_FIELD, binderName));
     }
 
     private CompletableFuture<Void> startSystemBinders() {
@@ -228,7 +226,7 @@ public class ServerImpl implements Server {
     private CompletableFuture<Void> startUserBinders() {
         CompletableFuture<List<BsonObject>> docsCf = listBinder(bindersBinder);
         return docsCf.thenCompose(list -> {
-            List<String> ids = list.stream().map(doc -> doc.getString(ID_FIELD)).collect(Collectors.toList());
+            List<String> ids = list.stream().map(doc -> doc.getString(Binder.ID_FIELD)).collect(Collectors.toList());
             return startBinders(ids);
         });
     }
@@ -250,14 +248,14 @@ public class ServerImpl implements Server {
 
         CompletableFuture<List<BsonObject>> docsCf = listBinder(channelsBinder);
         return docsCf.thenCompose(list -> {
-            List<String> ids = list.stream().map(doc -> doc.getString(ID_FIELD)).collect(Collectors.toList());
+            List<String> ids = list.stream().map(doc -> doc.getString(Binder.ID_FIELD)).collect(Collectors.toList());
             return startLogs(ids);
         });
     }
 
     @Override
     // Must be synchronized to prevent race
-    public synchronized CompletableFuture<Boolean> createLog(String channel) {
+    public synchronized CompletableFuture<Boolean> createChannel(String channel) {
         Log log = logs.get(channel);
         if (log != null) {
             return CompletableFuture.completedFuture(false);
@@ -269,7 +267,7 @@ public class ServerImpl implements Server {
             if (cfPrev != null) {
                 return cfPrev;
             } else {
-                final Log thelog = new FileLog(vertx, faf, serverOptions, channel);
+                final Log thelog = new LogImpl(vertx, faf, serverOptions, channel);
                 thelog.start().thenCompose(v -> insertLog(channel)).thenAccept(v -> {
                     // Must be synchronized to prevent race
                     synchronized (ServerImpl.this) {
@@ -299,11 +297,10 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public List<String> listLogNames() {
+    public List<String> listChannelNames() {
         return new ArrayList<>(logs.keySet());
     }
 
-    @Override
     public Log getLog(String channel) {
         return logs.get(channel);
     }
@@ -312,7 +309,7 @@ public class ServerImpl implements Server {
         CompletableFuture[] arr = new CompletableFuture[logNames.size()];
         int i = 0;
         for (String logName : logNames) {
-            FileLog log = new FileLog(vertx, faf, serverOptions, logName);
+            LogImpl log = new LogImpl(vertx, faf, serverOptions, logName);
             logs.put(logName, log);
             arr[i++] = log.start();
         }
@@ -321,7 +318,7 @@ public class ServerImpl implements Server {
 
     private CompletableFuture<Void> insertLog(String logName) {
         // TODO bit weird having the id in the object too??
-        return channelsBinder.put(logName, new BsonObject().put(ID_FIELD, logName));
+        return channelsBinder.put(logName, new BsonObject().put(Binder.ID_FIELD, logName));
     }
 
 

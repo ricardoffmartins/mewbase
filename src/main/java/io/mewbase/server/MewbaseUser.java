@@ -1,4 +1,4 @@
-package io.mewbase.auth;
+package io.mewbase.server;
 
 /**
  * Contains all authorization info in order to perform operations

@@ -1,4 +1,4 @@
-package io.mewbase.projection;
+package io.mewbase.server;
 
 /**
  * Created by tim on 25/11/16.

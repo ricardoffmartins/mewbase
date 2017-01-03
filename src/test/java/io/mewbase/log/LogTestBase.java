@@ -5,6 +5,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
 import io.mewbase.server.Log;
 import io.mewbase.server.ServerOptions;
+import io.mewbase.server.impl.ServerImpl;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.TestContext;
 
@@ -39,7 +40,7 @@ public class LogTestBase extends ServerTestBase {
     protected void startLog() throws Exception {
         startServer();
         setupChannelsAndBinders();
-        log = server.getLog(TEST_CHANNEL_1);
+        log = ((ServerImpl)server).getLog(TEST_CHANNEL_1);
     }
 
     @Override
