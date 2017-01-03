@@ -4,7 +4,6 @@ import com.tesco.mewbase.ServerTestBase;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.server.Binder;
 import com.tesco.mewbase.server.DocReadStream;
-import com.tesco.mewbase.server.Server;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;

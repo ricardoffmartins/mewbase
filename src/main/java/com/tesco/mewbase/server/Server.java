@@ -4,7 +4,6 @@ import com.tesco.mewbase.server.spi.ServerFactory;
 import io.vertx.core.ServiceHelper;
 import io.vertx.core.Vertx;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 

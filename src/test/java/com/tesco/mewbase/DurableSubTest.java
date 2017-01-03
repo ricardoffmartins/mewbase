@@ -1,7 +1,9 @@
 package com.tesco.mewbase;
 
 import com.tesco.mewbase.bson.BsonObject;
-import com.tesco.mewbase.client.*;
+import com.tesco.mewbase.client.ClientDelivery;
+import com.tesco.mewbase.client.Producer;
+import com.tesco.mewbase.client.Subscription;
 import com.tesco.mewbase.common.SubDescriptor;
 import com.tesco.mewbase.server.MewAdmin;
 import io.vertx.ext.unit.Async;

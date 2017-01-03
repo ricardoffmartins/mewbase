@@ -6,7 +6,6 @@ import com.tesco.mewbase.client.ClientOptions;
 import com.tesco.mewbase.client.Producer;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Assert;
 import org.junit.Test;
@@ -14,10 +13,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static junit.framework.TestCase.assertNotNull;
 
 /**
  * Created by Jamie on 14/10/2016.

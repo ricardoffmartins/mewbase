@@ -3,12 +3,12 @@ package com.tesco.mewbase.server.impl;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.MewException;
 import com.tesco.mewbase.doc.impl.lmdb.LmdbBinderFactory;
-import com.tesco.mewbase.log.impl.file.FileLog;
-import com.tesco.mewbase.server.*;
 import com.tesco.mewbase.log.impl.file.FileAccess;
+import com.tesco.mewbase.log.impl.file.FileLog;
 import com.tesco.mewbase.log.impl.file.faf.AFFileAccess;
 import com.tesco.mewbase.projection.ProjectionManager;
 import com.tesco.mewbase.projection.impl.ProjectionManagerImpl;
+import com.tesco.mewbase.server.*;
 import com.tesco.mewbase.server.impl.transport.net.NetTransport;
 import com.tesco.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -119,7 +118,7 @@ public class ServerImpl implements Server {
     public ServerOptions getServerOptions() {
         return serverOptions;
     }
-    
+
     // Binder related stuff
 
     @Override
@@ -278,12 +277,12 @@ public class ServerImpl implements Server {
                         startingLogs.remove(channel);
                     }
                 }).handle((v, t) -> {
-                   if (t == null) {
-                       cfStart.complete(true);
-                   } else {
-                       cfStart.completeExceptionally(t);
-                   }
-                   return null;
+                    if (t == null) {
+                        cfStart.complete(true);
+                    } else {
+                        cfStart.completeExceptionally(t);
+                    }
+                    return null;
                 });
                 return cfStart;
             }
@@ -324,8 +323,8 @@ public class ServerImpl implements Server {
         // TODO bit weird having the id in the object too??
         return channelsBinder.put(logName, new BsonObject().put(ID_FIELD, logName));
     }
-    
-    
+
+
     // =======================
 
     private CompletableFuture<Void> startTransports() {

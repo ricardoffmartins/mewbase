@@ -1,10 +1,7 @@
 package com.tesco.mewbase.log;
 
 import com.tesco.mewbase.bson.BsonObject;
-import com.tesco.mewbase.client.MewException;
 import com.tesco.mewbase.server.Log;
-import com.tesco.mewbase.server.ServerOptions;
-import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -263,7 +260,7 @@ public class InitialiseTest extends LogTestBase {
 
     @Test
     public void test_start_with_invalid_last_written_pos() throws Exception {
-        test_start_with_invalid_info_file( () -> {
+        test_start_with_invalid_info_file(() -> {
             BsonObject info = new BsonObject();
             info.put("fileNumber", 0);
             info.put("headPos", 0);

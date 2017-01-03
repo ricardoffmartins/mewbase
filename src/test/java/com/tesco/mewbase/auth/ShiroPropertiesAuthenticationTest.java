@@ -2,8 +2,6 @@ package com.tesco.mewbase.auth;
 
 import com.tesco.mewbase.auth.impl.MewbaseVertxAuthProvider;
 import com.tesco.mewbase.bson.BsonObject;
-import com.tesco.mewbase.client.Client;
-import com.tesco.mewbase.client.ClientOptions;
 import com.tesco.mewbase.server.ServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.shiro.PropertiesProviderConstants;
@@ -16,8 +14,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-
-import java.io.File;
 
 @RunWith(VertxUnitRunner.class)
 public class ShiroPropertiesAuthenticationTest extends AuthenticationTestBase {

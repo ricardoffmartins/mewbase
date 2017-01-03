@@ -6,7 +6,6 @@ import com.tesco.mewbase.client.Producer;
 import com.tesco.mewbase.projection.Projection;
 import com.tesco.mewbase.server.impl.ServerImpl;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;

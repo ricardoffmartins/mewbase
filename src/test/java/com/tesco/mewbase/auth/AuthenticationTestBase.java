@@ -5,9 +5,7 @@ import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.*;
 import com.tesco.mewbase.common.SubDescriptor;
 import com.tesco.mewbase.server.MewAdmin;
-import com.tesco.mewbase.server.Server;
 import com.tesco.mewbase.server.ServerOptions;
-import io.vertx.core.net.NetClientOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import org.junit.Rule;
@@ -15,7 +13,6 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
