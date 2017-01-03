@@ -31,7 +31,7 @@ public class InitialiseTest extends LogTestBase {
         String subDir = UUID.randomUUID().toString();
         logsDir = new File(ftestDir, subDir);
         assertFalse(logsDir.exists());
-        serverOptions = new ServerOptions().setLogsDir(logsDir.getPath());
+        serverOptions = origServerOptions().setLogsDir(logsDir.getPath());
         startLog();
         assertTrue(logsDir.exists());
     }
@@ -56,7 +56,7 @@ public class InitialiseTest extends LogTestBase {
         File ld = new File(ftestDir, subDir);
         assertFalse(ld.exists());
         logsDir = ld;
-        serverOptions = new ServerOptions().setLogsDir(ld.getPath());
+        serverOptions = origServerOptions().setLogsDir(ld.getPath());
         startLog();
         verifyInitialFiles(ld, TEST_CHANNEL_1);
     }
