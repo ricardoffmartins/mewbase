@@ -1,17 +1,18 @@
-package com.tesco.mewbase.doc;
+package com.tesco.mewbase.server;
 
 import com.tesco.mewbase.bson.BsonObject;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
  * Created by tim on 27/09/16.
  */
-public interface DocReadStream {
+public interface LogReadStream {
 
     void exceptionHandler(Consumer<Throwable> handler);
 
-    void handler(Consumer<BsonObject> handler);
+    void handler(BiConsumer<Long, BsonObject> handler);
 
     void start();
 
@@ -20,6 +21,4 @@ public interface DocReadStream {
     void resume();
 
     void close();
-
-    boolean hasMore();
 }

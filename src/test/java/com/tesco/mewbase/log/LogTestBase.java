@@ -1,12 +1,10 @@
-package com.tesco.mewbase.log.impl.file;
+package com.tesco.mewbase.log;
 
-import com.tesco.mewbase.MewbaseTestBase;
+import com.tesco.mewbase.ServerTestBase;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.MewException;
-import com.tesco.mewbase.log.Log;
-import com.tesco.mewbase.log.impl.file.faf.AFFileAccess;
+import com.tesco.mewbase.server.Log;
 import com.tesco.mewbase.server.ServerOptions;
-import com.tesco.mewbase.util.AsyncResCF;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.TestContext;
 
@@ -26,47 +24,36 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by tim on 14/10/16.
  */
-public class LogTestBase extends MewbaseTestBase {
+public class LogTestBase extends ServerTestBase {
 
-    protected FileAccess faf;
-    protected ServerOptions options;
-    protected FileLogManager flm;
     protected Log log;
-    protected File logDir;
+    protected ServerOptions serverOptions;
 
+    // Override setup so we don't start the server
     @Override
-    protected void setup(TestContext context) throws Exception {
-        super.setup(context);
-        logDir = testFolder.newFolder();
-        faf = new AFFileAccess(vertx);
-    }
-
-    @Override
-    protected void tearDown(TestContext context) throws Exception {
-        if (log != null) {
-            log.close().thenCompose(v -> {
-                AsyncResCF<Void> cf = new AsyncResCF<>();
-                vertx.close(cf);
-                return cf;
-            }).get();
-        }
-    }
-
-    protected ServerOptions getOptions() {
-        return new ServerOptions().setLogsDir(logDir.getPath());
+    protected void setup0() throws Exception {
+        createDirectories();
+        serverOptions = super.createServerOptions();
     }
 
     protected void startLog() throws Exception {
-        if (options == null) {
-            options = getOptions();
-        }
-        startLog(options, TEST_CHANNEL_1);
+        startServer();
+        setupChannelsAndBinders();
+        log = server.getLog(TEST_CHANNEL_1);
     }
 
-    protected void startLog(ServerOptions options, String channel) throws Exception {
-        flm = new FileLogManager(vertx, options, faf);
-        flm.createLog(TEST_CHANNEL_1).thenCompose(l -> flm.createLog(TEST_CHANNEL_2)).get();
-        log = flm.getLog(channel);
+    @Override
+    protected ServerOptions createServerOptions() {
+        return serverOptions;
+    }
+
+    protected ServerOptions origServerOptions() {
+        return super.createServerOptions();
+    }
+
+    @Override
+    protected void setupChannelsAndBinders() throws Exception {
+        server.admin().createChannel(TEST_CHANNEL_1).get();
     }
 
     protected void saveInfo(int fileNumber, int headPos, int fileHeadPos, int lastWrittenPos, boolean shutdown) {
@@ -81,7 +68,7 @@ public class LogTestBase extends MewbaseTestBase {
 
     protected void saveFileInfo(BsonObject info) {
         Buffer buff = info.encode();
-        File f = new File(options.getLogsDir(), getLogInfoFileName(TEST_CHANNEL_1));
+        File f = new File(logsDir, getLogInfoFileName(TEST_CHANNEL_1));
         try {
             if (!f.exists()) {
                 if (!f.createNewFile()) {
@@ -153,22 +140,22 @@ public class LogTestBase extends MewbaseTestBase {
     }
 
     protected void assertExists(int fileNumber) {
-        File file = new File(logDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
-        assertTrue(file.exists());
+        File file = new File(logsDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
+        assertTrue("Does not exist " + file, file.exists());
     }
 
     protected void assertLogChunkLength(int fileNumber, int length) {
-        File file = new File(logDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
+        File file = new File(logsDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
         assertEquals(length, file.length());
     }
 
     protected void assertLogChunkLengthAsync(TestContext testContext, int fileNumber, long length) {
-        File file = new File(logDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
+        File file = new File(logsDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
         testContext.assertEquals(length, file.length());
     }
 
     protected void assertNumFiles(String channel, int expected) {
-        File[] files = listLogFiles(new File(options.getLogsDir()), channel);
+        File[] files = listLogFiles(logsDir, channel);
         assertEquals(expected, files.length);
     }
 

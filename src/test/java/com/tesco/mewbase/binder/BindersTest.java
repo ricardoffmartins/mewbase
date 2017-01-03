@@ -1,7 +1,10 @@
-package com.tesco.mewbase.doc;
+package com.tesco.mewbase.binder;
 
-import com.tesco.mewbase.MewbaseTestBase;
+import com.tesco.mewbase.ServerTestBase;
 import com.tesco.mewbase.bson.BsonObject;
+import com.tesco.mewbase.server.Binder;
+import com.tesco.mewbase.server.DocReadStream;
+import com.tesco.mewbase.server.Server;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -10,7 +13,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,22 +22,17 @@ import static org.junit.Assert.*;
  * Created by tim on 14/10/16.
  */
 @RunWith(VertxUnitRunner.class)
-public abstract class DocManagerTest extends MewbaseTestBase {
+public class BindersTest extends ServerTestBase {
 
-    private final static Logger logger = LoggerFactory.getLogger(DocManagerTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(BindersTest.class);
 
-    protected DocManager docManager;
-    protected File docsDir;
     protected DocReadStream stream;
+    protected Binder testBinder1;
+
 
     @Override
-    protected void setup(TestContext context) throws Exception {
-        super.setup(context);
-        docsDir = testFolder.newFolder();
-        docManager = createDocManager();
-        docManager.start().get();
-        createBinder(TEST_BINDER1);
-        createBinder(TEST_BINDER2);
+    protected void startClient() throws Exception {
+        // Don't need a client
     }
 
     @Override
@@ -43,33 +40,61 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         if (stream != null) {
             stream.close();
         }
-        docManager.close().get();
+        super.tearDown(context);
     }
 
-    protected abstract DocManager createDocManager();
+    @Override
+    protected void setupChannelsAndBinders() throws Exception {
+        server.admin().createBinder(TEST_BINDER1).get();
+        server.admin().createBinder(TEST_BINDER2).get();
+        testBinder1 = server.getBinder(TEST_BINDER1);
+    }
 
     @Test
     public void testSimplePutGet() throws Exception {
         BsonObject docPut = createObject();
-        assertNull(docManager.put(TEST_BINDER1, "id1234", docPut).get());
-        BsonObject docGet = docManager.get(TEST_BINDER1, "id1234").get();
+        assertNull(testBinder1.put("id1234", docPut).get());
+        BsonObject docGet = testBinder1.get("id1234").get();
         assertEquals(docPut, docGet);
     }
 
     @Test
     public void testFindNoEntry() throws Exception {
-        assertNull(docManager.get(TEST_BINDER1, "id1234").get());
+        assertNull(testBinder1.get("id1234").get());
     }
 
     @Test
     public void testDelete() throws Exception {
         BsonObject docPut = createObject();
-        assertNull(docManager.put(TEST_BINDER1, "id1234", docPut).get());
-        BsonObject docGet = docManager.get(TEST_BINDER1, "id1234").get();
+        assertNull(testBinder1.put("id1234", docPut).get());
+        BsonObject docGet = testBinder1.get("id1234").get();
         assertEquals(docPut, docGet);
-        assertTrue(docManager.delete(TEST_BINDER1, "id1234").get());
-        docGet = docManager.get(TEST_BINDER1, "id1234").get();
+        assertTrue(testBinder1.delete("id1234").get());
+        docGet = testBinder1.get("id1234").get();
         assertNull(docGet);
+    }
+
+    @Test
+    public void testPutGetDifferentBinders() throws Exception {
+        createBinder("binder1");
+        createBinder("binder2");
+        Binder binder1 = server.getBinder("binder1");
+        Binder binder2 = server.getBinder("binder2");
+
+        BsonObject docPut1 = createObject();
+        docPut1.put("binder", "binder1");
+        assertNull(binder1.put("id0", docPut1).get());
+
+        BsonObject docPut2 = createObject();
+        docPut2.put("binder", "binder2");
+        assertNull(binder2.put("id0", docPut2).get());
+
+        BsonObject docGet1 = binder1.get("id0").get();
+        assertEquals("binder1", docGet1.remove("binder"));
+
+        BsonObject docGet2 = binder2.get("id0").get();
+        assertEquals("binder2", docGet2.remove("binder"));
+
     }
 
     @Test
@@ -77,19 +102,21 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         int numDocs = 10;
         int numBinders = 10;
         for (int i = 0; i < numBinders; i++) {
-            String binder = "pgmbinder" + i;
-            createBinder(binder);
+            String binderName = "pgmbinder" + i;
+            createBinder(binderName);
+            Binder binder = server.getBinder(binderName);
             for (int j = 0; j < numDocs; j++) {
                 BsonObject docPut = createObject();
-                docPut.put("binder", binder);
-                assertNull(docManager.put(binder, "id" + j, docPut).get());
+                docPut.put("binder", binderName);
+                assertNull(binder.put("id" + j, docPut).get());
             }
         }
         for (int i = 0; i < numBinders; i++) {
-            String binder = "pgmbinder" + i;
+            String binderName = "pgmbinder" + i;
+            Binder binder = server.getBinder(binderName);
             for (int j = 0; j < numDocs; j++) {
-                BsonObject docGet = docManager.get(binder, "id" + j).get();
-                assertEquals(binder, docGet.remove("binder"));
+                BsonObject docGet = binder.get("id" + j).get();
+                assertEquals(binderName, docGet.remove("binder"));
             }
         }
     }
@@ -97,16 +124,14 @@ public abstract class DocManagerTest extends MewbaseTestBase {
     @Test
     public void testRestart() throws Exception {
         BsonObject docPut = createObject();
-        assertNull(docManager.put(TEST_BINDER1, "id1234", docPut).get());
-        BsonObject docGet = docManager.get(TEST_BINDER1, "id1234").get();
+        assertNull(testBinder1.put("id1234", docPut).get());
+        BsonObject docGet = testBinder1.get("id1234").get();
         assertEquals(docPut, docGet);
-
-        docManager.close().get();
-        docManager = createDocManager();
-        docManager.start().get();
-        createBinder(TEST_BINDER1);
-
-        docGet = docManager.get(TEST_BINDER1, "id1234").get();
+        // We don't use the restart() method as this recreates the binders
+        stopServerAndClient();
+        startServer();
+        testBinder1 = server.getBinder(TEST_BINDER1);
+        docGet = testBinder1.get("id1234").get();
         assertEquals(docPut, docGet);
     }
 
@@ -120,7 +145,7 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         // Add some docs in another binder
         addDocs(TEST_BINDER2, numDocs);
 
-        stream = docManager.getMatching(TEST_BINDER1, doc -> true);
+        stream = testBinder1.getMatching(doc -> true);
 
         Async async = testContext.async();
 
@@ -147,7 +172,7 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         // Add some docs in another binder
         addDocs(TEST_BINDER2, numDocs);
 
-        stream = docManager.getMatching(TEST_BINDER1, doc -> {
+        stream = testBinder1.getMatching(doc -> {
             int docNum = doc.getInteger("docNum");
             return docNum >= 10 && docNum < 90;
         });
@@ -177,7 +202,7 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         // Add some docs in another binder
         addDocs(TEST_BINDER2, numDocs);
 
-        stream = docManager.getMatching(TEST_BINDER1, doc -> true);
+        stream = testBinder1.getMatching(doc -> true);
 
         Async async = testContext.async();
 
@@ -205,11 +230,16 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         stream.start();
     }
 
+    // TODO
+    // Test binders in binders_binder but not in actual storage and vice versa
+    // etc
+
     private void addDocs(String binderName, int numDocs) throws Exception {
         for (int i = 0; i < numDocs; i++) {
             BsonObject docPut = createObject();
             docPut.put("docNum", i);
-            assertNull(docManager.put(binderName, getID(i), docPut).get());
+            Binder binder = server.getBinder(binderName);
+            assertNull(binder.put(getID(i), docPut).get());
         }
     }
 
@@ -223,8 +253,8 @@ public abstract class DocManagerTest extends MewbaseTestBase {
         return obj;
     }
 
-    protected void createBinder(String binderName) throws Exception {
-        docManager.createBinder(binderName).get();
+    protected boolean createBinder(String binderName) throws Exception {
+        return server.createBinder(binderName).get();
     }
 
 }

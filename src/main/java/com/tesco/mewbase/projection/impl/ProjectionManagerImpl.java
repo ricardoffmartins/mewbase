@@ -8,6 +8,7 @@ import com.tesco.mewbase.common.impl.DeliveryImpl;
 import com.tesco.mewbase.projection.Projection;
 import com.tesco.mewbase.projection.ProjectionBuilder;
 import com.tesco.mewbase.projection.ProjectionManager;
+import com.tesco.mewbase.server.Binder;
 import com.tesco.mewbase.server.impl.Protocol;
 import com.tesco.mewbase.server.impl.ServerImpl;
 import com.tesco.mewbase.util.AsyncResCF;
@@ -15,14 +16,16 @@ import io.vertx.core.shareddata.Lock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static com.tesco.mewbase.doc.DocManager.ID_FIELD;
+import static com.tesco.mewbase.server.Server.ID_FIELD;
+
 
 /**
  * Created by tim on 30/09/16.
@@ -47,8 +50,8 @@ public class ProjectionManagerImpl implements ProjectionManager {
     }
 
     @Override
-    public Set<String> getProjectionNames() {
-        return projections.keySet();
+    public List<String> listProjectionNames() {
+        return new ArrayList<>(projections.keySet());
     }
 
     @Override
@@ -60,23 +63,23 @@ public class ProjectionManagerImpl implements ProjectionManager {
 
         final String name;
         final String channel;
-        final String binderName;
         final ProjectionSubscription subscription;
         final Function<BsonObject, Boolean> eventFilter;
         final Function<BsonObject, String> docIDSelector;
         final BiFunction<BsonObject, Delivery, BsonObject> projectionFunction;
+        final Binder binder;
 
         public ProjectionImpl(String name, String channel, String binderName, Function<BsonObject, Boolean> eventFilter,
                               Function<BsonObject, String> docIDSelector,
                               BiFunction<BsonObject, Delivery, BsonObject> projectionFunction) {
             this.name = name;
             this.channel = channel;
-            this.binderName = binderName;
             this.eventFilter = eventFilter;
             this.docIDSelector = docIDSelector;
             this.projectionFunction = projectionFunction;
             SubDescriptor subDescriptor = new SubDescriptor().setChannel(channel).setDurableID(name);
             this.subscription = new ProjectionSubscription(server, subDescriptor, this::handler);
+            this.binder = server.getBinder(binderName);
         }
 
         void handler(long seq, BsonObject frame) {
@@ -97,12 +100,12 @@ public class ProjectionManagerImpl implements ProjectionManager {
             // update has completed
             // TODO this can be optimised
             AsyncResCF<Lock> cfLock = new AsyncResCF<>();
-            String lockName = binderName + "." + docID;
-            server.vertx().sharedData().getLock(lockName, cfLock);
+            String lockName = binder.getName() + "." + docID;
+            server.getVertx().sharedData().getLock(lockName, cfLock);
 
             cfLock
                     // 2. Get doc
-                    .thenCompose(l -> server.docManager().get(binderName, docID))
+                    .thenCompose(l -> binder.get(docID))
 
                     // 3. duplicate detection and call projection function
                     .thenCompose(doc -> {
@@ -138,7 +141,7 @@ public class ProjectionManagerImpl implements ProjectionManager {
                         lastSeqs.put(name, seq);
 
                         // Store the doc
-                        CompletableFuture<Void> cfSaved = server.docManager().put(binderName, docID, updated);
+                        CompletableFuture<Void> cfSaved = binder.put(docID, updated);
                         return cfSaved.thenApply(v -> true);
                     })
 

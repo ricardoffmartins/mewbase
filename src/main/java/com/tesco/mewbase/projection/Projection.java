@@ -11,7 +11,4 @@ public interface Projection {
 
     void resume();
 
-//    void unregister();
-//
-//    void delete();
 }

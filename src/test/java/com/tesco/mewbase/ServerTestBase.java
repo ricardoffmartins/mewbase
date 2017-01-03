@@ -2,62 +2,113 @@ package com.tesco.mewbase;
 
 import com.tesco.mewbase.client.Client;
 import com.tesco.mewbase.client.ClientOptions;
-import com.tesco.mewbase.server.MewAdmin;
 import com.tesco.mewbase.server.Server;
 import com.tesco.mewbase.server.ServerOptions;
-import io.vertx.core.net.NetClientOptions;
+import com.tesco.mewbase.util.AsyncResCF;
+import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.After;
+import org.junit.Before;
 
 import java.io.File;
 
 /**
- * Created by tim on 28/10/16.
+ * Created by tim on 01/01/17.
  */
 public class ServerTestBase extends MewbaseTestBase {
 
-    private final static Logger logger = LoggerFactory.getLogger(PubSubTest.class);
+    protected static final String TEST_CHANNEL_1 = "channel1";
+    protected static final String TEST_CHANNEL_2 = "channel2";
 
+    protected static final String TEST_BINDER1 = "binder1";
+    protected static final String TEST_BINDER2 = "binder2";
+
+    protected Vertx vertx;
     protected Server server;
     protected Client client;
-    protected File logDir;
+    protected File logsDir;
     protected File docsDir;
 
-    @Override
+    @Before
+    public void before(TestContext context) throws Exception {
+        setup(context);
+    }
+
+    @After
+    public void after(TestContext context) throws Exception {
+        tearDown(context);
+    }
+
     protected void setup(TestContext context) throws Exception {
-        super.setup(context);
-        logDir = testFolder.newFolder();
-        docsDir = testFolder.newFolder();
-        ServerOptions serverOptions = createServerOptions(logDir);
-        ClientOptions clientOptions = createClientOptions();
-        server = Server.newServer(vertx, serverOptions);
-        server.start().get();
-        client = Client.newClient(vertx, clientOptions);
+        vertx = Vertx.vertx();
+        setup0();
+    }
+
+    protected void tearDown(TestContext context) throws Exception {
+        stopServerAndClient();
+        AsyncResCF<Void> cf = new AsyncResCF<>();
+        vertx.close(cf);
+        cf.get();
+    }
+
+    protected void setup0() throws Exception {
+        createDirectories();
+        startServerAndClient();
         setupChannelsAndBinders();
     }
 
-    protected void setupChannelsAndBinders() throws Exception {
-        MewAdmin admin = server.admin();
-        admin.createChannel(TEST_CHANNEL_1).get();
-        admin.createChannel(TEST_CHANNEL_2).get();
-        admin.createBinder(TEST_BINDER1).get();
+    protected void createDirectories() throws Exception {
+        logsDir = testFolder.newFolder();
+        docsDir = testFolder.newFolder();
     }
 
-    @Override
-    protected void tearDown(TestContext context) throws Exception {
-        client.close().get();
-        server.stop().get();
-        super.tearDown(context);
+    protected void startServerAndClient() throws Exception {
+        startServer();
+        startClient();
     }
 
-    protected ServerOptions createServerOptions(File logDir) throws Exception {
+    protected void startServer() throws Exception {
+        ServerOptions serverOptions = createServerOptions();
+        server = Server.newServer(vertx, serverOptions);
+        server.start().get();
+    }
+
+    protected void startClient() throws Exception {
+        ClientOptions clientOptions = createClientOptions();
+        client = Client.newClient(vertx, clientOptions);
+    }
+
+    protected void stopServerAndClient() throws Exception {
+        if (client != null) {
+            client.close().get();
+        }
+        if (server != null) {
+            server.stop().get();
+        }
+    }
+
+    protected void restart() throws Exception {
+        boolean hasClient = client != null;
+        stopServerAndClient();
+        startServer();
+        if (hasClient) {
+            startClient();
+        }
+        setupChannelsAndBinders();
+    }
+
+    protected ServerOptions createServerOptions() {
         return new ServerOptions()
-                .setLogsDir(logDir.getPath())
+                .setLogsDir(logsDir.getPath())
                 .setDocsDir(docsDir.getPath());
     }
 
     protected ClientOptions createClientOptions() {
-        return new ClientOptions().setNetClientOptions(new NetClientOptions());
+        return new ClientOptions();
     }
+
+    protected void setupChannelsAndBinders() throws Exception {
+    }
+
+
 }

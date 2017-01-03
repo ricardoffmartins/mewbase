@@ -24,14 +24,9 @@ public class ShiroPropertiesAuthenticationTest extends AuthenticationTestBase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    protected void setupAuthClient(BsonObject authInfo) {
-        ClientOptions clientOptions = createClientOptions(authInfo);
-        client = Client.newClient(vertx, clientOptions);
-    }
-
-    protected ServerOptions createServerOptions(File logDir) {
-        return new ServerOptions()
-                .setLogsDir(logDir.getPath()).setDocsDir(docsDir.getPath())
+    @Override
+    protected ServerOptions createServerOptions() {
+        return super.createServerOptions()
                 .setAuthProvider(new MewbaseVertxAuthProvider(createShiroAuthProvider()));
     }
 
@@ -46,14 +41,14 @@ public class ShiroPropertiesAuthenticationTest extends AuthenticationTestBase {
 
     @Test
     public void testSuccessfulAuthentication(TestContext context) throws Exception {
-        BsonObject authInfo = new BsonObject().put("username", "mew").put("password", "base");
-        execSimplePubSub(true, context, authInfo);
+        authInfo = new BsonObject().put("username", "mew").put("password", "base");
+        execSimplePubSub(true, context);
     }
 
     @Test
     public void testFailedAuthentication(TestContext context) throws Exception {
-        BsonObject authInfo = new BsonObject().put("username", "error").put("password", "error");
-        execSimplePubSub(false, context, authInfo);
+        authInfo = new BsonObject().put("username", "error").put("password", "error");
+        execSimplePubSub(false, context);
     }
 
 }

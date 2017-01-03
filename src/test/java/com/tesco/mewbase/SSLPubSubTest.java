@@ -6,7 +6,6 @@ import com.tesco.mewbase.client.ClientOptions;
 import com.tesco.mewbase.client.Producer;
 import com.tesco.mewbase.common.SubDescriptor;
 import com.tesco.mewbase.server.ServerOptions;
-import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PemTrustOptions;
 import io.vertx.ext.unit.Async;
@@ -15,7 +14,6 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.io.File;
 import java.util.function.Consumer;
 
 @RunWith(VertxUnitRunner.class)
@@ -25,28 +23,30 @@ public class SSLPubSubTest extends ServerTestBase {
     private final static String KEY_PATH = "src/test/resources/server-key.pem";
 
     @Override
-    protected ServerOptions createServerOptions(File logDir) {
-        ServerOptions serverOptions = new ServerOptions()
-                .setLogsDir(logDir.getPath())
-                .setDocsDir(docsDir.getPath());
+    protected void setupChannelsAndBinders() throws Exception {
+        server.admin().createChannel(TEST_CHANNEL_1);
+    }
 
+    @Override
+    protected ServerOptions createServerOptions() {
+        ServerOptions serverOptions = super.createServerOptions();
         serverOptions.getNetServerOptions().setSsl(true).setPemKeyCertOptions(
                 new PemKeyCertOptions()
                         .setKeyPath(KEY_PATH)
                         .setCertPath(CERT_PATH)
         );
-
         return serverOptions;
     }
 
     @Override
     protected ClientOptions createClientOptions() {
-        NetClientOptions netClientOptions = new NetClientOptions()
+        ClientOptions clientOptions = super.createClientOptions();
+        clientOptions.getNetClientOptions()
                 .setSsl(true)
                 .setPemTrustOptions(
                         new PemTrustOptions().addCertPath(CERT_PATH)
                 );
-        return new ClientOptions().setNetClientOptions(netClientOptions);
+        return clientOptions;
     }
 
     @Test

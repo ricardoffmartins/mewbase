@@ -1,5 +1,6 @@
 package com.tesco.mewbase.client;
 
+import com.tesco.mewbase.bson.BsonArray;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.spi.ClientFactory;
 import com.tesco.mewbase.common.SubDescriptor;
@@ -28,14 +29,22 @@ public interface Client {
     int ERR_AUTHENTICATION_FAILED = 1;
     int ERR_NOT_AUTHORISED = 2;
     int ERR_NO_SUCH_CHANNEL = 3;
-    int ERR_FAILED_TO_PERSIST = 4;
+    int ERR_NO_SUCH_BINDER = 4;
+
+    int ERR_SERVER_ERROR = 100;
+
 
     ClientFactory factory = ServiceHelper.loadFactory(ClientFactory.class);
 
+    // Query operations
+
     CompletableFuture<BsonObject> findByID(String binderName, String id);
 
+    // TODO use Reactive streams for this instead
     void findMatching(String binderName, BsonObject matcher,
                       Consumer<QueryResult> resultHandler, Consumer<Throwable> exceptionHandler);
+
+    // Pub/sub operations
 
     CompletableFuture<Subscription> subscribe(SubDescriptor subDescriptor, Consumer<ClientDelivery> handler);
 
@@ -44,6 +53,16 @@ public interface Client {
     CompletableFuture<Void> publish(String channel, BsonObject event);
 
     CompletableFuture<Void> publish(String channel, BsonObject event, Function<BsonObject, String> partitionFunc);
+
+    // Admin operations
+
+    CompletableFuture<BsonArray> listBinders();
+
+    CompletableFuture<Boolean> createBinder(String binderName);
+
+    CompletableFuture<BsonArray> listChannels();
+
+    CompletableFuture<Boolean> createChannel(String binderName);
 
     CompletableFuture<Void> close();
 

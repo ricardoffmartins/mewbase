@@ -4,7 +4,7 @@ import com.tesco.mewbase.projection.Projection;
 import com.tesco.mewbase.projection.ProjectionBuilder;
 import com.tesco.mewbase.server.MewAdmin;
 
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -20,37 +20,37 @@ public class MewAdminImpl implements MewAdmin {
 
     @Override
     public ProjectionBuilder buildProjection(String name) {
-        return server.projectionManager().buildProjection(name);
+        return server.getProjectionManager().buildProjection(name);
     }
 
     @Override
     public CompletableFuture<Boolean> createChannel(String channelName) {
-        return server.logManager().createLog(channelName);
+        return server.createLog(channelName);
     }
 
     @Override
     public CompletableFuture<Boolean> createBinder(String binderName) {
-        return server.docManager().createBinder(binderName);
+        return server.createBinder(binderName);
     }
 
     @Override
-    public Set<String> getProjectionNames() {
-        return server.projectionManager().getProjectionNames();
+    public List<String> listProjections() {
+        return server.getProjectionManager().listProjectionNames();
     }
 
     @Override
     public Projection getProjection(String projectionName) {
-        return server.projectionManager().getProjection(projectionName);
+        return server.getProjectionManager().getProjection(projectionName);
     }
 
     @Override
-    public Set<String> getChannelNames() {
-        return server.logManager().getChannelNames();
+    public List<String> listChannels() {
+        return server.listLogNames();
     }
 
     @Override
-    public Set<String> getBinderNames() {
-        return server.docManager().getBinderNames();
+    public List<String> listBinders() {
+        return server.listBinderNames();
     }
 
 }

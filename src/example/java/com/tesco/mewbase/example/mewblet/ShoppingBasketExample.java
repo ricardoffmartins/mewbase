@@ -1,11 +1,8 @@
 package com.tesco.mewbase.example.mewblet;
 
 import com.tesco.mewbase.bson.BsonObject;
-import com.tesco.mewbase.bson.BsonPath;
 import com.tesco.mewbase.client.Client;
 import com.tesco.mewbase.client.ClientOptions;
-import com.tesco.mewbase.server.MewAdmin;
-import com.tesco.mewbase.server.Mewblet;
 import com.tesco.mewbase.server.Server;
 import com.tesco.mewbase.server.ServerOptions;
 

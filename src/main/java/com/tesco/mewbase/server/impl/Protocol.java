@@ -40,6 +40,11 @@ public class Protocol {
     public static final String QUERYACK_FRAME = "QUERYACK";
     public static final String PING_FRAME = "PING";
 
+    public static final String LIST_BINDERS_FRAME = "LISTBINDERS";
+    public static final String CREATE_BINDER_FRAME = "CREATEBINDER";
+    public static final String LIST_CHANNELS_FRAME = "LISTCHANNNELS";
+    public static final String CREATE_CHANNEL_FRAME = "CREATECHANNEL";
+
     // Frame fields
 
     public static final String REQUEST_REQUEST_ID = "rID";
@@ -83,18 +88,29 @@ public class Protocol {
     public static final String ACKEV_BYTES = "bytes";
     public static final String ACKEV_POS = "pos";
 
-    // Query stuff
+    // Query fields
     public static final String QUERY_QUERYID = "queryID";
     public static final String QUERY_BINDER = "binder";
     public static final String QUERY_MATCHER = "matcher";
     public static final String QUERY_DOCID = "docID";
 
+    public static final String QUERYRESULT_OK = "ok";
     public static final String QUERYRESULT_QUERYID = "queryID";
     public static final String QUERYRESULT_RESULT = "result";
     public static final String QUERYRESULT_LAST = "last";
 
     public static final String QUERYACK_QUERYID = "queryID";
     public static final String QUERYACK_BYTES = "bytes";
+
+    // Admin fields
+    public static final String LISTBINDERS_BINDERS = "binders";
+
+    public static final String CREATEBINDER_NAME = "name";
+    public static final String CREATEBINDER_RESPONSE_EXISTS = "exists";
+
+    public static final String LISTCHANNELS_CHANNELS = "channels";
+    public static final String CREATECHANNEL_NAME = "name";
+    public static final String CREATECHANNEL_RESPONSE_EXISTS = "exists";
 
     private final static Logger logger = LoggerFactory.getLogger(Protocol.class);
 
@@ -184,6 +200,18 @@ public class Protocol {
                 break;
             case PING_FRAME:
                 frameHandler.handlePing(frame);
+                break;
+            case LIST_BINDERS_FRAME:
+                frameHandler.handleListBinders(frame);
+                break;
+            case CREATE_BINDER_FRAME:
+                frameHandler.handleCreateBinder(frame);
+                break;
+            case LIST_CHANNELS_FRAME:
+                frameHandler.handleListChannels(frame);
+                break;
+            case CREATE_CHANNEL_FRAME:
+                frameHandler.handleCreateChannel(frame);
                 break;
             default:
                 logger.error("Invalid frame type: " + type);
