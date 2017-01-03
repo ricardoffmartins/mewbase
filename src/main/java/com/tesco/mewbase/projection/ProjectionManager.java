@@ -1,6 +1,6 @@
 package com.tesco.mewbase.projection;
 
-import java.util.Set;
+import java.util.List;
 
 /**
  * Created by tim on 30/09/16.
@@ -9,7 +9,7 @@ public interface ProjectionManager {
 
     ProjectionBuilder buildProjection(String name);
 
-    Set<String> getProjectionNames();
+    List<String> listProjectionNames();
 
     Projection getProjection(String projectionName);
 }

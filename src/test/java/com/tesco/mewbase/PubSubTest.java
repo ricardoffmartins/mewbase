@@ -27,6 +27,11 @@ public class PubSubTest extends ServerTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(PubSubTest.class);
 
+    @Override
+    protected void setupChannelsAndBinders() throws Exception {
+        server.admin().createChannel(TEST_CHANNEL_1).get();
+    }
+
     @Test
     public void testPublishNonExistentChannel() throws Exception {
         String channel = "nosuchchannel";

@@ -62,4 +62,24 @@ public interface ClientFrameHandler extends FrameHandler {
     default void handleQueryAck(BsonObject frame) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    default void handleListBinders(BsonObject frame) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default void handleCreateBinder(BsonObject frame) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default void handleListChannels(BsonObject frame) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default void handleCreateChannel(BsonObject frame) {
+        throw new UnsupportedOperationException();
+    }
 }

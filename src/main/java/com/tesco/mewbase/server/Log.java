@@ -1,4 +1,4 @@
-package com.tesco.mewbase.log;
+package com.tesco.mewbase.server;
 
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.common.SubDescriptor;

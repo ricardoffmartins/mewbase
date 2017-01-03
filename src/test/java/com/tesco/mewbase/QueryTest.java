@@ -13,6 +13,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -32,6 +33,12 @@ public class QueryTest extends ServerTestBase {
         prod = client.createProducer(TEST_CHANNEL_1);
     }
 
+    @Override
+    protected void setupChannelsAndBinders() throws Exception {
+        server.admin().createChannel(TEST_CHANNEL_1).get();
+        server.admin().createBinder(TEST_BINDER1).get();
+    }
+
     @Test
     public void testGetById() throws Exception {
         String docID = getID(123);
@@ -42,6 +49,12 @@ public class QueryTest extends ServerTestBase {
 
         Assert.assertEquals(docID, received.getString("id"));
         Assert.assertEquals("bar", received.getString("foo"));
+    }
+
+    @Test
+    public void testNoSuchBinder() throws Exception {
+
+        BsonObject doc = client.findByID("nobinder", "xgcxgcxgc").get();
     }
 
     @Test

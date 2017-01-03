@@ -2,27 +2,23 @@ package com.tesco.mewbase;
 
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.bson.BsonPath;
-import com.tesco.mewbase.client.Client;
-import com.tesco.mewbase.client.ClientOptions;
 import com.tesco.mewbase.client.Producer;
 import com.tesco.mewbase.projection.Projection;
-import com.tesco.mewbase.server.Server;
-import com.tesco.mewbase.server.ServerOptions;
 import com.tesco.mewbase.server.impl.ServerImpl;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
@@ -36,6 +32,12 @@ public class ProjectionTest extends ServerTestBase {
 
     private static final String TEST_PROJECTION_NAME1 = "testproj";
     private static final String TEST_BASKET_ID = "basket1234";
+
+    @Override
+    protected void setupChannelsAndBinders() throws Exception {
+        server.admin().createChannel(TEST_CHANNEL_1).get();
+        server.admin().createBinder(TEST_BINDER1).get();
+    }
 
     @Test
     public void testSimpleProjection() throws Exception {
@@ -87,10 +89,23 @@ public class ProjectionTest extends ServerTestBase {
         for (int i = 0; i < numProjections; i++) {
             registerProjection("projection" + i);
         }
-        Set<String> names = server.admin().getProjectionNames();
+        List<String> names = server.admin().listProjections();
         assertEquals(numProjections, names.size());
         for (int i = 0; i < numProjections; i++) {
             assertTrue(names.contains("projection" + i));
+        }
+    }
+
+    @Test
+    public void testGetProjection() throws Exception {
+        int numProjections = 10;
+        for (int i = 0; i < numProjections; i++) {
+            registerProjection("projection" + i);
+        }
+        for (int i = 0; i < numProjections; i++) {
+            Projection projection = server.admin().getProjection("projection" + i);
+            assertNotNull(projection);
+            assertEquals("projection" + i, projection.getName());
         }
     }
 
@@ -107,24 +122,14 @@ public class ProjectionTest extends ServerTestBase {
         waitUntilNumItems(10);
 
         // Projection has processed all the events, now restart
-        client.close();
-        server.stop().get();
-
-        ServerOptions serverOptions = createServerOptions(logDir);
-        ClientOptions clientOptions = createClientOptions();
-
-        server = Server.newServer(vertx, serverOptions);
-        server.start().get();
-        setupChannelsAndBinders();
-
-        client = Client.newClient(vertx, clientOptions);
+        restart();
 
         if (duplicates) {
             // We reset the durable seq last acked so we get redeliveries - the duplicate detection should
             // ignore them
             BsonObject lastSeqs = client.findByID(ServerImpl.DURABLE_SUBS_BINDER_NAME, TEST_PROJECTION_NAME1).get();
             lastSeqs.put("lastAcked", 0);
-            ((ServerImpl)server).docManager().put(ServerImpl.DURABLE_SUBS_BINDER_NAME, TEST_PROJECTION_NAME1, lastSeqs).get();
+            ((ServerImpl)server).getDurableSubsBinder().put(TEST_PROJECTION_NAME1, lastSeqs).get();
         }
 
         registerProjection();

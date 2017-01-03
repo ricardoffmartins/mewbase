@@ -23,14 +23,14 @@ public class AuthenticationTest extends AuthenticationTestBase {
 
     @Test
     public void testSuccessfulAuthentication(TestContext context) throws Exception {
-        BsonObject authInfo = new BsonObject().put("success", true);
-        execSimplePubSub(true, context, authInfo);
+        authInfo = new BsonObject().put("success", true);
+        execSimplePubSub(true, context);
     }
 
     @Test
     public void testFailedAuthentication(TestContext context) throws Exception {
-        BsonObject authInfo = new BsonObject().put("success", false);
-        execSimplePubSub(false, context, authInfo);
+        authInfo = new BsonObject().put("success", false);
+        execSimplePubSub(false, context);
     }
 
 }

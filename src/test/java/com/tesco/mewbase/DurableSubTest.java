@@ -3,8 +3,7 @@ package com.tesco.mewbase;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.*;
 import com.tesco.mewbase.common.SubDescriptor;
-import com.tesco.mewbase.server.Server;
-import com.tesco.mewbase.server.ServerOptions;
+import com.tesco.mewbase.server.MewAdmin;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -26,13 +25,18 @@ public class DurableSubTest extends ServerTestBase {
     private final static Logger logger = LoggerFactory.getLogger(DurableSubTest.class);
 
     private static final String TEST_DURABLE_ID = "testdurable";
-    private static final int numEvents = 100;
-
+    private static final int NUM_EVENTS = 100;
 
     @Override
     protected void setup(TestContext context) throws Exception {
         super.setup(context);
-        sendEvents(numEvents);
+        sendEvents(NUM_EVENTS);
+    }
+
+    @Override
+    protected void setupChannelsAndBinders() throws Exception {
+        MewAdmin admin = server.admin();
+        admin.createChannel(TEST_CHANNEL_1).get();
     }
 
     @Test
@@ -62,9 +66,9 @@ public class DurableSubTest extends ServerTestBase {
 
             context.assertEquals(expectedCount.getAndIncrement(), cnt);
 
-            if (cnt < numEvents / 2) {
+            if (cnt < NUM_EVENTS / 2) {
                 re.acknowledge();
-            } else if (cnt == numEvents / 2) {
+            } else if (cnt == NUM_EVENTS / 2) {
                 async1.complete();
             }
         };
@@ -81,18 +85,8 @@ public class DurableSubTest extends ServerTestBase {
 
             logger.trace("Restarting");
 
-            client.close().get();
+            restart();
 
-            server.stop().get();
-
-            ServerOptions serverOptions = createServerOptions(logDir);
-            ClientOptions clientOptions = createClientOptions();
-
-            server = Server.newServer(vertx, serverOptions);
-            server.start().get();
-            setupChannelsAndBinders();
-
-            client = Client.newClient(vertx, clientOptions);
         }
 
         Async async2 = context.async();
@@ -113,7 +107,7 @@ public class DurableSubTest extends ServerTestBase {
             context.assertEquals(expectedCount2.getAndIncrement(), cnt);
 
             re.acknowledge();
-            if (cnt == numEvents - 1) {
+            if (cnt == NUM_EVENTS - 1) {
                 async2.complete();
             }
         };
@@ -159,7 +153,7 @@ public class DurableSubTest extends ServerTestBase {
             if (cnt == startNum) {
                 context.assertEquals(startPos.get(), re.channelPos());
             }
-            if (cnt == numEvents - 1) {
+            if (cnt == NUM_EVENTS - 1) {
                 async2.complete();
             }
         };
@@ -180,9 +174,9 @@ public class DurableSubTest extends ServerTestBase {
         Consumer<ClientDelivery> handler1 = re -> {
             int cnt = re.event().getInteger("count");
             context.assertEquals(expectedCount.getAndIncrement(), cnt);
-            if (cnt < numEvents / 2) {
+            if (cnt < NUM_EVENTS / 2) {
                 re.acknowledge();
-            } else if (cnt == numEvents / 2) {
+            } else if (cnt == NUM_EVENTS / 2) {
                 async1.complete();
             }
         };
@@ -200,7 +194,7 @@ public class DurableSubTest extends ServerTestBase {
             int cnt = re.event().getInteger("count");
             context.assertEquals(expectedCount2.getAndIncrement(), cnt);
             re.acknowledge();
-            if (cnt == numEvents - 1) {
+            if (cnt == NUM_EVENTS - 1) {
                 async2.complete();
             }
         };

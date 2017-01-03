@@ -5,8 +5,6 @@ import com.tesco.mewbase.auth.impl.NoAuthAuthProvider;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServerOptions;
 
-import java.util.Arrays;
-
 /**
  * Created by tim on 22/09/16.
  */

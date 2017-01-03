@@ -4,7 +4,6 @@ import com.tesco.mewbase.projection.Projection;
 import com.tesco.mewbase.projection.ProjectionBuilder;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -18,12 +17,12 @@ public interface MewAdmin {
 
     CompletableFuture<Boolean> createBinder(String binderName);
 
-    Set<String> getProjectionNames();
+    List<String> listProjections();
 
     Projection getProjection(String projectionName);
 
-    Set<String> getChannelNames();
+    List<String> listChannels();
 
-    Set<String> getBinderNames();
+    List<String> listBinders();
 
 }

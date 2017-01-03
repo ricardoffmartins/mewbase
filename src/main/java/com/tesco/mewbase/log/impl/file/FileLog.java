@@ -3,8 +3,8 @@ package com.tesco.mewbase.log.impl.file;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.MewException;
 import com.tesco.mewbase.common.SubDescriptor;
-import com.tesco.mewbase.log.Log;
-import com.tesco.mewbase.log.LogReadStream;
+import com.tesco.mewbase.server.Log;
+import com.tesco.mewbase.server.LogReadStream;
 import com.tesco.mewbase.server.ServerOptions;
 import com.tesco.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
@@ -80,7 +80,13 @@ public class FileLog implements Log {
         }
     }
 
+    private CompletableFuture<Void> startRes;
+
     public synchronized CompletableFuture<Void> start() {
+        logger.trace("Starting file log " + this);
+        if (startRes != null) {
+            return startRes;
+        }
         loadInfo();
         checkAndLoadFiles();
         File currFile = getFile(fileNumber);
@@ -104,10 +110,11 @@ public class FileLog implements Log {
         } else {
             cf = faf.openBasicFile(currFile);
         }
-        return cf.thenApply(bf -> {
+        startRes = cf.thenAccept(bf -> {
             currWriteFile = bf;
-            return (Void)null;
+            logger.trace("Opened file log " + this);
         });
+        return startRes;
     }
 
     @Override
@@ -240,7 +247,7 @@ public class FileLog implements Log {
         fileLogStreams.add(stream);
     }
 
-    long getLastWrittenPos() {
+    public long getLastWrittenPos() {
         return lastWrittenPos.get();
     }
 

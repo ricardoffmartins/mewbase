@@ -1,5 +1,6 @@
 package com.tesco.mewbase.client.impl;
 
+import com.tesco.mewbase.bson.BsonArray;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.*;
 import com.tesco.mewbase.common.SubDescriptor;
@@ -145,6 +146,74 @@ public class ClientImpl implements Client, ClientFrameHandler {
         writeQuery(frame, resultHandler, cf);
     }
 
+    // Admin operations
+
+    @Override
+    public CompletableFuture<BsonArray> listBinders() {
+        CompletableFuture<BsonArray> cf = new CompletableFuture<>();
+        BsonObject frame = new BsonObject();
+        write(cf, Protocol.LIST_BINDERS_FRAME, frame, resp -> {
+            boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);
+            if (ok) {
+                BsonArray binders = resp.getBsonArray(Protocol.LISTBINDERS_BINDERS);
+                cf.complete(binders);
+            } else {
+                cf.completeExceptionally(responseToException(resp));
+            }
+        });
+        return cf;
+    }
+
+    @Override
+    public CompletableFuture<Boolean> createBinder(String binderName) {
+        CompletableFuture<Boolean> cf = new CompletableFuture<>();
+        BsonObject frame = new BsonObject();
+        frame.put(Protocol.CREATEBINDER_NAME, binderName);
+        write(cf, Protocol.CREATE_BINDER_FRAME, frame, resp -> {
+            boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);
+            boolean exists = resp.getBoolean(Protocol.CREATEBINDER_RESPONSE_EXISTS);
+            if (ok) {
+                cf.complete(!exists);
+            } else {
+                cf.completeExceptionally(responseToException(resp));
+            }
+        });
+        return cf;
+    }
+
+    @Override
+    public CompletableFuture<BsonArray> listChannels() {
+        CompletableFuture<BsonArray> cf = new CompletableFuture<>();
+        BsonObject frame = new BsonObject();
+        write(cf, Protocol.LIST_CHANNELS_FRAME, frame, resp -> {
+            boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);
+            if (ok) {
+                BsonArray channels = resp.getBsonArray(Protocol.LISTCHANNELS_CHANNELS);
+                cf.complete(channels);
+            } else {
+                cf.completeExceptionally(responseToException(resp));
+            }
+        });
+        return cf;
+    }
+
+    @Override
+    public CompletableFuture<Boolean> createChannel(String channelName) {
+        CompletableFuture<Boolean> cf = new CompletableFuture<>();
+        BsonObject frame = new BsonObject();
+        frame.put(Protocol.CREATECHANNEL_NAME, channelName);
+        write(cf, Protocol.CREATE_CHANNEL_FRAME, frame, resp -> {
+            boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);
+            boolean exists = resp.getBoolean(Protocol.CREATECHANNEL_RESPONSE_EXISTS);
+            if (ok) {
+                cf.complete(!exists);
+            } else {
+                cf.completeExceptionally(responseToException(resp));
+            }
+        });
+        return cf;
+    }
+
     @Override
     public CompletableFuture<Void> close() {
         netClient.close();
@@ -166,6 +235,8 @@ public class ClientImpl implements Client, ClientFrameHandler {
         if (qrh == null) {
             throw new IllegalStateException("Can't find query result handler");
         }
+        boolean ok = resp.getBoolean(Protocol.QUERYRESULT_OK);
+
         boolean last = resp.getBoolean(Protocol.QUERYRESULT_LAST);
         QueryResult qr = new QueryResultImpl(resp.getBsonObject(Protocol.QUERYRESULT_RESULT), size, last, rQueryID);
         try {

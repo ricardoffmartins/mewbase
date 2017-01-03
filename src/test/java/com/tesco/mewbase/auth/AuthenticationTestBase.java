@@ -1,6 +1,6 @@
 package com.tesco.mewbase.auth;
 
-import com.tesco.mewbase.MewbaseTestBase;
+import com.tesco.mewbase.ServerTestBase;
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.client.*;
 import com.tesco.mewbase.common.SubDescriptor;
@@ -16,37 +16,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class AuthenticationTestBase extends MewbaseTestBase {
+public class AuthenticationTestBase extends ServerTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(AuthenticationTestBase.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    protected Server server;
-    protected Client client;
-
-    protected File logDir;
-    protected File docsDir;
-
     @Override
     protected void setup(TestContext context) throws Exception {
         super.setup(context);
-        logDir = testFolder.newFolder();
-        docsDir = testFolder.newFolder();
-        ServerOptions serverOptions = createServerOptions(logDir);
-        server = Server.newServer(vertx, serverOptions);
-        server.start().get();
+        createDirectories();
+        startServer();
         setupChannelsAndBinders();
     }
 
+    @Override
     protected void setupChannelsAndBinders() throws Exception {
         MewAdmin admin = server.admin();
         admin.createChannel(TEST_CHANNEL_1).get();
@@ -54,36 +45,26 @@ public class AuthenticationTestBase extends MewbaseTestBase {
         admin.createBinder(TEST_BINDER1).get();
     }
 
-
     @Override
-    protected void tearDown(TestContext context) throws Exception {
-        client.close().get();
-        server.stop().get();
-        super.tearDown(context);
-    }
-
-    protected ServerOptions createServerOptions(File logDir) throws Exception {
-        return new ServerOptions()
-                .setLogsDir(logDir.getPath())
-                .setDocsDir(docsDir.getPath())
+    protected ServerOptions createServerOptions() {
+        return super.createServerOptions()
                 .setAuthProvider(createAuthProvider());
     }
 
-    protected ClientOptions createClientOptions(BsonObject authInfo) {
-        return new ClientOptions().setNetClientOptions(new NetClientOptions()).setAuthInfo(authInfo);
+    @Override
+    protected ClientOptions createClientOptions() {
+        return super.createClientOptions().setAuthInfo(authInfo);
     }
+
+    protected BsonObject authInfo;
 
     protected MewbaseAuthProvider createAuthProvider() {
         return new TestAuthProvider();
     }
 
-    protected void setupAuthClient(BsonObject authInfo) {
-        ClientOptions clientOptions = createClientOptions(authInfo);
-        client = Client.newClient(vertx, clientOptions);
-    }
+    protected Async execSimplePubSub(boolean success, TestContext context) throws Exception {
+        startClient();
 
-    protected Async execSimplePubSub(boolean success, TestContext context, BsonObject authInfo) throws Exception {
-        setupAuthClient(authInfo);
         SubDescriptor descriptor = new SubDescriptor();
         descriptor.setChannel(TEST_CHANNEL_1);
 
@@ -114,6 +95,5 @@ public class AuthenticationTestBase extends MewbaseTestBase {
 
         return async;
     }
-
 
 }

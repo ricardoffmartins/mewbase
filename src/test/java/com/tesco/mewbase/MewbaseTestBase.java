@@ -17,40 +17,11 @@ import java.util.function.Supplier;
  */
 public class MewbaseTestBase {
 
-    protected static final String TEST_CHANNEL_1 = "channel1";
-    protected static final String TEST_CHANNEL_2 = "channel2";
-
-    protected static final String TEST_BINDER1 = "binder1";
-    protected static final String TEST_BINDER2 = "binder2";
-
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
     @Rule
     public RepeatRule repeatRule = new RepeatRule();
-
-
-    protected Vertx vertx;
-
-    @Before
-    public void before(TestContext context) throws Exception {
-        setup(context);
-    }
-
-    protected void setup(TestContext context) throws Exception {
-        vertx = Vertx.vertx();
-    }
-
-    @After
-    public void after(TestContext context) throws Exception {
-        tearDown(context);
-    }
-
-    protected void tearDown(TestContext context) throws Exception {
-        AsyncResCF<Void> cf = new AsyncResCF<>();
-        vertx.close(cf);
-        cf.get();
-    }
 
     protected void waitUntil(BooleanSupplier supplier) {
         waitUntil(supplier, 10000);

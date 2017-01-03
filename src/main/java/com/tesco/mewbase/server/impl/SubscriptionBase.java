@@ -2,9 +2,9 @@ package com.tesco.mewbase.server.impl;
 
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.common.SubDescriptor;
-import com.tesco.mewbase.doc.DocManager;
-import com.tesco.mewbase.log.Log;
-import com.tesco.mewbase.log.LogReadStream;
+import com.tesco.mewbase.server.Log;
+import com.tesco.mewbase.server.LogReadStream;
+import com.tesco.mewbase.server.Binder;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
@@ -33,8 +33,8 @@ public abstract class SubscriptionBase {
         this.subDescriptor = subDescriptor;
         this.ctx = Vertx.currentContext();
         if (subDescriptor.getDurableID() != null) {
-            CompletableFuture<BsonObject> cf =
-                    server.docManager().get(ServerImpl.DURABLE_SUBS_BINDER_NAME, subDescriptor.getDurableID());
+            Binder binder = server.getDurableSubsBinder();
+            CompletableFuture<BsonObject> cf = binder.get(subDescriptor.getDurableID());
             cf.handle((doc, t) -> {
                 if (t == null) {
                     if (doc != null) {
@@ -77,8 +77,7 @@ public abstract class SubscriptionBase {
     // Unsubscribe deletes the durable subscription
     public void unsubscribe() {
         if (subDescriptor.getDurableID() != null) {
-            DocManager docManager = server.docManager();
-            docManager.delete(ServerImpl.DURABLE_SUBS_BINDER_NAME, subDescriptor.getDurableID());
+            server.getDurableSubsBinder().delete(subDescriptor.getDurableID());
         }
     }
 
@@ -97,8 +96,7 @@ public abstract class SubscriptionBase {
         // Store durable sub last acked position
         if (subDescriptor.getDurableID() != null) {
             BsonObject ackedDoc = new BsonObject().put(DURABLE_SUBS_BINDER_LAST_ACKED_FIELD, pos);
-            DocManager docManager = server.docManager();
-            docManager.put(ServerImpl.DURABLE_SUBS_BINDER_NAME, subDescriptor.getDurableID(), ackedDoc);
+            server.getDurableSubsBinder().put(subDescriptor.getDurableID(), ackedDoc);
         }
     }
 

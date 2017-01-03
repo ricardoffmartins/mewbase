@@ -38,4 +38,15 @@ public interface FrameHandler {
     void handleQueryAck(BsonObject frame);
 
     void handlePing(BsonObject frame);
+
+
+    void handleListBinders(BsonObject frame);
+
+    void handleCreateBinder(BsonObject frame);
+
+    void handleListChannels(BsonObject frame);
+
+    void handleCreateChannel(BsonObject frame);
+
+
 }

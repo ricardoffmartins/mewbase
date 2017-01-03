@@ -2,7 +2,7 @@ package com.tesco.mewbase.log.impl.file;
 
 import com.tesco.mewbase.bson.BsonObject;
 import com.tesco.mewbase.common.SubDescriptor;
-import com.tesco.mewbase.log.LogReadStream;
+import com.tesco.mewbase.server.LogReadStream;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -127,7 +127,7 @@ public class FileLogStream implements LogReadStream {
         }
     }
 
-    synchronized boolean isRetro() {
+    public synchronized boolean isRetro() {
         return retro;
     }
 
