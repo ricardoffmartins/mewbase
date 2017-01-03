@@ -81,7 +81,7 @@ set CMD_LINE_ARGS=%$
 set CLASSPATH=%CLASSPATH%;%MEWBASE_HOME%\conf;%MEWBASE%\lib\*
 
 @rem Execute mewbase
-"%JAVA_EXE%" %JVM_OPTS% %JMX_OPTS% %JAVA_OPTS% %MEWBASE_OPTS% -Dmewbase.home="%MEWBASE_HOME%"-Dlog4j.configuration=file="%MEWBASE_LOG4J_CONFIG%" -classpath "%CLASSPATH%" com.tesco.mewbase.server.Main %CMD_LINE_ARGS%
+"%JAVA_EXE%" %JVM_OPTS% %JMX_OPTS% %JAVA_OPTS% %MEWBASE_OPTS% -Dmewbase.home="%MEWBASE_HOME%"-Dlog4j.configuration=file="%MEWBASE_LOG4J_CONFIG%" -classpath "%CLASSPATH%" io.mewbase.server.Main %CMD_LINE_ARGS%
 
 :end
 @rem End local scope for the variables with windows NT shell

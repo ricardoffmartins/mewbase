@@ -109,7 +109,7 @@ Subscribe to events from a stream
 
 Fields
 
-* `channel` - mandatory - string. The name of the channel to subscribe from, e.g. `com.tesco.basket`
+* `channel` - mandatory - string. The name of the channel to subscribe from, e.g. `com.acme.basket`
 * `rID` - mandatory, integer. Unique id of request - used for correlating responses.
 * `startPos` - optional - int64. The position in the channel to start subscribing from
 * `startTimestamp` - optional - int64. The earliest timestamp of events in the stream to start from subscribing from.

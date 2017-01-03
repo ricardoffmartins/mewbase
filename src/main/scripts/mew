@@ -165,4 +165,4 @@ exec "$JAVACMD" \
     -Dmewbase.home=${MEWBASE_HOME} \
     -Dlog4j.configuration=file:${MEWBASE_HOME}/conf/log4j.properties \
     -classpath "$CLASSPATH" \
-    com.tesco.mewbase.server.Main "$@"
+    io.mewbase.server.Main "$@"
