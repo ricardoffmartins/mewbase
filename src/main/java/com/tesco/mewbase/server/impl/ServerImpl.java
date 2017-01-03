@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -45,10 +46,12 @@ public class ServerImpl implements Server {
     private final Set<Transport> transports = new ConcurrentHashSet<>();
     private final MewAdmin mewAdmin;
 
+    private final ConcurrentMap<String, CompletableFuture<Boolean>> startingBinders = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Binder> binders = new ConcurrentHashMap<>();
     private final BinderFactory systemBinderFactory;
 
     private final FileAccess faf;
+    private final ConcurrentMap<String, CompletableFuture<Boolean>> startingLogs = new ConcurrentHashMap<>();
     private final Map<String, Log> logs = new ConcurrentHashMap<>();
 
     // The system binders
@@ -135,13 +138,30 @@ public class ServerImpl implements Server {
         if (binder != null) {
             return CompletableFuture.completedFuture(false);
         } else {
-            // FIXME - binder could be used before its started as its put in map first
-            binder = systemBinderFactory.createBinder(name);
-            Binder prev = binders.putIfAbsent(name, binder);
-            if (prev != null) {
-                binder = prev;
+            // A bit of jiggery pokery to ensure we don't have a non started binders in the binders map
+            // but we don't end up creating some binder twice
+            CompletableFuture<Boolean> cfStart = new CompletableFuture<>();
+            CompletableFuture<Boolean> cfPrev = startingBinders.putIfAbsent(name, cfStart);
+            if (cfPrev != null) {
+                return cfPrev;
+            } else {
+                final Binder thebinder = systemBinderFactory.createBinder(name);
+                thebinder.start().thenCompose(v -> insertBinder(name)).thenAccept(v -> {
+                    // Must be synchronized to prevent race
+                    synchronized (ServerImpl.this) {
+                        binders.put(name, thebinder);
+                        startingBinders.remove(name);
+                    }
+                }).handle((v, t) -> {
+                    if (t == null) {
+                        cfStart.complete(true);
+                    } else {
+                        cfStart.completeExceptionally(t);
+                    }
+                    return null;
+                });
+                return cfStart;
             }
-            return binder.start().thenCompose(v -> insertBinder(name)).thenApply(v -> true);
         }
     }
 
@@ -181,6 +201,7 @@ public class ServerImpl implements Server {
         CompletableFuture[] arr = new CompletableFuture[binderNames.size()];
         int i = 0;
         for (String binderName : binderNames) {
+            logger.trace("Starting binder: " + binderName);
             Binder binder = loadBinder(binderName);
             arr[i++] = binder.start();
         }
@@ -236,19 +257,36 @@ public class ServerImpl implements Server {
     }
 
     @Override
+    // Must be synchronized to prevent race
     public synchronized CompletableFuture<Boolean> createLog(String channel) {
         Log log = logs.get(channel);
         if (log != null) {
             return CompletableFuture.completedFuture(false);
         } else {
-            log = new FileLog(vertx, faf, serverOptions, channel);
-            // FIXME log is put in map before start is complete so can end up using a non started log
-            // causing exceptions
-            Log prev = logs.putIfAbsent(channel, log);
-            if (prev != null) {
-                log = prev;
+            // A bit of jiggery pokery to ensure we don't have a non started log in the logs map
+            // but we don't end up creating some log twice
+            CompletableFuture<Boolean> cfStart = new CompletableFuture<>();
+            CompletableFuture<Boolean> cfPrev = startingLogs.putIfAbsent(channel, cfStart);
+            if (cfPrev != null) {
+                return cfPrev;
+            } else {
+                final Log thelog = new FileLog(vertx, faf, serverOptions, channel);
+                thelog.start().thenCompose(v -> insertLog(channel)).thenAccept(v -> {
+                    // Must be synchronized to prevent race
+                    synchronized (ServerImpl.this) {
+                        logs.put(channel, thelog);
+                        startingLogs.remove(channel);
+                    }
+                }).handle((v, t) -> {
+                   if (t == null) {
+                       cfStart.complete(true);
+                   } else {
+                       cfStart.completeExceptionally(t);
+                   }
+                   return null;
+                });
+                return cfStart;
             }
-            return log.start().thenCompose(v -> insertLog(channel)).thenApply(v -> true);
         }
     }
 

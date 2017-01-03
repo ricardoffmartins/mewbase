@@ -127,7 +127,10 @@ public class BindersTest extends ServerTestBase {
         assertNull(testBinder1.put("id1234", docPut).get());
         BsonObject docGet = testBinder1.get("id1234").get();
         assertEquals(docPut, docGet);
-        restart();
+        // We don't use the restart() method as this recreates the binders
+        stopServerAndClient();
+        startServer();
+        testBinder1 = server.getBinder(TEST_BINDER1);
         docGet = testBinder1.get("id1234").get();
         assertEquals(docPut, docGet);
     }
@@ -228,7 +231,6 @@ public class BindersTest extends ServerTestBase {
     }
 
     // TODO
-    // Test restarting
     // Test binders in binders_binder but not in actual storage and vice versa
     // etc
 

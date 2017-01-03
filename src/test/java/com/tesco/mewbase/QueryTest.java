@@ -6,6 +6,7 @@ import com.tesco.mewbase.client.ClientOptions;
 import com.tesco.mewbase.client.Producer;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Assert;
 import org.junit.Test;
@@ -15,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static junit.framework.TestCase.assertNotNull;
 
 /**
  * Created by Jamie on 14/10/2016.
@@ -53,8 +56,9 @@ public class QueryTest extends ServerTestBase {
 
     @Test
     public void testNoSuchBinder() throws Exception {
-
         BsonObject doc = client.findByID("nobinder", "xgcxgcxgc").get();
+        // FIXME - fix this
+        //assertNotNull(doc);
     }
 
     @Test
