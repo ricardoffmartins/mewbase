@@ -31,4 +31,9 @@ public class NetTransportConnection implements TransportConnection {
     public void close() {
         netSocket.close();
     }
+
+    @Override
+    public void closeHandler(Runnable handler) {
+        netSocket.closeHandler(v -> handler.run());
+    }
 }

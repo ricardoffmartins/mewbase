@@ -33,6 +33,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     private final Map<Integer, SubscriptionImpl> subscriptionMap = new HashMap<>();
     private final Map<Integer, QueryState> queryStates = new HashMap<>();
 
+    private boolean closed;
     private MewbaseAuthProvider authProvider;
     private boolean authenticated;
     private int subSeq;
@@ -46,6 +47,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         this.transportConnection = transportConnection;
         this.context = context;
         this.authProvider = authProvider;
+        transportConnection.closeHandler(this::close);
     }
 
     @Override
@@ -361,7 +363,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         BsonObject resp = new BsonObject();
         resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
         resp.put(Protocol.RESPONSE_OK, true);
-        BsonArray arr = new BsonArray(server.admin().listBinders());
+        BsonArray arr = new BsonArray(server.listBinders());
         resp.put(Protocol.LISTBINDERS_BINDERS, arr);
         writeResponse(Protocol.RESPONSE_FRAME, resp);
     }
@@ -382,7 +384,7 @@ public class ConnectionImpl implements ServerFrameHandler {
             missingField(Protocol.CREATEBINDER_NAME, Protocol.CREATE_BINDER_FRAME);
             return;
         }
-        CompletableFuture<Boolean> cf = server.admin().createBinder(binderName);
+        CompletableFuture<Boolean> cf = server.createBinder(binderName);
         cf.handle((res, t) -> {
             if (t != null) {
                 sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", requestID);
@@ -411,7 +413,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         BsonObject resp = new BsonObject();
         resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
         resp.put(Protocol.RESPONSE_OK, true);
-        BsonArray arr = new BsonArray(server.admin().listChannels());
+        BsonArray arr = new BsonArray(server.listChannels());
         resp.put(Protocol.LISTCHANNELS_CHANNELS, arr);
         writeResponse(Protocol.RESPONSE_FRAME, resp);
     }
@@ -432,7 +434,7 @@ public class ConnectionImpl implements ServerFrameHandler {
             missingField(Protocol.CREATECHANNEL_NAME, Protocol.CREATE_CHANNEL_FRAME);
             return;
         }
-        CompletableFuture<Boolean> cf = server.admin().createChannel(channelName);
+        CompletableFuture<Boolean> cf = server.createChannel(channelName);
         cf.handle((res, t) -> {
             if (t != null) {
                 sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create channel", requestID);
@@ -547,12 +549,15 @@ public class ConnectionImpl implements ServerFrameHandler {
 
     protected void close() {
         checkContext();
+        if (closed) {
+            return;
+        }
         authenticated = false;
-        transportConnection.close();
-        server.removeConnection(this);
         for (QueryState queryState : queryStates.values()) {
             queryState.close();
         }
+        closed = true;
+        transportConnection.close();
     }
 
     protected ServerImpl server() {

@@ -21,6 +21,7 @@ package io.mewbase.bson;
 import io.mewbase.TestUtils;
 import io.mewbase.client.MewException;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -1584,6 +1585,15 @@ public class BsonObjectTest {
         assertEquals(((BsonArray)removed).getDouble(0), 1.0, 0.0);
     }
 
+    @Test
+    public void testJsonObjectConversion() {
+        JsonObject jsonObject = createJsonObject();
+        BsonObject bsonObject = new BsonObject(jsonObject);
+        assertEquals(jsonObject.getMap(), bsonObject.getMap());
+        JsonObject jsonObject2 = bsonObject.toJsonObject();
+        assertEquals(jsonObject, jsonObject2);
+    }
+
     private void testStreamCorrectTypes(BsonObject object) {
         object.stream().forEach(entry -> {
             String key = entry.getKey();
@@ -1595,6 +1605,19 @@ public class BsonObjectTest {
 
     private BsonObject createBsonObject() {
         BsonObject obj = new BsonObject();
+        obj.put("mystr", "bar");
+        obj.put("myint", Integer.MAX_VALUE);
+        obj.put("mylong", Long.MAX_VALUE);
+        obj.put("myfloat", Float.MAX_VALUE);
+        obj.put("mydouble", Double.MAX_VALUE);
+        obj.put("myboolean", true);
+        obj.put("mybinary", TestUtils.randomByteArray(100));
+        obj.put("myinstant", Instant.now());
+        return obj;
+    }
+
+    private JsonObject createJsonObject() {
+        JsonObject obj = new JsonObject();
         obj.put("mystr", "bar");
         obj.put("myint", Integer.MAX_VALUE);
         obj.put("mylong", Long.MAX_VALUE);

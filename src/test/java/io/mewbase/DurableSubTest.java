@@ -5,7 +5,7 @@ import io.mewbase.client.ClientDelivery;
 import io.mewbase.client.Producer;
 import io.mewbase.client.Subscription;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.MewAdmin;
+import io.mewbase.server.Mewbase;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -37,7 +37,7 @@ public class DurableSubTest extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        MewAdmin admin = server.admin();
+        Mewbase admin = server;
         admin.createChannel(TEST_CHANNEL_1).get();
     }
 

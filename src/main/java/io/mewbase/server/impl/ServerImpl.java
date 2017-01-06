@@ -38,10 +38,8 @@ public class ServerImpl implements Server {
     private final ServerOptions serverOptions;
     private final boolean ownVertx;
     private final Vertx vertx;
-    private final Set<ConnectionImpl> connections = new ConcurrentHashSet<>();
     private final ProjectionManager projectionManager;
     private final Set<Transport> transports = new ConcurrentHashSet<>();
-    private final MewAdmin mewAdmin;
 
     private final ConcurrentMap<String, CompletableFuture<Boolean>> startingBinders = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Binder> binders = new ConcurrentHashMap<>();
@@ -56,7 +54,7 @@ public class ServerImpl implements Server {
     private Binder channelsBinder;
     private Binder durableSubsBinder;
 
-    protected ServerImpl(Vertx vertx, boolean ownVertx, ServerOptions serverOptions) {
+    ServerImpl(Vertx vertx, boolean ownVertx, ServerOptions serverOptions) {
         this.vertx = vertx;
         this.ownVertx = ownVertx;
         if (vertx.isClustered()) {
@@ -67,16 +65,10 @@ public class ServerImpl implements Server {
         this.faf = new AFFileAccess(vertx);
         this.systemBinderFactory = new LmdbBinderFactory(serverOptions.getDocsDir(), vertx);
         this.projectionManager = new ProjectionManager(this);
-        this.mewAdmin = new MewAdminImpl(this);
     }
 
-    protected ServerImpl(ServerOptions serverOptions) {
+    ServerImpl(ServerOptions serverOptions) {
         this(Vertx.vertx(), true, serverOptions);
-    }
-
-    @Override
-    public MewAdmin admin() {
-        return mewAdmin;
     }
 
     @Override
@@ -90,7 +82,6 @@ public class ServerImpl implements Server {
         CompletableFuture<Void> cfStopDocManager = stopBinders();
         CompletableFuture<Void> cfStopLogManager = stopLogs();
         CompletableFuture<Void> cf = CompletableFuture.allOf(cfStopTransports, cfStopDocManager, cfStopLogManager);
-        connections.clear();
         if (ownVertx) {
             cf = cf.thenCompose(v -> {
                 AsyncResCF<Void> cfCloseVertx = new AsyncResCF<>();
@@ -101,14 +92,6 @@ public class ServerImpl implements Server {
         return cf;
     }
 
-    protected void removeConnection(ConnectionImpl connection) {
-        connections.remove(connection);
-    }
-
-    public ProjectionManager getProjectionManager() {
-        return projectionManager;
-    }
-
     public Vertx getVertx() {
         return vertx;
     }
@@ -117,10 +100,10 @@ public class ServerImpl implements Server {
         return serverOptions;
     }
 
-    // Binder related stuff
+    // Binder related API
 
     @Override
-    public List<String> listBinderNames() {
+    public List<String> listBinders() {
         return new ArrayList<>(binders.keySet());
     }
 
@@ -161,6 +144,75 @@ public class ServerImpl implements Server {
             }
         }
     }
+
+    public Binder getDurableSubsBinder() {
+        return durableSubsBinder;
+    }
+
+    // Channel related API
+
+    @Override
+    // Must be synchronized to prevent race
+    public synchronized CompletableFuture<Boolean> createChannel(String channel) {
+        Log log = logs.get(channel);
+        if (log != null) {
+            return CompletableFuture.completedFuture(false);
+        } else {
+            // A bit of jiggery pokery to ensure we don't have a non started log in the logs map
+            // but we don't end up creating some log twice
+            CompletableFuture<Boolean> cfStart = new CompletableFuture<>();
+            CompletableFuture<Boolean> cfPrev = startingLogs.putIfAbsent(channel, cfStart);
+            if (cfPrev != null) {
+                return cfPrev;
+            } else {
+                final Log thelog = new LogImpl(vertx, faf, serverOptions, channel);
+                thelog.start().thenCompose(v -> insertLog(channel)).thenAccept(v -> {
+                    // Must be synchronized to prevent race
+                    synchronized (ServerImpl.this) {
+                        logs.put(channel, thelog);
+                        startingLogs.remove(channel);
+                    }
+                }).handle((v, t) -> {
+                    if (t == null) {
+                        cfStart.complete(true);
+                    } else {
+                        cfStart.completeExceptionally(t);
+                    }
+                    return null;
+                });
+                return cfStart;
+            }
+        }
+    }
+
+    @Override
+    public List<String> listChannels() {
+        return new ArrayList<>(logs.keySet());
+    }
+
+    // TODO should we really expose this?
+    public Log getLog(String channel) {
+        return logs.get(channel);
+    }
+
+    // Projection related API
+
+    @Override
+    public ProjectionBuilder buildProjection(String name) {
+        return projectionManager.buildProjection(name);
+    }
+
+    @Override
+    public List<String> listProjections() {
+        return projectionManager.listProjectionNames();
+    }
+
+    @Override
+    public Projection getProjection(String projectionName) {
+        return projectionManager.getProjection(projectionName);
+    }
+
+    // Impl
 
     private CompletableFuture<Void> startBinders() {
         return systemBinderFactory.start().thenCompose(v -> startSystemBinders()).thenCompose(v -> startUserBinders());
@@ -231,12 +283,6 @@ public class ServerImpl implements Server {
         });
     }
 
-    public Binder getDurableSubsBinder() {
-        return durableSubsBinder;
-    }
-
-    // Log related stuff
-
     private CompletableFuture<Void> startLogs() {
 
         File logsDir = new File(serverOptions.getLogsDir());
@@ -253,40 +299,6 @@ public class ServerImpl implements Server {
         });
     }
 
-    @Override
-    // Must be synchronized to prevent race
-    public synchronized CompletableFuture<Boolean> createChannel(String channel) {
-        Log log = logs.get(channel);
-        if (log != null) {
-            return CompletableFuture.completedFuture(false);
-        } else {
-            // A bit of jiggery pokery to ensure we don't have a non started log in the logs map
-            // but we don't end up creating some log twice
-            CompletableFuture<Boolean> cfStart = new CompletableFuture<>();
-            CompletableFuture<Boolean> cfPrev = startingLogs.putIfAbsent(channel, cfStart);
-            if (cfPrev != null) {
-                return cfPrev;
-            } else {
-                final Log thelog = new LogImpl(vertx, faf, serverOptions, channel);
-                thelog.start().thenCompose(v -> insertLog(channel)).thenAccept(v -> {
-                    // Must be synchronized to prevent race
-                    synchronized (ServerImpl.this) {
-                        logs.put(channel, thelog);
-                        startingLogs.remove(channel);
-                    }
-                }).handle((v, t) -> {
-                    if (t == null) {
-                        cfStart.complete(true);
-                    } else {
-                        cfStart.completeExceptionally(t);
-                    }
-                    return null;
-                });
-                return cfStart;
-            }
-        }
-    }
-
     private CompletableFuture<Void> stopLogs() {
         CompletableFuture[] arr = new CompletableFuture[logs.size()];
         int i = 0;
@@ -294,15 +306,6 @@ public class ServerImpl implements Server {
             arr[i++] = log.close();
         }
         return CompletableFuture.allOf(arr);
-    }
-
-    @Override
-    public List<String> listChannelNames() {
-        return new ArrayList<>(logs.keySet());
-    }
-
-    public Log getLog(String channel) {
-        return logs.get(channel);
     }
 
     private CompletableFuture<Void> startLogs(List<String> logNames) {
@@ -321,9 +324,6 @@ public class ServerImpl implements Server {
         return channelsBinder.put(logName, new BsonObject().put(Binder.ID_FIELD, logName));
     }
 
-
-    // =======================
-
     private CompletableFuture<Void> startTransports() {
         // For now just net transport
         Transport transport = new NetTransport(vertx, serverOptions);
@@ -333,8 +333,7 @@ public class ServerImpl implements Server {
     }
 
     private void connectHandler(TransportConnection transportConnection) {
-        connections.add(new ConnectionImpl(this, transportConnection, Vertx.currentContext(),
-                serverOptions.getAuthProvider()));
+        new ConnectionImpl(this, transportConnection, Vertx.currentContext(), serverOptions.getAuthProvider());
     }
 
     private CompletableFuture<Void> stopTransports() {

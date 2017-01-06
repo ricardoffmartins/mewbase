@@ -54,7 +54,7 @@ public class LogTestBase extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        server.admin().createChannel(TEST_CHANNEL_1).get();
+        server.createChannel(TEST_CHANNEL_1).get();
     }
 
     protected void saveInfo(int fileNumber, int headPos, int fileHeadPos, int lastWrittenPos, boolean shutdown) {

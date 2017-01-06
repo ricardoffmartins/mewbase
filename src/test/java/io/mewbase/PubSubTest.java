@@ -1,5 +1,6 @@
 package io.mewbase;
 
+import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.*;
 import io.mewbase.common.SubDescriptor;
@@ -12,12 +13,16 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
+import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.*;
 
 /**
@@ -30,7 +35,47 @@ public class PubSubTest extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        server.admin().createChannel(TEST_CHANNEL_1).get();
+        server.createChannel(TEST_CHANNEL_1).get();
+    }
+
+    @Test
+    public void testListChannels() throws Exception {
+        int numChannels = 10;
+        CompletableFuture[] all = new CompletableFuture[numChannels];
+        for (int i = 0; i < numChannels; i++) {
+            all[i] = server.createChannel("testchannel" + i);
+        }
+        CompletableFuture.allOf(all).get();
+        BsonArray channels1 = client.listChannels().get();
+
+        Set<String> channelsSet1 = new HashSet<>(channels1.getList());
+        for (int i = 0; i < numChannels; i++) {
+            assertTrue(channelsSet1.contains("testchannel" + i));
+        }
+
+        final String otherChannelName = "someotherchannel";
+
+        // Create a new one
+        server.createChannel(otherChannelName).get();
+        BsonArray channels2 = client.listChannels().get();
+        Set<String> channelsSet2 = new HashSet<>(channels2.getList());
+        assertTrue(channelsSet2.contains(otherChannelName));
+        assertEquals(channelsSet1.size() + 1, channelsSet2.size());
+
+    }
+
+    @Test
+    public void testCreateChannel() throws Exception {
+        final String channelName = "somechannel";
+        CompletableFuture<Boolean> cf = client.createChannel(channelName);
+        assertTrue(cf.get());
+
+        List<String> channelNames = server.listChannels();
+        Set<String> channelsSet = new HashSet<>(channelNames);
+        assertTrue(channelsSet.contains(channelName));
+
+        CompletableFuture<Boolean> cf2 = client.createChannel(channelName);
+        assertFalse(cf2.get());
     }
 
     @Test

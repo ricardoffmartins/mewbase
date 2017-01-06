@@ -28,7 +28,7 @@ public class ShoppingBasketExample {
         ServerOptions options = new ServerOptions();
         Server server = Server.newServer(options);
         server.start().get();
-        new ShoppingBasketMewblet().setup(server.admin());
+        new ShoppingBasketMewblet().setup(server);
 
         // Create a client
         Client client = Client.newClient(new ClientOptions());

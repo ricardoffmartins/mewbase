@@ -20,6 +20,8 @@ package io.mewbase.bson;
 
 import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 
 import java.io.*;
 import java.time.Instant;
@@ -69,6 +71,15 @@ public class BsonArray implements Iterable<Object> {
      */
     public BsonArray(List list) {
         this.list = list;
+    }
+
+    /**
+     * Create an instance from a JsonArray
+     *
+     * @param jsonArray the JsonArray to create the BsonArray from
+     */
+    public BsonArray(JsonArray jsonArray) {
+        this.list = jsonArray.getList();
     }
 
     /**
@@ -544,6 +555,11 @@ public class BsonArray implements Iterable<Object> {
         Bson.encode(list, outputStream);
     }
 
+    /**
+     * Encode this to a String
+     *
+     * @return  the string form
+     */
     public String encodeToString() {
         StringBuilder sb = new StringBuilder();
         encodeToString(sb);
@@ -572,6 +588,16 @@ public class BsonArray implements Iterable<Object> {
         }
         sb.append("]");
     }
+
+    /**
+     * Convert this into a JsonArray
+     *
+     * @return  the equivalent JsonArray
+     */
+    public JsonArray toJsonArray() {
+        return new JsonArray(list);
+    }
+
 
     @Override
     public String toString() {

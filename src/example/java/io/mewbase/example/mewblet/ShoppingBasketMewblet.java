@@ -1,7 +1,7 @@
 package io.mewbase.example.mewblet;
 
 import io.mewbase.bson.BsonPath;
-import io.mewbase.server.MewAdmin;
+import io.mewbase.server.Mewbase;
 import io.mewbase.server.Mewblet;
 
 /**
@@ -10,12 +10,12 @@ import io.mewbase.server.Mewblet;
 public class ShoppingBasketMewblet implements Mewblet {
 
     @Override
-    public void setup(MewAdmin admin) throws Exception {
+    public void setup(Mewbase mewbase) throws Exception {
 
-        admin.createChannel("orders").get();
-        admin.createBinder("baskets").get();
+        mewbase.createChannel("orders").get();
+        mewbase.createBinder("baskets").get();
 
-        admin.buildProjection("maintain_basket")                                // projection name
+        mewbase.buildProjection("maintain_basket")                                // projection name
                 .projecting("orders")                                           // channel name
                 .filteredBy(ev -> ev.getString("eventType").equals("add_item")) // event filter
                 .onto("baskets")                                                // binder name

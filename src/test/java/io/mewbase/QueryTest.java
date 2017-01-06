@@ -34,8 +34,8 @@ public class QueryTest extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        server.admin().createChannel(TEST_CHANNEL_1).get();
-        server.admin().createBinder(TEST_BINDER1).get();
+        server.createChannel(TEST_CHANNEL_1).get();
+        server.createBinder(TEST_BINDER1).get();
     }
 
     @Test
@@ -121,7 +121,7 @@ public class QueryTest extends ServerTestBase {
 
 
     protected void installInsertProjection() {
-        server.admin().buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy(ev -> true)
+        server.buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy(ev -> true)
                 .identifiedBy(ev -> ev.getString("id"))
                 .as((basket, del) -> del.event()).create();
     }

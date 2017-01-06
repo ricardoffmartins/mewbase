@@ -14,4 +14,6 @@ public interface TransportConnection {
     void handler(Consumer<Buffer> handler);
 
     void close();
+
+    void closeHandler(Runnable handler);
 }

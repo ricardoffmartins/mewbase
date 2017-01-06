@@ -24,7 +24,7 @@ public class SSLPubSubTest extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        server.admin().createChannel(TEST_CHANNEL_1);
+        server.createChannel(TEST_CHANNEL_1);
     }
 
     @Override

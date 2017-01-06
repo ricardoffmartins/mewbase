@@ -30,7 +30,7 @@ public class PubSubExample {
         ServerOptions options = new ServerOptions();
         Server server = Server.newServer(options);
         server.start().get();
-        server.admin().createChannel("orders").get();
+        server.createChannel("orders").get();
 
         // Create a client
         Client client = Client.newClient(new ClientOptions());

@@ -30,11 +30,11 @@ public class ShoppingBasketExample {
         ServerOptions options = new ServerOptions();
         Server server = Server.newServer(options);
         server.start().get();
-        server.admin().createBinder("baskets").get();
-        server.admin().createChannel("orders").get();
+        server.createBinder("baskets").get();
+        server.createChannel("orders").get();
 
         // Register a projection that will respond to add_item events and increase/decrease the quantity of the item in the basket
-        server.admin().buildProjection("maintain_basket")                             // projection name
+        server.buildProjection("maintain_basket")                             // projection name
                 .projecting("orders")                                           // channel name
                 .filteredBy(ev -> ev.getString("eventType").equals("add_item")) // event filter
                 .onto("baskets")                                                // binder name

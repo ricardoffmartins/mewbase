@@ -1,6 +1,7 @@
 package io.mewbase.binder;
 
 import io.mewbase.ServerTestBase;
+import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.Binder;
 import io.mewbase.server.DocReadStream;
@@ -12,12 +13,20 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.*;
 
 /**
+ *
+ * TODO we should distinguish between testing on the Mewbase interface and at the client
+ *
  * Created by tim on 14/10/16.
  */
 @RunWith(VertxUnitRunner.class)
@@ -27,12 +36,6 @@ public class BindersTest extends ServerTestBase {
 
     protected DocReadStream stream;
     protected Binder testBinder1;
-
-
-    @Override
-    protected void startClient() throws Exception {
-        // Don't need a client
-    }
 
     @Override
     protected void tearDown(TestContext context) throws Exception {
@@ -44,9 +47,48 @@ public class BindersTest extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        server.admin().createBinder(TEST_BINDER1).get();
-        server.admin().createBinder(TEST_BINDER2).get();
+        server.createBinder(TEST_BINDER1).get();
+        server.createBinder(TEST_BINDER2).get();
         testBinder1 = server.getBinder(TEST_BINDER1);
+    }
+
+    @Test
+    public void testListBinders() throws Exception {
+        int numBinders = 10;
+        CompletableFuture[] all = new CompletableFuture[numBinders];
+        for (int i = 0; i < numBinders; i++) {
+            all[i] = server.createBinder("testbinder" + i);
+        }
+        CompletableFuture.allOf(all).get();
+        BsonArray binders1 = client.listBinders().get();
+
+        Set<String> bindersSet1 = new HashSet<>(binders1.getList());
+        for (int i = 0; i < numBinders; i++) {
+            assertTrue(bindersSet1.contains("testbinder" + i));
+        }
+
+        final String otherBinderName = "someotherbinder";
+
+        // Create a new one
+        server.createBinder(otherBinderName).get();
+        BsonArray binders2 = client.listBinders().get();
+        Set<String> bindersSet2 = new HashSet<>(binders2.getList());
+        assertTrue(bindersSet2.contains(otherBinderName));
+        assertEquals(bindersSet1.size() + 1, bindersSet2.size());
+    }
+
+    @Test
+    public void testCreateBinder() throws Exception {
+        final String binderName = "somebinder";
+        CompletableFuture<Boolean> cf = client.createBinder(binderName);
+        assertTrue(cf.get());
+
+        List<String> binderNames = server.listBinders();
+        Set<String> bindersSet = new HashSet<>(binderNames);
+        assertTrue(bindersSet.contains(binderName));
+
+        CompletableFuture<Boolean> cf2 = client.createBinder(binderName);
+        assertFalse(cf2.get());
     }
 
     @Test

@@ -5,5 +5,5 @@ package io.mewbase.server;
  */
 public interface Mewblet {
 
-    void setup(MewAdmin admin) throws Exception;
+    void setup(Mewbase mewbase) throws Exception;
 }

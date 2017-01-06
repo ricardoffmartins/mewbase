@@ -21,6 +21,8 @@ package io.mewbase.bson;
 import io.mewbase.TestUtils;
 import io.mewbase.client.MewException;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -1004,6 +1006,15 @@ public class BsonArrayTest {
         removed = obj.remove(0);
         assertTrue(removed instanceof BsonArray);
         assertEquals(((BsonArray)removed).getDouble(0), 1.0, 0.0);
+    }
+
+    @Test
+    public void testJsonArrayConversion() {
+        JsonArray jsonArray = new JsonArray().add("foo").add(123).add(new JsonObject().put("foo", "bar"));
+        BsonArray bsonArray = new BsonArray(jsonArray);
+        assertEquals(jsonArray.getList(), bsonArray.getList());
+        JsonArray jsonArray2 = bsonArray.toJsonArray();
+        assertEquals(jsonArray, jsonArray2);
     }
 
     private void testStreamCorrectTypes(BsonObject object) {

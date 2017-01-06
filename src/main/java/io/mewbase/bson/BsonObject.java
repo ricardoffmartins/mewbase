@@ -21,6 +21,7 @@ package io.mewbase.bson;
 
 import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 
 import java.io.*;
 import java.time.Instant;
@@ -69,6 +70,15 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
      */
     public BsonObject(Map<String, Object> map) {
         this.map = map;
+    }
+
+    /**
+     * Create an instance from a JsonObject
+     *
+     * @param jsonObject the JsonObject to create the BsonObject from
+     */
+    public BsonObject(JsonObject jsonObject) {
+        this.map = jsonObject.getMap();
     }
 
     /**
@@ -754,10 +764,24 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
         return this;
     }
 
+    /**
+     * Encode this to a String
+     *
+     * @return  the string form
+     */
     public String encodeToString() {
         StringBuilder sb = new StringBuilder();
         encodeToString(sb);
         return sb.toString();
+    }
+
+    /**
+     * Convert this to a JsonObject
+     *
+     * @return the equivalent JsonObject
+     */
+    public JsonObject toJsonObject() {
+        return new JsonObject(map);
     }
 
     protected void encodeToString(StringBuilder sb) {

@@ -4,7 +4,7 @@ import io.mewbase.ServerTestBase;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.*;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.MewAdmin;
+import io.mewbase.server.Mewbase;
 import io.mewbase.server.MewbaseAuthProvider;
 import io.mewbase.server.ServerOptions;
 import io.vertx.ext.unit.Async;
@@ -38,10 +38,9 @@ public class AuthenticationTestBase extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        MewAdmin admin = server.admin();
-        admin.createChannel(TEST_CHANNEL_1).get();
-        admin.createChannel(TEST_CHANNEL_2).get();
-        admin.createBinder(TEST_BINDER1).get();
+        server.createChannel(TEST_CHANNEL_1).get();
+        server.createChannel(TEST_CHANNEL_2).get();
+        server.createBinder(TEST_BINDER1).get();
     }
 
     @Override

@@ -34,8 +34,8 @@ public class ProjectionTest extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        server.admin().createChannel(TEST_CHANNEL_1).get();
-        server.admin().createBinder(TEST_BINDER1).get();
+        server.createChannel(TEST_CHANNEL_1).get();
+        server.createBinder(TEST_BINDER1).get();
     }
 
     @Test
@@ -61,7 +61,7 @@ public class ProjectionTest extends ServerTestBase {
         AtomicInteger cnt = new AtomicInteger();
         AtomicReference<Projection> projRef = new AtomicReference<>();
         AtomicBoolean paused = new AtomicBoolean();
-        Projection projection = server.admin().buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1)
+        Projection projection = server.buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1)
                 .onto(TEST_BINDER1).filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
                 .as((basket, del) -> {
                     testContext.assertFalse(paused.get());
@@ -88,7 +88,7 @@ public class ProjectionTest extends ServerTestBase {
         for (int i = 0; i < numProjections; i++) {
             registerProjection("projection" + i);
         }
-        List<String> names = server.admin().listProjections();
+        List<String> names = server.listProjections();
         assertEquals(numProjections, names.size());
         for (int i = 0; i < numProjections; i++) {
             assertTrue(names.contains("projection" + i));
@@ -102,7 +102,7 @@ public class ProjectionTest extends ServerTestBase {
             registerProjection("projection" + i);
         }
         for (int i = 0; i < numProjections; i++) {
-            Projection projection = server.admin().getProjection("projection" + i);
+            Projection projection = server.getProjection("projection" + i);
             assertNotNull(projection);
             assertEquals("projection" + i, projection.getName());
         }
@@ -152,7 +152,7 @@ public class ProjectionTest extends ServerTestBase {
     }
 
     private Projection registerProjection(String projectionName) {
-        return server.admin().buildProjection(projectionName).projecting(TEST_CHANNEL_1).onto(TEST_BINDER1)
+        return server.buildProjection(projectionName).projecting(TEST_CHANNEL_1).onto(TEST_BINDER1)
                 .filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
                 .as((basket, del) ->
                         BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
