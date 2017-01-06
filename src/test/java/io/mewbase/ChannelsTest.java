@@ -29,9 +29,9 @@ import static org.junit.Assert.*;
  * Created by tim on 26/09/16.
  */
 @RunWith(VertxUnitRunner.class)
-public class PubSubTest extends ServerTestBase {
+public class ChannelsTest extends ServerTestBase {
 
-    private final static Logger logger = LoggerFactory.getLogger(PubSubTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(ChannelsTest.class);
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {

@@ -17,7 +17,7 @@ import org.junit.runner.RunWith;
 import java.util.function.Consumer;
 
 @RunWith(VertxUnitRunner.class)
-public class SSLPubSubTest extends ServerTestBase {
+public class SSLChannelsTest extends ServerTestBase {
 
     private final static String CERT_PATH = "src/test/resources/server-cert.pem";
     private final static String KEY_PATH = "src/test/resources/server-key.pem";
