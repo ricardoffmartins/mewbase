@@ -62,6 +62,12 @@
             <version>0.4.6</version>
         </dependency>
 
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web</artifactId>
+            <version>3.3.3</version>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>
@@ -81,6 +87,7 @@
             <version>3.3.3</version>
             <scope>test</scope>
         </dependency>
+
 
     </dependencies>
 

@@ -1,4 +1,4 @@
-package io.mewbase.example;
+package io.mewbase.example.shopping;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;

@@ -1,14 +1,11 @@
 package io.mewbase.server.impl;
 
-import io.mewbase.server.MewbaseAuthProvider;
-import io.mewbase.server.MewbaseUser;
+import io.mewbase.server.*;
 import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.Client;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.Binder;
-import io.mewbase.server.DocReadStream;
-import io.mewbase.server.Log;
+import io.mewbase.server.impl.cqrs.QueryImpl;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -31,7 +28,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     private final TransportConnection transportConnection;
     private final Context context;
     private final Map<Integer, SubscriptionImpl> subscriptionMap = new HashMap<>();
-    private final Map<Integer, QueryState> queryStates = new HashMap<>();
+    private final Map<Integer, QueryExecution> queryStates = new HashMap<>();
 
     private boolean closed;
     private MewbaseAuthProvider authProvider;
@@ -109,10 +106,7 @@ public class ConnectionImpl implements ServerFrameHandler {
             sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, requestID);
             return;
         }
-        BsonObject record = new BsonObject();
-        record.put(Protocol.RECEV_TIMESTAMP, System.currentTimeMillis());
-        record.put(Protocol.RECEV_EVENT, event);
-        CompletableFuture<Long> cf = log.append(record);
+        CompletableFuture<Long> cf = server.publishEvent(log, event);
 
         cf.handle((v, ex) -> {
             if (ex == null) {
@@ -260,7 +254,6 @@ public class ConnectionImpl implements ServerFrameHandler {
         if (!checkAuthenticated()) {
             return;
         }
-
         Integer subID = frame.getInteger(Protocol.ACKEV_SUBID);
         if (subID == null) {
             missingField(Protocol.ACKEV_SUBID, Protocol.ACKEV_FRAME);
@@ -295,24 +288,60 @@ public class ConnectionImpl implements ServerFrameHandler {
             missingField(Protocol.QUERY_QUERYID, Protocol.QUERY_FRAME);
             return;
         }
-        String docID = frame.getString(Protocol.QUERY_DOCID);
-        String binderName = frame.getString(Protocol.QUERY_BINDER);
-        BsonObject matcher = frame.getBsonObject(Protocol.QUERY_MATCHER);
+        String queryName = frame.getString(Protocol.QUERY_NAME);
+        if (queryName == null) {
+            missingField(Protocol.QUERY_NAME, Protocol.QUERY_FRAME);
+            return;
+        }
+        BsonObject params = frame.getBsonObject(Protocol.QUERY_PARAMS);
+        if (params == null) {
+            missingField(Protocol.QUERY_PARAMS, Protocol.QUERY_FRAME);
+            return;
+        }
+        QueryImpl query = server.getCqrsManager().getQuery(queryName);
+        if (query == null) {
+            writeQueryError(Client.ERR_NO_SUCH_QUERY, "No such query " + queryName, queryID);
+        } else {
+            QueryExecution qe = new ConnectionQueryExecution(this, queryID, query, params);
+            queryStates.put(queryID, qe);
+            qe.start();
+        }
+    }
+
+
+    @Override
+    public void handleFindByID(BsonObject frame) {
+        checkContext();
+        if (!checkAuthenticated()) {
+            return;
+        }
+        Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
+        if (requestID == null) {
+            missingField(Protocol.REQUEST_REQUEST_ID, Protocol.FINDBYID_FRAME);
+            return;
+        }
+        String docID = frame.getString(Protocol.FINDBYID_DOCID);
+        if (docID == null) {
+            missingField(Protocol.FINDBYID_DOCID, Protocol.FINDBYID_FRAME);
+            return;
+        }
+        String binderName = frame.getString(Protocol.FINDBYID_BINDER);
+        if (binderName == null) {
+            missingField(Protocol.FINDBYID_BINDER, Protocol.FINDBYID_FRAME);
+            return;
+        }
         Binder binder = server.getBinder(binderName);
         if (binder != null) {
-            if (docID != null) {
-                CompletableFuture<BsonObject> cf = binder.get(docID);
-                cf.thenAccept(doc -> writeQueryResult(doc, queryID, true));
-            } else if (matcher != null) {
-                // TODO currently just use select all
-                DocReadStream rs = binder.getMatching(doc -> true);
-                QueryState holder = new QueryState(this, queryID, rs);
-                rs.handler(holder);
-                queryStates.put(queryID, holder);
-                rs.start();
-            }
+            CompletableFuture<BsonObject> cf = binder.get(docID);
+            cf.thenAccept(doc -> {
+                BsonObject resp = new BsonObject();
+                resp.put(Protocol.RESPONSE_OK, true);
+                resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
+                resp.put(Protocol.FINDRESPONSE_RESULT, doc);
+                writeResponse(Protocol.RESPONSE_FRAME, resp);
+            });
         } else {
-            writeQueryError(Client.ERR_NO_SUCH_BINDER, "No such binder " + binderName, queryID);
+            sendErrorResponse(Client.ERR_NO_SUCH_BINDER, "No such binder " + binderName, requestID);
         }
     }
 
@@ -322,7 +351,6 @@ public class ConnectionImpl implements ServerFrameHandler {
         if (!checkAuthenticated()) {
             return;
         }
-
         Integer queryID = frame.getInteger(Protocol.QUERYACK_QUERYID);
         if (queryID == null) {
             missingField(Protocol.QUERYACK_QUERYID, Protocol.QUERYACK_FRAME);
@@ -333,7 +361,7 @@ public class ConnectionImpl implements ServerFrameHandler {
             missingField(Protocol.QUERYACK_BYTES, Protocol.QUERYACK_FRAME);
             return;
         }
-        QueryState queryState = queryStates.get(queryID);
+        QueryExecution queryState = queryStates.get(queryID);
         if (queryState != null) {
             queryState.handleAck(bytes);
         }
@@ -345,6 +373,42 @@ public class ConnectionImpl implements ServerFrameHandler {
         if (!checkAuthenticated()) {
             return;
         }
+    }
+
+    @Override
+    public void handleCommand(BsonObject frame) {
+        checkContext();
+        if (!checkAuthenticated()) {
+            return;
+        }
+        String commandName = frame.getString(Protocol.COMMAND_NAME);
+        if (commandName == null) {
+            missingField(Protocol.COMMAND_NAME, Protocol.COMMAND_FRAME);
+            return;
+        }
+        BsonObject command = frame.getBsonObject(Protocol.COMMAND_COMMAND);
+        if (command == null) {
+            missingField(Protocol.COMMAND_COMMAND, Protocol.COMMAND_FRAME);
+            return;
+        }
+        Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
+        if (requestID == null) {
+            missingField(Protocol.REQUEST_REQUEST_ID, Protocol.UNSUBSCRIBE_FRAME);
+            return;
+        }
+        CompletableFuture<Void> cf = server.getCqrsManager().callCommandHandler(commandName, command);
+        cf.handle((res, t) -> {
+            if (t != null) {
+                // TODO what error to send?
+                //sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", requestID);
+            } else {
+                BsonObject resp = new BsonObject();
+                resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
+                resp.put(Protocol.RESPONSE_OK, true);
+                writeResponse(Protocol.RESPONSE_FRAME, resp);
+            }
+            return null;
+        });
     }
 
     // Admin operations
@@ -553,9 +617,10 @@ public class ConnectionImpl implements ServerFrameHandler {
             return;
         }
         authenticated = false;
-        for (QueryState queryState : queryStates.values()) {
+        for (QueryExecution queryState : queryStates.values()) {
             queryState.close();
         }
+        queryStates.clear();
         closed = true;
         transportConnection.close();
     }

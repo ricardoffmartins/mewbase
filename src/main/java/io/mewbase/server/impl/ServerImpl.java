@@ -2,6 +2,8 @@ package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
+import io.mewbase.server.impl.cqrs.CQRSManager;
+import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
 import io.mewbase.server.impl.doc.lmdb.LmdbBinderFactory;
 import io.mewbase.server.impl.file.af.AFFileAccess;
 import io.mewbase.server.*;
@@ -39,6 +41,7 @@ public class ServerImpl implements Server {
     private final boolean ownVertx;
     private final Vertx vertx;
     private final ProjectionManager projectionManager;
+    private final CQRSManager cqrsManager;
     private final Set<Transport> transports = new ConcurrentHashSet<>();
 
     private final ConcurrentMap<String, CompletableFuture<Boolean>> startingBinders = new ConcurrentHashMap<>();
@@ -65,6 +68,7 @@ public class ServerImpl implements Server {
         this.faf = new AFFileAccess(vertx);
         this.systemBinderFactory = new LmdbBinderFactory(serverOptions.getDocsDir(), vertx);
         this.projectionManager = new ProjectionManager(this);
+        this.cqrsManager = new CQRSManager(this);
     }
 
     ServerImpl(ServerOptions serverOptions) {
@@ -198,8 +202,8 @@ public class ServerImpl implements Server {
     // Projection related API
 
     @Override
-    public ProjectionBuilder buildProjection(String name) {
-        return projectionManager.buildProjection(name);
+    public ProjectionBuilder buildProjection(String projectionName) {
+        return projectionManager.buildProjection(projectionName);
     }
 
     @Override
@@ -212,7 +216,31 @@ public class ServerImpl implements Server {
         return projectionManager.getProjection(projectionName);
     }
 
+    // CQRS related API
+
+    @Override
+    public CommandHandlerBuilder buildCommandHandler(String commandName) {
+        return cqrsManager.buildCommandHandler(commandName);
+    }
+
+    @Override
+    public QueryBuilder buildQuery(String queryName) {
+        return new QueryBuilderImpl(cqrsManager, queryName);
+    }
+
+
     // Impl
+
+    CQRSManager getCqrsManager() {
+        return cqrsManager;
+    }
+
+    public CompletableFuture<Long> publishEvent(Log log, BsonObject event) {
+        BsonObject record = new BsonObject();
+        record.put(Protocol.RECEV_TIMESTAMP, System.currentTimeMillis());
+        record.put(Protocol.RECEV_EVENT, event);
+        return log.append(record);
+    }
 
     private CompletableFuture<Void> startBinders() {
         return systemBinderFactory.start().thenCompose(v -> startSystemBinders()).thenCompose(v -> startUserBinders());

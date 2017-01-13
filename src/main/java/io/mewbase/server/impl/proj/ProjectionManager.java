@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -35,7 +36,7 @@ public class ProjectionManager {
 
     public static final String PROJECTION_STATE_FIELD = "_mb.lastSeqs";
 
-    private final Map<String, ProjectionImpl> projections = new HashMap<>();
+    private final Map<String, ProjectionImpl> projections = new ConcurrentHashMap<>();
 
     private final ServerImpl server;
 
@@ -175,17 +176,6 @@ public class ProjectionManager {
             subscription.resume();
         }
 
-//        @Override
-//        public void unregister() {
-//            projections.remove(name);
-//            subscription.close();
-//        }
-//
-//        @Override
-//        public void delete() {
-//            unregister();
-//            subscription.unsubscribe();
-//        }
     }
 
     Projection registerProjection(String name, String channel, Function<BsonObject, Boolean> eventFilter,

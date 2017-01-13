@@ -37,7 +37,6 @@ public class LmdbBinder implements Binder {
 
     @Override
     public CompletableFuture<BsonObject> get(String id) {
-        logger.trace("Callling get on binder: " + this);
         AsyncResCF<BsonObject> res = new AsyncResCF<>();
         binderFactory.getExec().executeBlocking(fut -> {
             byte[] key = getKey(id);

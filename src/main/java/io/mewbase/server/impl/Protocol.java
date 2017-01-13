@@ -35,15 +35,16 @@ public class Protocol {
     public static final String SUBRESPONSE_FRAME = "SUBRESPONSE";
     public static final String RECEV_FRAME = "RECEV";
     public static final String ACKEV_FRAME = "ACKEV";
+    public static final String FINDBYID_FRAME = "FINDBYID";
     public static final String QUERY_FRAME = "QUERY";
     public static final String QUERYRESULT_FRAME = "QUERYRESULT";
     public static final String QUERYACK_FRAME = "QUERYACK";
     public static final String PING_FRAME = "PING";
-
     public static final String LIST_BINDERS_FRAME = "LISTBINDERS";
     public static final String CREATE_BINDER_FRAME = "CREATEBINDER";
     public static final String LIST_CHANNELS_FRAME = "LISTCHANNNELS";
     public static final String CREATE_CHANNEL_FRAME = "CREATECHANNEL";
+    public static final String COMMAND_FRAME = "COMMAND";
 
     // Frame fields
 
@@ -88,11 +89,14 @@ public class Protocol {
     public static final String ACKEV_BYTES = "bytes";
     public static final String ACKEV_POS = "pos";
 
-    // Query fields
+    public static final String FINDBYID_BINDER = "binder";
+    public static final String FINDBYID_DOCID = "dodID";
+
+    public static final String FINDRESPONSE_RESULT = "result";
+
     public static final String QUERY_QUERYID = "queryID";
-    public static final String QUERY_BINDER = "binder";
-    public static final String QUERY_MATCHER = "matcher";
-    public static final String QUERY_DOCID = "docID";
+    public static final String QUERY_NAME = "name";
+    public static final String QUERY_PARAMS = "params";
 
     public static final String QUERYRESULT_OK = "ok";
     public static final String QUERYRESULT_QUERYID = "queryID";
@@ -111,6 +115,11 @@ public class Protocol {
     public static final String LISTCHANNELS_CHANNELS = "channels";
     public static final String CREATECHANNEL_NAME = "name";
     public static final String CREATECHANNEL_RESPONSE_EXISTS = "exists";
+
+    // Command fields
+    public static final String COMMAND_NAME = "name";
+    public static final String COMMAND_COMMAND = "command";
+
 
     private final static Logger logger = LoggerFactory.getLogger(Protocol.class);
 
@@ -189,6 +198,9 @@ public class Protocol {
             case ACKEV_FRAME:
                 frameHandler.handleAckEv(frame);
                 break;
+            case FINDBYID_FRAME:
+                frameHandler.handleFindByID(frame);
+                break;
             case QUERY_FRAME:
                 frameHandler.handleQuery(frame);
                 break;
@@ -212,6 +224,9 @@ public class Protocol {
                 break;
             case CREATE_CHANNEL_FRAME:
                 frameHandler.handleCreateChannel(frame);
+                break;
+            case COMMAND_FRAME:
+                frameHandler.handleCommand(frame);
                 break;
             default:
                 logger.error("Invalid frame type: " + type);

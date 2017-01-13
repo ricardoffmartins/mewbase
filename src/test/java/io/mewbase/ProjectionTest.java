@@ -140,13 +140,6 @@ public class ProjectionTest extends ServerTestBase {
         assertEquals(10, (int)basket.getBsonObject("products").getInteger("prod1"));
     }
 
-    private void sendEvents(int num) throws Exception {
-        Producer prod = client.createProducer(TEST_CHANNEL_1);
-        for (int i = 0; i < num; i++) {
-            prod.publish(new BsonObject().put("basketID", TEST_BASKET_ID).put("productID", "prod1").put("quantity", 1)).get();
-        }
-    }
-
     private Projection registerProjection() {
         return registerProjection(TEST_PROJECTION_NAME1);
     }

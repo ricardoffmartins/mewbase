@@ -59,6 +59,11 @@ public interface ClientFrameHandler extends FrameHandler {
     }
 
     @Override
+    default void handleFindByID(BsonObject frame) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     default void handleQueryAck(BsonObject frame) {
         throw new UnsupportedOperationException();
     }
@@ -80,6 +85,11 @@ public interface ClientFrameHandler extends FrameHandler {
 
     @Override
     default void handleCreateChannel(BsonObject frame) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    default void handleCommand(BsonObject frame) {
         throw new UnsupportedOperationException();
     }
 }

@@ -18,10 +18,16 @@ public interface Mewbase {
 
     CompletableFuture<Boolean> createBinder(String binderName);
 
-    ProjectionBuilder buildProjection(String name);
+    ProjectionBuilder buildProjection(String projectionName);
 
     List<String> listProjections();
 
     Projection getProjection(String projectionName);
+
+    CommandHandlerBuilder buildCommandHandler(String commandName);
+
+    QueryBuilder buildQuery(String queryName);
+
+
 
 }

@@ -68,7 +68,7 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
      *
      * @param map the map to create the instance from.
      */
-    public BsonObject(Map<String, Object> map) {
+    public BsonObject(Map map) {
         this.map = map;
     }
 
@@ -495,6 +495,7 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
      * @return a reference to this, so the API can be used fluently
      */
     public BsonObject put(String key, CharSequence value) {
+
         Objects.requireNonNull(key);
         map.put(key, value == null ? null : value.toString());
         return this;
@@ -770,9 +771,7 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
      * @return  the string form
      */
     public String encodeToString() {
-        StringBuilder sb = new StringBuilder();
-        encodeToString(sb);
-        return sb.toString();
+        return toJsonObject().encode();
     }
 
     /**
@@ -782,32 +781,6 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
      */
     public JsonObject toJsonObject() {
         return new JsonObject(map);
-    }
-
-    protected void encodeToString(StringBuilder sb) {
-        sb.append("{");
-        Iterator<Map.Entry<String, Object>> iter = iterator();
-        while (iter.hasNext()) {
-            Map.Entry<String, Object> entry = iter.next();
-            sb.append(entry.getKey()).append(":");
-            if (entry.getValue() instanceof BsonObject) {
-                ((BsonObject)entry.getValue()).encodeToString(sb);
-            } else if (entry.getValue() instanceof BsonArray) {
-                ((BsonArray)entry.getValue()).encodeToString(sb);
-            } else if (entry.getValue() instanceof String) {
-                sb.append("\"");
-                sb.append(entry.getValue().toString());
-                sb.append("\"");
-            } else if (entry.getValue() == null) {
-                sb.append("<null>");
-            } else {
-                sb.append(entry.getValue().toString());
-            }
-            if (iter.hasNext()) {
-                sb.append(",");
-            }
-        }
-        sb.append("}");
     }
 
     @Override

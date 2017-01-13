@@ -30,21 +30,25 @@ public interface Client {
     int ERR_NOT_AUTHORISED = 2;
     int ERR_NO_SUCH_CHANNEL = 3;
     int ERR_NO_SUCH_BINDER = 4;
+    int ERR_NO_SUCH_QUERY = 5;
 
     int ERR_SERVER_ERROR = 100;
 
-
     ClientFactory factory = ServiceHelper.loadFactory(ClientFactory.class);
 
-    // Query operations
+    // Binder operations
 
     CompletableFuture<BsonObject> findByID(String binderName, String id);
 
     // TODO use Reactive streams for this instead
-    void findMatching(String binderName, BsonObject matcher,
+    void executeQuery(String queryName, BsonObject params,
                       Consumer<QueryResult> resultHandler, Consumer<Throwable> exceptionHandler);
 
-    // Pub/sub operations
+    CompletableFuture<BsonArray> listBinders();
+
+    CompletableFuture<Boolean> createBinder(String binderName);
+
+    // Channel related operations
 
     CompletableFuture<Subscription> subscribe(SubDescriptor subDescriptor, Consumer<ClientDelivery> handler);
 
@@ -54,15 +58,15 @@ public interface Client {
 
     CompletableFuture<Void> publish(String channel, BsonObject event, Function<BsonObject, String> partitionFunc);
 
-    // Admin operations
-
-    CompletableFuture<BsonArray> listBinders();
-
-    CompletableFuture<Boolean> createBinder(String binderName);
-
     CompletableFuture<BsonArray> listChannels();
 
     CompletableFuture<Boolean> createChannel(String binderName);
+
+    // Command related operations
+
+    CompletableFuture<Void> sendCommand(String commandName, BsonObject command);
+
+    // Admin operations
 
     CompletableFuture<Void> close();
 
