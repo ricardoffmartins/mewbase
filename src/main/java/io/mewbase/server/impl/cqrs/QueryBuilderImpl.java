@@ -34,12 +34,6 @@ public class QueryBuilderImpl implements QueryBuilder {
     }
 
     @Override
-    public QueryBuilder idSelector(Function<BsonObject, String> idSelector) {
-        query.setIdSelector(idSelector);
-        return this;
-    }
-
-    @Override
     public Query create() {
         if (query.getBinderName() == null) {
             throw new IllegalStateException("Please specify a binder name");

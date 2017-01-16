@@ -3,18 +3,12 @@ package io.mewbase;
 import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.ClientDelivery;
-import io.mewbase.client.MewException;
 import io.mewbase.client.Producer;
 import io.mewbase.client.Subscription;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.CommandHandler;
-import io.mewbase.server.RESTServiceAdaptor;
-import io.mewbase.server.impl.RESTServiceAdaptorImpl;
-import io.mewbase.server.impl.ServerImpl;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -26,9 +20,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static junit.framework.TestCase.fail;
@@ -36,12 +27,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * Created by Jamie on 14/10/2016.
+ *
  */
 @RunWith(VertxUnitRunner.class)
-public class RESTServiceAdaptorTest extends ServerTestBase {
+public class RESTAdaptorTest extends ServerTestBase {
 
-    private final static Logger logger = LoggerFactory.getLogger(RESTServiceAdaptorTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(RESTAdaptorTest.class);
 
     protected Producer prod;
 
@@ -83,11 +74,7 @@ public class RESTServiceAdaptorTest extends ServerTestBase {
 
         Subscription sub = client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
 
-        RESTServiceAdaptor restServiceAdaptor = new RESTServiceAdaptorImpl((ServerImpl)server);
-
-        restServiceAdaptor.exposeCommand(commandName, "/orders/:customerID/", HttpMethod.POST);
-
-        restServiceAdaptor.start().get();
+        server.exposeCommand(commandName, "/orders/:customerID/", HttpMethod.POST);
 
         BsonObject sentCommand = new BsonObject().put("commandField", "foobar");
 
@@ -98,9 +85,6 @@ public class RESTServiceAdaptorTest extends ServerTestBase {
         });
         req.putHeader("content-type", "text/json");
         req.end(sentCommand.encode());
-
-        restServiceAdaptor.stop().get();
-
     }
 
     @Test
@@ -124,11 +108,7 @@ public class RESTServiceAdaptorTest extends ServerTestBase {
             return true;
         }).from(TEST_BINDER1).create();
 
-        RESTServiceAdaptor restServiceAdaptor = new RESTServiceAdaptorImpl((ServerImpl)server);
-
-        restServiceAdaptor.exposeQuery(queryName, "/orders/");
-
-        restServiceAdaptor.start().get();
+        server.exposeQuery(queryName, "/orders/");
 
         Async async = testContext.async();
 
@@ -158,11 +138,7 @@ public class RESTServiceAdaptorTest extends ServerTestBase {
         prod.publish(doc).get();
         waitForDoc(0);
 
-        RESTServiceAdaptor restServiceAdaptor = new RESTServiceAdaptorImpl((ServerImpl)server);
-
-        restServiceAdaptor.exposeFindByID(TEST_BINDER1, "/orders/:id");
-
-        restServiceAdaptor.start().get();
+        server.exposeFindByID(TEST_BINDER1, "/orders/:id");
 
         Async async = testContext.async();
 

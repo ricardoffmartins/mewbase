@@ -16,10 +16,5 @@ public interface QueryBuilder {
     // (params, context) -> boolean
     QueryBuilder documentFilter(BiFunction<BsonObject, QueryContext, Boolean> documentFilter);
 
-    // OR
-
-    // return the id from the params
-    QueryBuilder idSelector(Function<BsonObject, String> idSelector);
-
     Query create();
 }

@@ -2,7 +2,6 @@ package io.mewbase.server.impl.doc.lmdb;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.DocReadStream;
-import io.mewbase.server.impl.RESTServiceAdaptorImpl;
 import io.vertx.core.buffer.Buffer;
 import org.fusesource.lmdbjni.Database;
 import org.fusesource.lmdbjni.Entry;

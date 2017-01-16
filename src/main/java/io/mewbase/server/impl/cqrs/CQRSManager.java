@@ -110,20 +110,6 @@ public class CQRSManager {
             return this;
         }
 
-        @Override
-        public String getStringField(String fieldName) {
-            return null;
-        }
-
-        @Override
-        public Integer getIntegerField(String fieldName) {
-            return null;
-        }
-
-        @Override
-        public Object getField(String fieldName) {
-            return null;
-        }
     }
 
     synchronized void registerQuery(QueryImpl query) {

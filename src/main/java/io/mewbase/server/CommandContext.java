@@ -14,17 +14,10 @@ public abstract class CommandContext extends CompletableFuture<Void> {
     public void complete() {
         complete(null);
     }
-
-    public abstract String getStringField(String fieldName);
-
-    public abstract Integer getIntegerField(String fieldName);
-
-    public abstract Object getField(String fieldName);
-
-    public BsonObject putFields(BsonObject bsonObject, String... fieldNames) {
+    
+    public static void putFields(BsonObject from, BsonObject to, String... fieldNames) {
         for (String fieldName: fieldNames) {
-            bsonObject.put(fieldName, getField(fieldName));
+            to.put(fieldName, from.getValue(fieldName));
         }
-        return bsonObject;
     }
 }

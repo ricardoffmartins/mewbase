@@ -2,6 +2,7 @@ package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
+import io.mewbase.server.ProcessBuilder;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
 import io.mewbase.server.impl.doc.lmdb.LmdbBinderFactory;
@@ -12,6 +13,7 @@ import io.mewbase.server.impl.proj.ProjectionManager;
 import io.mewbase.server.impl.transport.net.NetTransport;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.impl.ConcurrentHashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +54,8 @@ public class ServerImpl implements Server {
     private final ConcurrentMap<String, CompletableFuture<Boolean>> startingLogs = new ConcurrentHashMap<>();
     private final Map<String, Log> logs = new ConcurrentHashMap<>();
 
+    private final RESTServiceAdaptor restServiceAdaptor;
+
     // The system binders
     private Binder bindersBinder;
     private Binder channelsBinder;
@@ -69,6 +73,7 @@ public class ServerImpl implements Server {
         this.systemBinderFactory = new LmdbBinderFactory(serverOptions.getDocsDir(), vertx);
         this.projectionManager = new ProjectionManager(this);
         this.cqrsManager = new CQRSManager(this);
+        this.restServiceAdaptor = new RESTServiceAdaptor(this);
     }
 
     ServerImpl(ServerOptions serverOptions) {
@@ -77,15 +82,14 @@ public class ServerImpl implements Server {
 
     @Override
     public synchronized CompletableFuture<Void> start() {
-        return startBinders().thenCompose(v -> startLogs()).thenCompose(v -> startTransports());
+        return startBinders().thenCompose(v -> startLogs())
+                .thenCompose(v -> startTransports()).thenCompose(v -> restServiceAdaptor.start());
     }
 
     @Override
     public synchronized CompletableFuture<Void> stop() {
-        CompletableFuture<Void> cfStopTransports = stopTransports();
-        CompletableFuture<Void> cfStopDocManager = stopBinders();
-        CompletableFuture<Void> cfStopLogManager = stopLogs();
-        CompletableFuture<Void> cf = CompletableFuture.allOf(cfStopTransports, cfStopDocManager, cfStopLogManager);
+        CompletableFuture<Void> cf = restServiceAdaptor.stop().thenCompose(v -> stopTransports())
+                .thenCompose(v -> stopBinders()).thenCompose(v -> stopLogs());
         if (ownVertx) {
             cf = cf.thenCompose(v -> {
                 AsyncResCF<Void> cfCloseVertx = new AsyncResCF<>();
@@ -194,6 +198,11 @@ public class ServerImpl implements Server {
         return new ArrayList<>(logs.keySet());
     }
 
+    @Override
+    public Channel getChannel(String channelName) {
+        return null;
+    }
+
     // TODO should we really expose this?
     public Log getLog(String channel) {
         return logs.get(channel);
@@ -226,6 +235,38 @@ public class ServerImpl implements Server {
     @Override
     public QueryBuilder buildQuery(String queryName) {
         return new QueryBuilderImpl(cqrsManager, queryName);
+    }
+
+    // REST Adaptor API
+
+    @Override
+    public Mewbase exposeCommand(String commandName, String uri, HttpMethod httpMethod) {
+        restServiceAdaptor.exposeCommand(commandName, uri, httpMethod);
+        return this;
+    }
+
+    @Override
+    public Mewbase exposeQuery(String queryName, String uri) {
+        restServiceAdaptor.exposeQuery(queryName, uri);
+        return this;
+    }
+
+    @Override
+    public Mewbase exposeFindByID(String binderName, String uri) {
+        restServiceAdaptor.exposeFindByID(binderName, uri);
+        return this;
+    }
+
+    // Process related API
+
+    @Override
+    public ProcessBuilder buildProcess(String processName) {
+        return null;
+    }
+
+    @Override
+    public ProcessStageBuilder buildProcessStage(String processStageName) {
+        return null;
     }
 
 
