@@ -9,6 +9,7 @@ import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
 import io.mewbase.server.DocReadStream;
 import io.mewbase.server.Log;
+import io.mewbase.server.impl.auth.UnauthorizedUser;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -35,7 +36,8 @@ public class ConnectionImpl implements ServerFrameHandler {
 
     private boolean closed;
     private MewbaseAuthProvider authProvider;
-    private boolean authenticated;
+    private MewbaseUser user;
+    //private boolean authenticated;
     private int subSeq;
 
     public ConnectionImpl(ServerImpl server, TransportConnection transportConnection, Context context,
@@ -57,7 +59,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         BsonObject value = (BsonObject)frame.getValue(Protocol.CONNECT_AUTH_INFO);
         CompletableFuture<MewbaseUser> cf = authProvider.authenticate(value);
 
-        cf.handle((user, ex) -> {
+        cf.handle((result, ex) -> {
 
             checkContext();
             BsonObject response = new BsonObject();
@@ -65,8 +67,8 @@ public class ConnectionImpl implements ServerFrameHandler {
                 sendErrorResponse(Client.ERR_AUTHENTICATION_FAILED, "Authentication failed");
                 logAndClose(ex.getMessage());
             } else {
-                if (user != null) {
-                    authenticated = true;
+                if (result != null) {
+                    user = result;
                     response.put(Protocol.RESPONSE_OK, true);
                     writeResponse(Protocol.RESPONSE_FRAME, response);
                 } else {
@@ -83,9 +85,9 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handlePublish(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
-            return;
-        }
+
+        //TODO: how to apply this correctly?
+        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.PUBLISH_FRAME);
 
         String channel = frame.getString(Protocol.PUBLISH_CHANNEL);
         BsonObject event = frame.getBsonObject(Protocol.PUBLISH_EVENT);
@@ -132,7 +134,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleStartTx(BsonObject frame) {
         checkContext();
 
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.STARTTX_FRAME)) {
             return;
         }
     }
@@ -141,7 +143,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleCommitTx(BsonObject frame) {
         checkContext();
 
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.COMMITTX_FRAME)) {
             return;
         }
     }
@@ -150,7 +152,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleAbortTx(BsonObject frame) {
         checkContext();
 
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.ABORTTX_FRAME)) {
             return;
         }
     }
@@ -159,47 +161,55 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleSubscribe(BsonObject frame) {
         checkContext();
 
-        if (!checkAuthenticated(Protocol.SUBSCRIBE_FRAME)) {
+        if (!isAuthorized(Protocol.SUBSCRIBE_FRAME)) {
             return;
         }
 
-        String channel = frame.getString(Protocol.SUBSCRIBE_CHANNEL);
-        if (channel == null) {
-            missingField(Protocol.SUBSCRIBE_CHANNEL, Protocol.SUBSCRIBE_FRAME);
-            return;
-        }
-        Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
-        if (requestID == null) {
-            missingField(Protocol.REQUEST_REQUEST_ID, Protocol.SUBSCRIBE_FRAME);
-            return;
-        }
-        Long startSeq = frame.getLong(Protocol.SUBSCRIBE_STARTPOS);
-        Long startTimestamp = frame.getLong(Protocol.SUBSCRIBE_STARTTIMESTAMP);
-        String durableID = frame.getString(Protocol.SUBSCRIBE_DURABLEID);
-        BsonObject matcher = frame.getBsonObject(Protocol.SUBSCRIBE_MATCHER);
-        SubDescriptor subDescriptor = new SubDescriptor().setStartPos(startSeq == null ? -1 : startSeq).setStartTimestamp(startTimestamp)
-                .setMatcher(matcher).setDurableID(durableID).setChannel(channel);
-        int subID = subSeq++;
-        checkWrap(subSeq);
-        Log log = server.getLog(channel);
-        if (log == null) {
-            sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, requestID);
-            return;
-        }
-        SubscriptionImpl subscription = new SubscriptionImpl(this, subID, subDescriptor);
-        subscriptionMap.put(subID, subscription);
-        BsonObject resp = new BsonObject();
-        resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
-        resp.put(Protocol.RESPONSE_OK, true);
-        resp.put(Protocol.SUBRESPONSE_SUBID, subID);
-        writeResponse(Protocol.SUBRESPONSE_FRAME, resp);
-        logger.trace("Subscribed channel: {} startSeq {}", channel, startSeq);
+        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.SUBSCRIBE_FRAME);
+
+        //TODO: how to apply this correctly?
+        //is this the right way?
+        authorisedCF.handle((res, ex) -> {
+            String channel = frame.getString(Protocol.SUBSCRIBE_CHANNEL);
+            if (channel == null) {
+                missingField(Protocol.SUBSCRIBE_CHANNEL, Protocol.SUBSCRIBE_FRAME);
+                return null;
+            }
+            Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
+            if (requestID == null) {
+                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.SUBSCRIBE_FRAME);
+                return null;
+            }
+            Long startSeq = frame.getLong(Protocol.SUBSCRIBE_STARTPOS);
+            Long startTimestamp = frame.getLong(Protocol.SUBSCRIBE_STARTTIMESTAMP);
+            String durableID = frame.getString(Protocol.SUBSCRIBE_DURABLEID);
+            BsonObject matcher = frame.getBsonObject(Protocol.SUBSCRIBE_MATCHER);
+            SubDescriptor subDescriptor = new SubDescriptor().setStartPos(startSeq == null ? -1 : startSeq).setStartTimestamp(startTimestamp)
+                    .setMatcher(matcher).setDurableID(durableID).setChannel(channel);
+            int subID = subSeq++;
+            checkWrap(subSeq);
+            Log log = server.getLog(channel);
+            if (log == null) {
+                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, requestID);
+                return null;
+            }
+            SubscriptionImpl subscription = new SubscriptionImpl(this, subID, subDescriptor);
+            subscriptionMap.put(subID, subscription);
+            BsonObject resp = new BsonObject();
+            resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
+            resp.put(Protocol.RESPONSE_OK, true);
+            resp.put(Protocol.SUBRESPONSE_SUBID, subID);
+            writeResponse(Protocol.SUBRESPONSE_FRAME, resp);
+            logger.trace("Subscribed channel: {} startSeq {}", channel, startSeq);
+            return null;
+        });
+
     }
 
     @Override
     public void handleSubClose(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated(Protocol.SUBCLOSE_FRAME)) {
+        if (!isAuthorized(Protocol.SUBCLOSE_FRAME)) {
             return;
         }
         Integer subID = frame.getInteger(Protocol.SUBCLOSE_SUBID);
@@ -227,7 +237,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleUnsubscribe(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.UNSUBSCRIBE_FRAME)) {
             return;
         }
 
@@ -257,7 +267,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleAckEv(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.ACKEV_FRAME)) {
             return;
         }
 
@@ -287,7 +297,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleQuery(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.QUERY_FRAME)) {
             return;
         }
         Integer queryID = frame.getInteger(Protocol.QUERY_QUERYID);
@@ -319,7 +329,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleQueryAck(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.QUERYACK_FRAME)) {
             return;
         }
 
@@ -342,7 +352,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handlePing(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.PING_FRAME)) {
             return;
         }
     }
@@ -352,7 +362,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleListBinders(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.LIST_BINDERS_FRAME)) {
             return;
         }
         Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
@@ -371,7 +381,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleCreateBinder(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.CREATEBINDER_NAME)) {
             return;
         }
         Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
@@ -402,7 +412,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleListChannels(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.LIST_CHANNELS_FRAME)) {
             return;
         }
         Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
@@ -421,7 +431,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleCreateChannel(BsonObject frame) {
         checkContext();
-        if (!checkAuthenticated()) {
+        if (!isAuthorized(Protocol.CREATECHANNEL_NAME)) {
             return;
         }
         Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
@@ -489,19 +499,26 @@ public class ConnectionImpl implements ServerFrameHandler {
         }
     }
 
-    protected boolean checkAuthenticated() {
-        return checkAuthenticated(Protocol.RESPONSE_FRAME);
-    }
+//    protected boolean isAuthorised(String frameName) {
+//        CompletableFuture<Boolean> authorised = user.isAuthorised(frameName);
+//
+//        authorised.handle((res, ex) -> {
+//
+//        });
+//    }
 
-    protected boolean checkAuthenticated(String frameName) {
-        if (!authenticated) {
-            BsonObject resp = new BsonObject();
-            resp.put(Protocol.RESPONSE_OK, false);
-            resp.put(Protocol.RESPONSE_ERRMSG, "Not authenticated!");
-            writeResponse(frameName, resp);
-            logAndClose("Not authenticated");
-        }
-        return authenticated;
+    protected boolean isAuthorized(String frameName) {
+//        if (!user.isAuthorized(frameName)) {
+//            BsonObject resp = new BsonObject();
+//            resp.put(Protocol.RESPONSE_OK, false);
+//            resp.put(Protocol.RESPONSE_ERRMSG, "User is not authorized to perform the operation!");
+//            writeResponse(Protocol.RESPONSE_FRAME, resp);
+//            logAndClose("Not authorized");
+//        }
+//        return user.isAuthorized(frameName);
+
+        //dummy result for now until auth is done properly
+        return true;
     }
 
     protected void missingField(String fieldName, String frameType) {
@@ -552,7 +569,10 @@ public class ConnectionImpl implements ServerFrameHandler {
         if (closed) {
             return;
         }
-        authenticated = false;
+
+        //authenticated = false;
+        user = new UnauthorizedUser();
+
         for (QueryState queryState : queryStates.values()) {
             queryState.close();
         }

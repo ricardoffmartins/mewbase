@@ -18,7 +18,7 @@ public class TestAuthProvider implements MewbaseAuthProvider {
         if (!success) {
             cf.completeExceptionally(new MewException("Incorrect username/password"));
         } else {
-            cf.complete(new TestUser());
+            cf.complete(new TestUser(success));
         }
 
         return cf;
