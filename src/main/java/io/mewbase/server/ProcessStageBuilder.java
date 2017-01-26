@@ -3,7 +3,7 @@ package io.mewbase.server;
 import io.mewbase.bson.BsonObject;
 
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -33,20 +33,12 @@ public interface ProcessStageBuilder {
 
     When the stage is complete or fails then context.complete/fail is called
      */
-    ProcessStageBuilder stageHandler(BiConsumer<BsonObject, StageContext> eventHandler);
+    ProcessStageBuilder eventHandler(BiConsumer<BsonObject, StageContext> eventHandler);
 
-    /*
-    Create a composite stage that completes when all the stages complete
-     */
-    ProcessStage allOf(ProcessStage... stages);
+    ProcessStageBuilder thenDo(Consumer<StageContext> action) ;
 
-    /*
-    Create a composite stage that completes when any of the stages complete
-     */
-    ProcessStage anyOf(ProcessStage... stages);
+    ProcessStageBuilder withTimeout(long timeoutMs);
 
-    ProcessStage withTimeout(long timeoutMs);
-
-    ProcessStage create();
+    ProcessStageDefinition build();
 
 }

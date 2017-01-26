@@ -66,8 +66,6 @@ public interface Client {
 
     CompletableFuture<Void> sendCommand(String commandName, BsonObject command);
 
-    // Admin operations
-
     CompletableFuture<Void> close();
 
 }

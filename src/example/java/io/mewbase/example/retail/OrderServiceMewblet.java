@@ -237,30 +237,32 @@ public class OrderServiceMewblet implements Mewblet {
 
         // Order fulfillment process
 
-        ProcessStage orderPlacedStage = mewbase.buildProcessStage("orderPlaced")
+        ProcessStageDefinition orderPlacedStage = mewbase.buildProcessStage("orderPlaced")
                 .fromChannel(ORDERS_CHANNEL_NAME)
                 .filteredWith(ev -> ev.getString("eventType").equals("orderPlaced"))
                 .identifiedBy(ev -> ev.getString("orderID"))
-                .stageHandler((ev, ctx) -> {
+                .eventHandler((ev, ctx) -> {
                     ctx.getState().put("orderPlacedEvent", ev);
                     ctx.complete();
-                }).create();
+                })
+                .thenDo(ctx -> sendPickCommand(ctx.getState())).build();
 
-        ProcessStage orderPickedStage = mewbase.buildProcessStage("orderPicked")
+        ProcessStageDefinition orderPickedStage = mewbase.buildProcessStage("orderPicked")
                 .fromChannel("picking")
                 .filteredWith(ev -> ev.getString("eventType").equals("orderPicked"))
                 .identifiedBy(ev -> ev.getString("orderID"))
-                .stageHandler((ev, ctx) -> {
+                .eventHandler((ev, ctx) -> {
                     ctx.getState().put("orderPickedEvent", ev);
                     ctx.complete();
-                }).create();
+                })
+                .thenDo(ctx -> sendDeliverCommand(ctx.getState())).build();
 
-        mewbase.buildProcess("orderFulfillment")
-                .startWithStage(orderPlacedStage)
-                .thenDo(state -> sendPickCommand(state))
-                .thenStage(orderPickedStage)
-                .thenDo(state -> sendDeliverCommand(state))
-                .create();;
+        ProcessDefinition processDefinition = mewbase.buildProcess("orderFulfillment")
+                .addStage(orderPlacedStage)
+                .addStage(orderPickedStage)
+                .build();;
+
+        mewbase.registerProcess(processDefinition);
     }
 
     private CompletableFuture<Void> sendPickCommand(BsonObject state) {

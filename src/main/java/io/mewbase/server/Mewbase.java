@@ -59,4 +59,10 @@ public interface Mewbase {
 
     ProcessStageBuilder buildProcessStage(String processStageName);
 
+//    ProcessStage allOf(ProcessStage... stages);
+//
+//    ProcessStage anyOf(ProcessStage... stages);
+
+    void registerProcess(ProcessDefinition processDefinition);
+
 }

@@ -9,6 +9,8 @@ import io.mewbase.server.impl.doc.lmdb.LmdbBinderFactory;
 import io.mewbase.server.impl.file.af.AFFileAccess;
 import io.mewbase.server.*;
 import io.mewbase.server.impl.log.LogImpl;
+import io.mewbase.server.impl.process.*;
+import io.mewbase.server.impl.process.Process;
 import io.mewbase.server.impl.proj.ProjectionManager;
 import io.mewbase.server.impl.transport.net.NetTransport;
 import io.mewbase.util.AsyncResCF;
@@ -38,12 +40,14 @@ public class ServerImpl implements Server {
     public static final String BINDERS_BINDER_NAME = "_mb.binders";
     public static final String CHANNELS_BINDER_NAME = "_mb.channels";
     public static final String DURABLE_SUBS_BINDER_NAME = "_mb.durableSubs";
+    public static final String PROCESS_STATES_BINDER_NAME = "_mb.processStates";
 
     private final ServerOptions serverOptions;
     private final boolean ownVertx;
     private final Vertx vertx;
     private final ProjectionManager projectionManager;
     private final CQRSManager cqrsManager;
+    private final ProcessManager processManager;
     private final Set<Transport> transports = new ConcurrentHashSet<>();
 
     private final ConcurrentMap<String, CompletableFuture<Boolean>> startingBinders = new ConcurrentHashMap<>();
@@ -60,6 +64,7 @@ public class ServerImpl implements Server {
     private Binder bindersBinder;
     private Binder channelsBinder;
     private Binder durableSubsBinder;
+    private Binder processStatesBinder;
 
     ServerImpl(Vertx vertx, boolean ownVertx, ServerOptions serverOptions) {
         this.vertx = vertx;
@@ -74,6 +79,7 @@ public class ServerImpl implements Server {
         this.projectionManager = new ProjectionManager(this);
         this.cqrsManager = new CQRSManager(this);
         this.restServiceAdaptor = new RESTServiceAdaptor(this);
+        this.processManager = new ProcessManager();
     }
 
     ServerImpl(ServerOptions serverOptions) {
@@ -261,16 +267,25 @@ public class ServerImpl implements Server {
 
     @Override
     public ProcessBuilder buildProcess(String processName) {
-        return null;
+        return new ProcessBuilderImpl(processName);
     }
 
     @Override
     public ProcessStageBuilder buildProcessStage(String processStageName) {
-        return null;
+        return new ProcessStageBuilderImpl(processStageName);
     }
 
+    public void registerProcess(ProcessDefinition processDefinition) {
+        Process process = new Process(processDefinition, vertx);
+        processManager.registerProcess(process);
+        process.start();
+    }
 
     // Impl
+
+    public Binder getProcessStatesBinder() {
+        return processStatesBinder;
+    }
 
     CQRSManager getCqrsManager() {
         return cqrsManager;
@@ -306,7 +321,9 @@ public class ServerImpl implements Server {
         bindersBinder = loadBinder(BINDERS_BINDER_NAME);
         channelsBinder = loadBinder(CHANNELS_BINDER_NAME);
         durableSubsBinder = loadBinder(DURABLE_SUBS_BINDER_NAME);
-        return CompletableFuture.allOf(bindersBinder.start(), channelsBinder.start(), durableSubsBinder.start());
+        processStatesBinder = loadBinder(PROCESS_STATES_BINDER_NAME);
+        return CompletableFuture.allOf(bindersBinder.start(), channelsBinder.start(), durableSubsBinder.start(),
+                processStatesBinder.start());
     }
 
     private Binder loadBinder(String binderName) {
