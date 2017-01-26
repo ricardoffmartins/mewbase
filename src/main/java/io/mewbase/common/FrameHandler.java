@@ -31,6 +31,8 @@ public interface FrameHandler {
 
     void handleAckEv(BsonObject frame);
 
+    void handleFindByID(BsonObject frame);
+
     void handleQuery(BsonObject frame);
 
     void handleQueryResult(int size, BsonObject frame);
@@ -47,6 +49,8 @@ public interface FrameHandler {
     void handleListChannels(BsonObject frame);
 
     void handleCreateChannel(BsonObject frame);
+
+    void handleCommand(BsonObject frame);
 
 
 }

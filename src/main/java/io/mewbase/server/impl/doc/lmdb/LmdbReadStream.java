@@ -7,6 +7,8 @@ import org.fusesource.lmdbjni.Database;
 import org.fusesource.lmdbjni.Entry;
 import org.fusesource.lmdbjni.EntryIterator;
 import org.fusesource.lmdbjni.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -15,6 +17,8 @@ import java.util.function.Function;
  * Created by tim on 29/12/16.
  */
 public class LmdbReadStream implements DocReadStream {
+
+    private final static Logger logger = LoggerFactory.getLogger(LmdbReadStream.class);
 
     // TODO make configurable
     private static final int MAX_DELIVER_BATCH = 100;
@@ -49,7 +53,7 @@ public class LmdbReadStream implements DocReadStream {
     @Override
     public synchronized void start() {
         printThread();
-        iterNext();
+        runIterNextAsync();
     }
 
     @Override
@@ -62,7 +66,7 @@ public class LmdbReadStream implements DocReadStream {
     public synchronized void resume() {
         printThread();
         paused = false;
-        iterNext();
+        runIterNextAsync();
     }
 
     @Override
@@ -114,6 +118,10 @@ public class LmdbReadStream implements DocReadStream {
                 return;
             }
         }
+        runIterNextAsync();
+    }
+
+    private void runIterNextAsync() {
         binderFactory.getVertx().runOnContext(v -> iterNext());
     }
 }

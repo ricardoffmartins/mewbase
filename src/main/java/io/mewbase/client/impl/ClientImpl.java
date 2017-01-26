@@ -110,14 +110,17 @@ public class ClientImpl implements Client, ClientFrameHandler {
     public CompletableFuture<BsonObject> findByID(String binderName, String id) {
         CompletableFuture<BsonObject> cf = new CompletableFuture<>();
         BsonObject frame = new BsonObject();
-        frame.put(Protocol.QUERY_BINDER, binderName);
-        frame.put(Protocol.QUERY_DOCID, id);
-        Consumer<QueryResult> resultHandler = qr -> {
-            BsonObject doc = qr.document();
-            cf.complete(doc);
-            qr.acknowledge();
-        };
-        writeQuery(frame, resultHandler, cf);
+        frame.put(Protocol.FINDBYID_BINDER, binderName);
+        frame.put(Protocol.FINDBYID_DOCID, id);
+        write(cf, Protocol.FINDBYID_FRAME, frame, resp -> {
+            boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);
+            if (ok) {
+                BsonObject result = resp.getBsonObject(Protocol.FINDRESPONSE_RESULT);
+                cf.complete(result);
+            } else {
+                cf.completeExceptionally(responseToException(resp));
+            }
+        });
         return cf;
     }
 
@@ -130,7 +133,7 @@ public class ClientImpl implements Client, ClientFrameHandler {
 
 
     @Override
-    public void findMatching(String binderName, BsonObject matcher, Consumer<QueryResult> resultHandler,
+    public void executeQuery(String queryName, BsonObject params, Consumer<QueryResult> resultHandler,
                              Consumer<Throwable> exceptionHandler) {
         CompletableFuture<Void> cf = new CompletableFuture<>();
         if (exceptionHandler != null) {
@@ -140,10 +143,12 @@ public class ClientImpl implements Client, ClientFrameHandler {
             });
         }
         BsonObject frame = new BsonObject();
-        frame.put(Protocol.QUERY_BINDER, binderName);
-        frame.put(Protocol.QUERY_MATCHER, matcher);
-
-        writeQuery(frame, resultHandler, cf);
+        frame.put(Protocol.QUERY_NAME, queryName);
+        frame.put(Protocol.QUERY_PARAMS, params);
+        int queryID = requestIDSequence.getAndIncrement();
+        frame.put(Protocol.QUERY_QUERYID, queryID);
+        queryResultHandlers.put(queryID, resultHandler);
+        write(cf, Protocol.QUERY_FRAME, frame);
     }
 
     // Admin operations
@@ -215,6 +220,23 @@ public class ClientImpl implements Client, ClientFrameHandler {
     }
 
     @Override
+    public CompletableFuture<Void> sendCommand(String commandName, BsonObject command) {
+        CompletableFuture<Void> cf = new CompletableFuture<>();
+        BsonObject frame = new BsonObject();
+        frame.put(Protocol.COMMAND_NAME, commandName);
+        frame.put(Protocol.COMMAND_COMMAND, command);
+        write(cf, Protocol.COMMAND_FRAME, frame, resp -> {
+            boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);
+            if (ok) {
+                cf.complete(null);
+            } else {
+                cf.completeExceptionally(responseToException(resp));
+            }
+        });
+        return cf;
+    }
+
+    @Override
     public CompletableFuture<Void> close() {
         netClient.close();
         if (ownVertx) {
@@ -235,8 +257,8 @@ public class ClientImpl implements Client, ClientFrameHandler {
         if (qrh == null) {
             throw new IllegalStateException("Can't find query result handler");
         }
+        // FIXME - what to do with this?
         boolean ok = resp.getBoolean(Protocol.QUERYRESULT_OK);
-
         boolean last = resp.getBoolean(Protocol.QUERYRESULT_LAST);
         QueryResult qr = new QueryResultImpl(resp.getBsonObject(Protocol.QUERYRESULT_RESULT), size, last, rQueryID);
         try {
@@ -258,7 +280,6 @@ public class ClientImpl implements Client, ClientFrameHandler {
             sub.handleRecevFrame(size, frame);
         }
     }
-
 
     @Override
     public void handlePing(BsonObject frame) {

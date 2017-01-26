@@ -561,32 +561,7 @@ public class BsonArray implements Iterable<Object> {
      * @return  the string form
      */
     public String encodeToString() {
-        StringBuilder sb = new StringBuilder();
-        encodeToString(sb);
-        return sb.toString();
-    }
-
-    protected void encodeToString(StringBuilder sb) {
-        sb.append("[");
-        Iterator<Object> iter = iterator();
-        while (iter.hasNext()) {
-            Object entry = iter.next();
-            if (entry instanceof BsonObject) {
-                ((BsonObject)entry).encodeToString(sb);
-            } else if (entry instanceof BsonArray) {
-                ((BsonArray)entry).encodeToString(sb);
-            } else if (entry instanceof String) {
-                sb.append("\"");
-                sb.append(entry.toString());
-                sb.append("\"");
-            } else {
-                sb.append(entry.toString());
-            }
-            if (iter.hasNext()) {
-                sb.append(",");
-            }
-        }
-        sb.append("]");
+        return toJsonArray().encode();
     }
 
     /**

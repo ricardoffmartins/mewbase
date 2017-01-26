@@ -1,5 +1,7 @@
 package io.mewbase.server;
 
+import io.vertx.core.http.HttpMethod;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -8,20 +10,53 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface Mewbase {
 
-    Binder getBinder(String name);
-
-    List<String> listChannels();
-
-    CompletableFuture<Boolean> createChannel(String channelName);
-
-    List<String> listBinders();
+    // Binder related operations
 
     CompletableFuture<Boolean> createBinder(String binderName);
 
-    ProjectionBuilder buildProjection(String name);
+    Binder getBinder(String name);
+
+    List<String> listBinders();
+
+    // Channel related operations
+
+
+    CompletableFuture<Boolean> createChannel(String channelName);
+
+    Channel getChannel(String channelName);
+
+    List<String> listChannels();
+
+
+    // Projection related operations
+
+    ProjectionBuilder buildProjection(String projectionName);
 
     List<String> listProjections();
 
     Projection getProjection(String projectionName);
+
+    // Command handler related operations
+
+    CommandHandlerBuilder buildCommandHandler(String commandName);
+
+    // Query related operations
+
+    QueryBuilder buildQuery(String queryName);
+
+
+    // REST adaptor related operations
+
+    Mewbase exposeCommand(String commandName, String uri, HttpMethod httpMethod);
+
+    Mewbase exposeQuery(String queryName, String uri);
+
+    Mewbase exposeFindByID(String binderName, String uri);
+
+    // Process related operations
+
+    ProcessBuilder buildProcess(String processName);
+
+    ProcessStageBuilder buildProcessStage(String processStageName);
 
 }
