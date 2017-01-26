@@ -18,7 +18,13 @@ public class VertxUser implements MewbaseUser {
 
         CompletableFuture<Boolean> cf = new CompletableFuture<>();
 
-        user.isAuthorised(protocolFrame, vertxRes -> cf.complete(vertxRes.succeeded()));
+        user.isAuthorised(protocolFrame, vertxRes -> {
+            if (!vertxRes.succeeded()) {
+                cf.completeExceptionally(vertxRes.cause());
+            } else {
+                cf.complete(vertxRes.result()) ;
+            }
+        });
 
         return cf;
     }

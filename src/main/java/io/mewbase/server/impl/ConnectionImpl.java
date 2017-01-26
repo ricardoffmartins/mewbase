@@ -130,7 +130,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -203,7 +207,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
 
@@ -239,8 +247,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -277,8 +288,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -314,8 +328,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -354,8 +371,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -384,8 +404,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed");
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -422,8 +445,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -461,8 +487,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -488,8 +517,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
     }
@@ -527,22 +559,22 @@ public class ConnectionImpl implements ServerFrameHandler {
         };
 
         authorisedCF.handle((res, ex) -> {
-
-            handleFrame(frame, frameConsumer, res, ex);
+            if (ex != null) {
+                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+                logAndClose(ex.getMessage());
+            }
+            handleFrame(frame, frameConsumer, res);
             return null;
         });
 
     }
 
-    private void handleFrame(BsonObject frame, Consumer<BsonObject> consumer, boolean res, Throwable ex) {
-        if (ex != null ) {
-            sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "An error occurred when authorising user");
-            logAndClose(ex.getMessage());
-        } else if (res){
+    private void handleFrame(BsonObject frame, Consumer<BsonObject> consumer, boolean res) {
+        if (res){
             consumer.accept(frame);
         } else {
-            sendErrorResponse(Client.ERR_NOT_AUTHORISED, "User is not authorised");
-            logAndClose(ex.getMessage());
+            sendErrorResponse(Client.ERR_NOT_AUTHORISED, "User is not authorised", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
+            logAndClose("User is not authorised");
         }
     }
 
