@@ -1,6 +1,7 @@
 package io.mewbase.server;
 
 import io.mewbase.server.impl.auth.NoAuthAuthProvider;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetServerOptions;
 
@@ -19,6 +20,7 @@ public class ServerOptions {
     public static final int DEFAULT_READ_BUFFER_SIZE = 4 * 1024;
 
     private NetServerOptions netServerOptions = new NetServerOptions().setPort(DEFAULT_PORT).setHost(DEFAULT_HOST);
+    private HttpServerOptions httpServerOptions = new HttpServerOptions().setHost(DEFAULT_HOST);
     private String docsDir = DEFAULT_DOCS_DIR;
     private MewbaseAuthProvider authProvider = new NoAuthAuthProvider();
     private String logsDir = DEFAULT_LOGS_DIR;
@@ -47,6 +49,15 @@ public class ServerOptions {
 
     public ServerOptions setNetServerOptions(NetServerOptions netServerOptions) {
         this.netServerOptions = netServerOptions;
+        return this;
+    }
+
+    public HttpServerOptions getHttpServerOptions() {
+        return httpServerOptions;
+    }
+
+    public ServerOptions setHttpServerOptions(HttpServerOptions httpServerOptions) {
+        this.httpServerOptions = httpServerOptions;
         return this;
     }
 
@@ -126,10 +137,24 @@ public class ServerOptions {
         if (readBufferSize != that.readBufferSize) return false;
         if (netServerOptions != null ? !netServerOptions.equals(that.netServerOptions) : that.netServerOptions != null)
             return false;
+        if (httpServerOptions != null ? !httpServerOptions.equals(that.httpServerOptions) : that.httpServerOptions != null)
+            return false;
         if (docsDir != null ? !docsDir.equals(that.docsDir) : that.docsDir != null) return false;
         if (authProvider != null ? !authProvider.equals(that.authProvider) : that.authProvider != null) return false;
         return logsDir != null ? logsDir.equals(that.logsDir) : that.logsDir == null;
-
     }
 
+    @Override
+    public int hashCode() {
+        int result = netServerOptions != null ? netServerOptions.hashCode() : 0;
+        result = 31 * result + (httpServerOptions != null ? httpServerOptions.hashCode() : 0);
+        result = 31 * result + (docsDir != null ? docsDir.hashCode() : 0);
+        result = 31 * result + (authProvider != null ? authProvider.hashCode() : 0);
+        result = 31 * result + (logsDir != null ? logsDir.hashCode() : 0);
+        result = 31 * result + maxLogChunkSize;
+        result = 31 * result + preallocateSize;
+        result = 31 * result + maxRecordSize;
+        result = 31 * result + readBufferSize;
+        return result;
+    }
 }

@@ -276,7 +276,7 @@ public class ServerImpl implements Server {
     }
 
     public void registerProcess(ProcessDefinition processDefinition) {
-        Process process = new Process(processDefinition, vertx);
+        Process process = new Process(processDefinition, this);
         processManager.registerProcess(process);
         process.start();
     }

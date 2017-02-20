@@ -1,6 +1,8 @@
 package io.mewbase.server;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.client.ClientOptions;
+import io.mewbase.server.impl.process.ProcessStage;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -15,6 +17,8 @@ public interface ProcessStageBuilder {
     Channel to consume from
      */
     ProcessStageBuilder fromChannel(String channelName);
+
+    ProcessStageBuilder fromServer(ClientOptions clientOptions);
 
     /*
     Filter out any events not interested in

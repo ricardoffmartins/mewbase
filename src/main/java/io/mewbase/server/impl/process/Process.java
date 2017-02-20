@@ -2,6 +2,7 @@ package io.mewbase.server.impl.process;
 
 import io.mewbase.server.ProcessDefinition;
 import io.mewbase.server.ProcessStageDefinition;
+import io.mewbase.server.impl.ServerImpl;
 import io.vertx.core.Vertx;
 
 import java.util.ArrayList;
@@ -15,11 +16,11 @@ public class Process {
     private final List<ProcessStage> processStages = new ArrayList<>();
     private final ProcessDefinition processDefinition;
 
-    public Process(ProcessDefinition processDefinition, Vertx vertx) {
+    public Process(ProcessDefinition processDefinition, ServerImpl server) {
         this.processDefinition = processDefinition;
         boolean initial = true;
         for (ProcessStageDefinition processStageDefinition: processDefinition.getStageDefinitions()) {
-            ProcessStage stage = new SubscriberProcessStage(this, processStageDefinition, initial, vertx);
+            ProcessStage stage = new SubscriberProcessStage(this, processStageDefinition, initial, server);
             processStages.add(stage);
             initial = false;
         }

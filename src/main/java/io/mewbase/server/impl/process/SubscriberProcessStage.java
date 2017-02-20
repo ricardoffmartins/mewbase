@@ -48,6 +48,7 @@ public class SubscriberProcessStage implements ProcessStage {
         client.subscribe(new SubDescriptor().setChannel(stageDefinition.getFromChannel()), del -> {
             handleEvent(del.event());
         });
+        System.out.println("Created subscription to channel " + stageDefinition.getFromChannel() + " on server at port " + stageDefinition.getClientOptions().getPort());
     }
 
     public void close() {
@@ -56,18 +57,28 @@ public class SubscriberProcessStage implements ProcessStage {
 
     public void stageStarted(String id, ProcessInstance instance) {
         instances.put(id, instance);
+        logger.trace("Added instance id " + id + " to stage " + this);
     }
 
     private void handleEvent(BsonObject event) {
+        logger.trace("Process stage " + stageDefinition + " received event: " + event);
         ProcessInstance instance = null;
         try {
             if (stageDefinition.getFilterFunction().apply(event)) {
                 String id = stageDefinition.getIdentifyFunction().apply(event);
                 instance = instances.get(id);
+
+                if (instance == null) {
+                    logger.trace("Couldn't find instance with id " + id);
+                }
                 if (instance == null && initial) {
+
                     // No current process instance - create one
                     instance = new ProcessInstance(id, process, server);
                     instances.put(id, instance);
+                    logger.trace("created new instance with id " + id);
+                } else {
+                    logger.trace("Found instance " + instance);
                 }
                 if (instance != null) {
                     stageDefinition.getEventHandler().accept(event, new SimpleStageContext(instance));

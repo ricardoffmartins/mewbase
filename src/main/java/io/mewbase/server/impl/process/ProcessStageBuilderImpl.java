@@ -1,6 +1,7 @@
 package io.mewbase.server.impl.process;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.client.ClientOptions;
 import io.mewbase.server.*;
 
 import java.util.function.BiConsumer;
@@ -21,6 +22,12 @@ public class ProcessStageBuilderImpl implements ProcessStageBuilder {
     @Override
     public ProcessStageBuilder fromChannel(String channelName) {
         stageDefinition.setFromChannel(channelName);
+        return this;
+    }
+
+    @Override
+    public ProcessStageBuilder fromServer(ClientOptions clientOptions) {
+        stageDefinition.setClientOptions(clientOptions);
         return this;
     }
 

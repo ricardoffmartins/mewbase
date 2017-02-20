@@ -10,6 +10,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.slf4j.Logger;
@@ -37,7 +38,7 @@ public class RESTServiceAdaptor {
     public RESTServiceAdaptor(ServerImpl server) {
         this.server = server;
         this.cqrsManager = server.getCqrsManager();
-        this.httpServer = server.getVertx().createHttpServer(new HttpServerOptions().setHost(host).setPort(port));
+        this.httpServer = server.getVertx().createHttpServer(server.getServerOptions().getHttpServerOptions());
         router = Router.router(server.getVertx());
         router.route().handler(BodyHandler.create());
         httpServer.requestHandler(router::accept);
@@ -46,8 +47,8 @@ public class RESTServiceAdaptor {
     public void exposeCommand(String commandName, String uri, HttpMethod httpMethod) {
         router.route(httpMethod, uri).handler(rc -> {
             // TODO what about params?
-            Buffer buff = rc.getBody();
-            BsonObject command = new BsonObject(buff);
+            String body = rc.getBodyAsString();
+            BsonObject command = (body == null || body.isEmpty()) ? new BsonObject() : new BsonObject(new JsonObject(body));
             CompletableFuture<Void> cf = cqrsManager.callCommandHandler(commandName, command);
             cf.whenComplete((v, t) -> {
                 if (t == null) {
@@ -82,14 +83,18 @@ public class RESTServiceAdaptor {
         router.route(HttpMethod.GET, uri).handler(rc -> {
             String id = rc.request().params().get("id");
             if (id == null) {
-                rc.response().setStatusCode(404).end();
+                rc.response().setStatusCode(400).end();
             } else {
                 binder.get(id).whenComplete((doc, t) -> {
                     if (t != null)  {
                         logger.error("Failed to lookup document", t);
                         rc.response().setStatusCode(500).end();
                     } else {
-                        rc.response().end(doc.encodeToString());
+                        if (doc == null) {
+                            rc.response().setStatusCode(404).end();
+                        } else {
+                            rc.response().end(doc.encodeToString());
+                        }
                     }
                 });
             }
@@ -127,7 +132,7 @@ public class RESTServiceAdaptor {
         @Override
         protected Buffer writeQueryResult(BsonObject document, boolean last) {
             checkContext();
-            Buffer buff = Buffer.buffer(document.encodeToString());
+            Buffer buff = Buffer.buffer(document == null ? "" : document.encodeToString());
             response.write(buff);
             if (!last) {
                 response.write(",");

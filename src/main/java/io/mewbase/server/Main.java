@@ -22,12 +22,12 @@ public class Main {
     private static final String MEWBASE_HOME_SYS_PROP = "mewbase.home";
 
     public static void main(String[] args) {
-        new Main().start();
+        new Main().start(args);
     }
 
     private Server server;
 
-    private void start() {
+    private void start(String[] args) {
 
         try {
 
@@ -70,6 +70,10 @@ public class Main {
 
             server = Server.newServer(options);
             server.start().get();
+
+
+
+
             while (true) {
                 // Stop main exiting
                 try {
