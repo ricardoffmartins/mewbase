@@ -234,33 +234,6 @@ public class OrderServiceMewblet implements Mewblet {
                 .exposeQuery("allBaskets", "/baskets/")
                 .exposeFindByID("baskets", "/baskets/:customerID/");
 
-
-        // Order fulfillment process
-
-        ProcessStage orderPlacedStage = mewbase.buildProcessStage("orderPlaced")
-                .fromChannel(ORDERS_CHANNEL_NAME)
-                .filteredWith(ev -> ev.getString("eventType").equals("orderPlaced"))
-                .identifiedBy(ev -> ev.getString("orderID"))
-                .stageHandler((ev, ctx) -> {
-                    ctx.getState().put("orderPlacedEvent", ev);
-                    ctx.complete();
-                }).create();
-
-        ProcessStage orderPickedStage = mewbase.buildProcessStage("orderPicked")
-                .fromChannel("picking")
-                .filteredWith(ev -> ev.getString("eventType").equals("orderPicked"))
-                .identifiedBy(ev -> ev.getString("orderID"))
-                .stageHandler((ev, ctx) -> {
-                    ctx.getState().put("orderPickedEvent", ev);
-                    ctx.complete();
-                }).create();
-
-        mewbase.buildProcess("orderFulfillment")
-                .startWithStage(orderPlacedStage)
-                .thenDo(state -> sendPickCommand(state))
-                .thenStage(orderPickedStage)
-                .thenDo(state -> sendDeliverCommand(state))
-                .create();;
     }
 
     private CompletableFuture<Void> sendPickCommand(BsonObject state) {

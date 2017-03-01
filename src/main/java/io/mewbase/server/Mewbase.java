@@ -53,10 +53,4 @@ public interface Mewbase {
 
     Mewbase exposeFindByID(String binderName, String uri);
 
-    // Process related operations
-
-    ProcessBuilder buildProcess(String processName);
-
-    ProcessStageBuilder buildProcessStage(String processStageName);
-
 }

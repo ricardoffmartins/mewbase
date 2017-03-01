@@ -2,7 +2,6 @@ package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
-import io.mewbase.server.ProcessBuilder;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
 import io.mewbase.server.impl.doc.lmdb.LmdbBinderFactory;
@@ -256,19 +255,6 @@ public class ServerImpl implements Server {
         restServiceAdaptor.exposeFindByID(binderName, uri);
         return this;
     }
-
-    // Process related API
-
-    @Override
-    public ProcessBuilder buildProcess(String processName) {
-        return null;
-    }
-
-    @Override
-    public ProcessStageBuilder buildProcessStage(String processStageName) {
-        return null;
-    }
-
 
     // Impl
 
