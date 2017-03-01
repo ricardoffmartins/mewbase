@@ -12,7 +12,7 @@ Examples of streams of events might be:
 
 These events often need to be persisted fast and in high volume and potentially stored for very long periods of time. 
 
-Storing logs of events provides many advantages including
+Storing logs of events provides many advantages including:
 
 * Complete audit trail of everything that happened
 * Events can be replayed to for back-testing or debugging
@@ -29,7 +29,7 @@ include:
 * A stock inventory needs to maintain current stock of products per warehouse
 * A business process/saga needs to listen to events and maintain state
 
-This leads many applications either to either:
+This leads many applications to either:
 
 * Not capture raw events at all - only deal with the current state of their objects - thus losing valuable business
 data
@@ -64,14 +64,14 @@ The events, functions and documents are all maintained in the same engine, mewba
 between the events and the views so you know they are always up to date, irrespective of whether any client
 applications or services are connected.
 
-Since the functions run on the server so you can write them in your normal programming language - no need to learn
+Since the functions run on the server, you can write them in your normal programming language - no need to learn
 another language like SQL. The same applies to queries.
 
 All this functionality will be accessible over a simple wire protocol and via a simple client API which we will
 provide in Java, JavaScript and potentially other languages going ahead.
 
-Mewbase engine will also be full embeddable in any Java (or Scala, or Groovy) application so you can
-colocate your "server" in your actual service, or if you prefer a standalone server or cluster of servers mewbase will
+Mewbase engine will also be fully embeddable in any Java (or Scala, or Groovy) application so you can
+colocate your "server" in your actual service, or if you prefer a standalone server or cluster of servers, mewbase will
 support that setup too.
 
 Mewbase is a great match for implementing event driven microservices using an event sourcing / CQRS pattern.
@@ -104,7 +104,7 @@ Some of the features / future features:
 * Fully embeddable
 * Standalone option
 * Log archiving
-* Completely non blocking, and reactive APIS
+* Completely non blocking, and reactive APIs
 * Live persistent queries - sends more matching data to client as it arrives on server 
 * Sidecars for node.js/go
 
