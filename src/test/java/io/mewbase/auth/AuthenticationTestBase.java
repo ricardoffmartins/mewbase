@@ -61,6 +61,10 @@ public class AuthenticationTestBase extends ServerTestBase {
     }
 
     protected Async execSimplePubSub(boolean success, TestContext context) throws Exception {
+        return execSimplePubSub(success, "", 0, context);
+    }
+
+    protected Async execSimplePubSub(boolean success, String errMsg, int errCode, TestContext context) throws Exception {
         startClient();
 
         SubDescriptor descriptor = new SubDescriptor();
@@ -84,8 +88,8 @@ public class AuthenticationTestBase extends ServerTestBase {
                 Throwable cause = e.getCause();
                 assertTrue(cause instanceof MewException);
                 MewException mcause = (MewException)cause;
-                assertEquals("Authentication failed", mcause.getMessage());
-                Assert.assertEquals(Client.ERR_AUTHENTICATION_FAILED, mcause.getErrorCode());
+                assertEquals(errMsg, mcause.getMessage());
+                Assert.assertEquals(errCode, mcause.getErrorCode());
             } else {
                 context.fail("Exception received");
             }

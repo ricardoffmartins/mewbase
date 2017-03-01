@@ -14,11 +14,13 @@ public class TestAuthProvider implements MewbaseAuthProvider {
         CompletableFuture cf = new CompletableFuture();
 
         boolean success = authInfo.getBoolean("success");
+        boolean throwAuthorisationEx = authInfo.getBoolean("throwAuthorisationEx");
 
         if (!success) {
             cf.completeExceptionally(new MewException("Incorrect username/password"));
         } else {
-            cf.complete(new TestUser());
+            boolean isAuthorised = authInfo.getBoolean("isAuthorised");
+            cf.complete(new TestUser(isAuthorised, throwAuthorisationEx));
         }
 
         return cf;

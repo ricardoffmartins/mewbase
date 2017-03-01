@@ -4,14 +4,14 @@ import io.mewbase.server.MewbaseUser;
 
 import java.util.concurrent.CompletableFuture;
 
-public class DummyUser implements MewbaseUser {
+public class UnauthorizedUser implements MewbaseUser {
 
     @Override
     public CompletableFuture<Boolean> isAuthorised(String protocolFrame) {
-        CompletableFuture<Boolean> cf = new CompletableFuture<>();
+        CompletableFuture<Boolean> unauthorisedCF = new CompletableFuture<>();
 
-        cf.complete(true);
+        unauthorisedCF.complete(false);
 
-        return cf;
+        return unauthorisedCF;
     }
 }

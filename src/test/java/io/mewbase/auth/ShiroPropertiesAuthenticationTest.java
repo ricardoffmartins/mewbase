@@ -1,5 +1,6 @@
 package io.mewbase.auth;
 
+import io.mewbase.client.Client;
 import io.mewbase.server.impl.auth.MewbaseVertxAuthProvider;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.ServerOptions;
@@ -44,7 +45,13 @@ public class ShiroPropertiesAuthenticationTest extends AuthenticationTestBase {
     @Test
     public void testFailedAuthentication(TestContext context) throws Exception {
         authInfo = new BsonObject().put("username", "error").put("password", "error");
-        execSimplePubSub(false, context);
+        execSimplePubSub(false, "Authentication failed", Client.ERR_AUTHENTICATION_FAILED, context);
+    }
+
+    @Test
+    public void testFailedAuthorisation(TestContext context) throws Exception {
+        authInfo = new BsonObject().put("username", "base").put("password", "mew");
+        execSimplePubSub(false, "User is not authorised", Client.ERR_NOT_AUTHORISED, context);
     }
 
 }
