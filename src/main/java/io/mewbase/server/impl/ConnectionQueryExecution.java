@@ -2,7 +2,6 @@ package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.impl.cqrs.QueryImpl;
-import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 
 /**

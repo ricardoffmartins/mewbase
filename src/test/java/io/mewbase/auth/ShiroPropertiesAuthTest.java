@@ -1,9 +1,9 @@
 package io.mewbase.auth;
 
-import io.mewbase.client.Client;
-import io.mewbase.server.impl.auth.MewbaseVertxAuthProvider;
 import io.mewbase.bson.BsonObject;
+import io.mewbase.client.Client;
 import io.mewbase.server.ServerOptions;
+import io.mewbase.server.impl.auth.MewbaseVertxAuthProvider;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.shiro.PropertiesProviderConstants;
 import io.vertx.ext.auth.shiro.ShiroAuth;
@@ -17,7 +17,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class ShiroPropertiesAuthenticationTest extends AuthenticationTestBase {
+public class ShiroPropertiesAuthTest extends AuthTestBase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 

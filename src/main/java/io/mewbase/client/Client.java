@@ -31,7 +31,6 @@ public interface Client {
     int ERR_NO_SUCH_CHANNEL = 3;
     int ERR_NO_SUCH_BINDER = 4;
     int ERR_NO_SUCH_QUERY = 5;
-    int ERR_AUTHORISATION_FAILED = 6;
 
     int ERR_SERVER_ERROR = 100;
 

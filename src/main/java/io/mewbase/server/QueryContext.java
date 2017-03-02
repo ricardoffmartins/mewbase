@@ -2,8 +2,6 @@ package io.mewbase.server;
 
 import io.mewbase.bson.BsonObject;
 
-import java.util.concurrent.CompletableFuture;
-
 /**
  * Created by tim on 10/01/17.
  */

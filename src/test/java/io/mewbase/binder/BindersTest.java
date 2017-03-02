@@ -24,9 +24,8 @@ import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.*;
 
 /**
- *
  * TODO we should distinguish between testing on the Mewbase interface and at the client
- *
+ * <p>
  * Created by tim on 14/10/16.
  */
 @RunWith(VertxUnitRunner.class)

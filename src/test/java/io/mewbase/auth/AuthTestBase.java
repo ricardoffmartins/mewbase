@@ -2,9 +2,11 @@ package io.mewbase.auth;
 
 import io.mewbase.ServerTestBase;
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.*;
+import io.mewbase.client.ClientDelivery;
+import io.mewbase.client.ClientOptions;
+import io.mewbase.client.MewException;
+import io.mewbase.client.Producer;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.Mewbase;
 import io.mewbase.server.MewbaseAuthProvider;
 import io.mewbase.server.ServerOptions;
 import io.vertx.ext.unit.Async;
@@ -21,9 +23,9 @@ import java.util.function.Consumer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class AuthenticationTestBase extends ServerTestBase {
+public class AuthTestBase extends ServerTestBase {
 
-    private final static Logger logger = LoggerFactory.getLogger(AuthenticationTestBase.class);
+    private final static Logger logger = LoggerFactory.getLogger(AuthTestBase.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();

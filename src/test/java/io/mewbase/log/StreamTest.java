@@ -2,10 +2,10 @@ package io.mewbase.log;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.impl.log.LogImpl;
-import io.mewbase.server.impl.log.LogReadStreamImpl;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
+import io.mewbase.server.impl.log.LogImpl;
+import io.mewbase.server.impl.log.LogReadStreamImpl;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;

@@ -4,7 +4,6 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.server.CommandContext;
 import io.mewbase.server.CommandHandler;
 import io.mewbase.server.Log;
-import io.mewbase.server.impl.ServerImpl;
 
 import java.util.function.BiConsumer;
 

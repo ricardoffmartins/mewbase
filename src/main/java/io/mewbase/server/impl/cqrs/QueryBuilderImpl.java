@@ -6,7 +6,6 @@ import io.mewbase.server.QueryBuilder;
 import io.mewbase.server.QueryContext;
 
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Created by tim on 10/01/17.

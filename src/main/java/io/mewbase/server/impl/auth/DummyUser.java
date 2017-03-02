@@ -8,10 +8,6 @@ public class DummyUser implements MewbaseUser {
 
     @Override
     public CompletableFuture<Boolean> isAuthorised(String protocolFrame) {
-        CompletableFuture<Boolean> cf = new CompletableFuture<>();
-
-        cf.complete(true);
-
-        return cf;
+        return CompletableFuture.completedFuture(true);
     }
 }

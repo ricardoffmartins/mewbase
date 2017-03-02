@@ -1,8 +1,8 @@
 package io.mewbase.server.impl.auth;
 
+import io.mewbase.bson.BsonObject;
 import io.mewbase.server.MewbaseAuthProvider;
 import io.mewbase.server.MewbaseUser;
-import io.mewbase.bson.BsonObject;
 
 import java.util.concurrent.CompletableFuture;
 

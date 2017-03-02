@@ -18,9 +18,8 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.CompletableFuture;
 
 /**
- *
  * TODO content types
- *
+ * <p>
  * Created by tim on 11/01/17.
  */
 public class RESTServiceAdaptor {
@@ -85,7 +84,7 @@ public class RESTServiceAdaptor {
                 rc.response().setStatusCode(404).end();
             } else {
                 binder.get(id).whenComplete((doc, t) -> {
-                    if (t != null)  {
+                    if (t != null) {
                         logger.error("Failed to lookup document", t);
                         rc.response().setStatusCode(500).end();
                     } else {

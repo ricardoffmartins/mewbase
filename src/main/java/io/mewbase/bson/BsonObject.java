@@ -768,7 +768,7 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
     /**
      * Encode this to a String
      *
-     * @return  the string form
+     * @return the string form
      */
     public String encodeToString() {
         return toJsonObject().encode();

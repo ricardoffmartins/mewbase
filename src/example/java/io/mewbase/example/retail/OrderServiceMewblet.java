@@ -2,7 +2,10 @@ package io.mewbase.example.retail;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
-import io.mewbase.server.*;
+import io.mewbase.server.Binder;
+import io.mewbase.server.Channel;
+import io.mewbase.server.Mewbase;
+import io.mewbase.server.Mewblet;
 import io.vertx.core.http.HttpMethod;
 
 import java.util.UUID;
@@ -61,7 +64,7 @@ public class OrderServiceMewblet implements Mewblet {
 
 
         public void setCustomerID(String customerID) {
-             bsonObject.put("customerID", customerID);
+            bsonObject.put("customerID", customerID);
         }
 
         public void setProductID(String productID) {
@@ -182,18 +185,18 @@ public class OrderServiceMewblet implements Mewblet {
                 .onto(basketsBinder.getName())                                     // binder name
                 .identifiedBy(ev -> new AddItemEvent(ev).getCustomerID())          // document id selector; how to obtain the doc id from the event bson
                 .as((b, del) -> {
-                        // projection function
-                        Basket basket = new Basket(b);
-                        AddItemEvent aie = new AddItemEvent(del.event());
-                        return basket.incrementQuantity(aie.getProductID(), aie.getQuantity());
-                        })
+                    // projection function
+                    Basket basket = new Basket(b);
+                    AddItemEvent aie = new AddItemEvent(del.event());
+                    return basket.incrementQuantity(aie.getProductID(), aie.getQuantity());
+                })
                 .create();
 
 
         mewbase.buildCommandHandler("addItem")
                 .emittingTo(ORDERS_CHANNEL_NAME)
                 .as((c, ctx) -> {
-                    AddItemCommand command  = new AddItemCommand(c);
+                    AddItemCommand command = new AddItemCommand(c);
                     AddItemEvent ev = new AddItemEvent();
                     ev.setCustomerID(command.getCustomerID());
                     ev.setProductID(command.getProductID());

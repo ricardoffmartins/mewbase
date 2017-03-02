@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
-import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -116,9 +115,9 @@ public class RESTAdaptorTest extends ServerTestBase {
         HttpClientRequest req = httpClient.request(HttpMethod.GET, 8080, "localhost", "/orders/", resp -> {
             assertEquals(200, resp.statusCode());
             resp.bodyHandler(body -> {
-               BsonArray arr = new BsonArray(new JsonArray(body.toString()));
-               assertEquals(bsonArray, arr);
-               async.complete();
+                BsonArray arr = new BsonArray(new JsonArray(body.toString()));
+                assertEquals(bsonArray, arr);
+                async.complete();
             });
             resp.exceptionHandler(t -> t.printStackTrace());
         });
@@ -145,14 +144,14 @@ public class RESTAdaptorTest extends ServerTestBase {
         HttpClient httpClient = vertx.createHttpClient();
         HttpClientRequest req = httpClient.request(HttpMethod.GET, 8080, "localhost",
                 "/orders/" + getID(0), resp -> {
-            assertEquals(200, resp.statusCode());
-            resp.bodyHandler(body -> {
-                BsonObject received = new BsonObject(new JsonObject(body.toString()));
-                assertEquals(doc, received);
-                async.complete();
-            });
-            resp.exceptionHandler(t -> t.printStackTrace());
-        });
+                    assertEquals(200, resp.statusCode());
+                    resp.bodyHandler(body -> {
+                        BsonObject received = new BsonObject(new JsonObject(body.toString()));
+                        assertEquals(doc, received);
+                        async.complete();
+                    });
+                    resp.exceptionHandler(t -> t.printStackTrace());
+                });
         req.exceptionHandler(t -> {
             t.printStackTrace();
         });
@@ -182,7 +181,6 @@ public class RESTAdaptorTest extends ServerTestBase {
     protected String getID(int id) {
         return String.format("id-%05d", id);
     }
-
 
 
 }

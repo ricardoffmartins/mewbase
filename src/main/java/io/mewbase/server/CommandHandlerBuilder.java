@@ -1,11 +1,8 @@
 package io.mewbase.server;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.common.Delivery;
 
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Created by tim on 07/01/17.

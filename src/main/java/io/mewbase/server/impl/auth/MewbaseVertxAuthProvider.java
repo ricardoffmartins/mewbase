@@ -1,8 +1,8 @@
 package io.mewbase.server.impl.auth;
 
+import io.mewbase.bson.BsonObject;
 import io.mewbase.server.MewbaseAuthProvider;
 import io.mewbase.server.MewbaseUser;
-import io.mewbase.bson.BsonObject;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import org.slf4j.Logger;

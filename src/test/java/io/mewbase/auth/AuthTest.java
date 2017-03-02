@@ -20,7 +20,7 @@ import org.junit.runner.RunWith;
 
  */
 @RunWith(VertxUnitRunner.class)
-public class AuthenticationTest extends AuthenticationTestBase {
+public class AuthTest extends AuthTestBase {
 
     @Test
     public void testSuccessfulAuthentication(TestContext context) throws Exception {
@@ -31,19 +31,19 @@ public class AuthenticationTest extends AuthenticationTestBase {
     @Test
     public void testFailedAuthentication(TestContext context) throws Exception {
         authInfo = new BsonObject().put("success", false).put("isAuthorised", true).put("throwAuthorisationEx", true);
-        execSimplePubSub(false,"Authentication failed", Client.ERR_AUTHENTICATION_FAILED, context);
+        execSimplePubSub(false, "Authentication failed", Client.ERR_AUTHENTICATION_FAILED, context);
     }
 
     @Test
     public void testFailedAuthorisation(TestContext context) throws Exception {
         authInfo = new BsonObject().put("success", true).put("isAuthorised", false).put("throwAuthorisationEx", true);
-        execSimplePubSub(false,"Authorisation failed", Client.ERR_AUTHORISATION_FAILED, context);
+        execSimplePubSub(false, "Authorisation failed", Client.ERR_SERVER_ERROR, context);
     }
 
     @Test
     public void testUnauthorised(TestContext context) throws Exception {
         authInfo = new BsonObject().put("success", true).put("isAuthorised", false).put("throwAuthorisationEx", false);
-        execSimplePubSub(false,"User is not authorised", Client.ERR_NOT_AUTHORISED, context);
+        execSimplePubSub(false, "User is not authorised", Client.ERR_NOT_AUTHORISED, context);
     }
 
 

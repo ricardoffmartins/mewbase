@@ -14,9 +14,9 @@ public abstract class CommandContext extends CompletableFuture<Void> {
     public void complete() {
         complete(null);
     }
-    
+
     public static void putFields(BsonObject from, BsonObject to, String... fieldNames) {
-        for (String fieldName: fieldNames) {
+        for (String fieldName : fieldNames) {
             to.put(fieldName, from.getValue(fieldName));
         }
     }

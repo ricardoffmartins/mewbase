@@ -8,10 +8,6 @@ public class UnauthorizedUser implements MewbaseUser {
 
     @Override
     public CompletableFuture<Boolean> isAuthorised(String protocolFrame) {
-        CompletableFuture<Boolean> unauthorisedCF = new CompletableFuture<>();
-
-        unauthorisedCF.complete(false);
-
-        return unauthorisedCF;
+        return CompletableFuture.completedFuture(false);
     }
 }

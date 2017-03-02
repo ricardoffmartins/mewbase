@@ -6,7 +6,6 @@ import io.mewbase.server.Query;
 import io.mewbase.server.QueryContext;
 
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**

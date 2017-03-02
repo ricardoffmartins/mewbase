@@ -1,30 +1,22 @@
 package io.mewbase;
 
-import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.*;
+import io.mewbase.client.ClientDelivery;
+import io.mewbase.client.Subscription;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.CommandHandler;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import static junit.framework.TestCase.assertFalse;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Created by tim on 26/09/16.
@@ -45,12 +37,12 @@ public class CQRSTest extends ServerTestBase {
         String commandName = "testcommand";
 
         CommandHandler handler = server.buildCommandHandler(commandName)
-               .emittingTo(TEST_CHANNEL_1)
-               .as((command, context) -> {
+                .emittingTo(TEST_CHANNEL_1)
+                .as((command, context) -> {
                     context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
                     context.complete();
-               })
-               .create();
+                })
+                .create();
 
         assertNotNull(handler);
         assertEquals(commandName, handler.getName());

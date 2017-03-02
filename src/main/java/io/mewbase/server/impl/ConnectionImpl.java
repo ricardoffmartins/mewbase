@@ -1,12 +1,13 @@
 package io.mewbase.server.impl;
 
-import io.mewbase.server.*;
 import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.Client;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
 import io.mewbase.server.Log;
+import io.mewbase.server.MewbaseAuthProvider;
+import io.mewbase.server.MewbaseUser;
 import io.mewbase.server.impl.auth.UnauthorizedUser;
 import io.mewbase.server.impl.cqrs.QueryImpl;
 import io.vertx.core.Context;
@@ -19,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 /**
  * Created by tim on 23/09/16.
@@ -55,15 +55,17 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleConnect(BsonObject frame) {
         checkContext();
 
+        // TODO version checking
+
         BsonObject value = (BsonObject)frame.getValue(Protocol.CONNECT_AUTH_INFO);
         CompletableFuture<MewbaseUser> cf = authProvider.authenticate(value);
 
-        cf.handle((result, ex) -> {
+        cf.whenComplete((result, ex) -> {
 
             checkContext();
             BsonObject response = new BsonObject();
             if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHENTICATION_FAILED, "Authentication failed");
+                sendConnectErrorResponse(Client.ERR_AUTHENTICATION_FAILED, "Authentication failed");
                 logAndClose(ex.getMessage());
             } else {
                 if (result != null) {
@@ -76,22 +78,19 @@ public class ConnectionImpl implements ServerFrameHandler {
                     throw new IllegalStateException(nullUserMsg);
                 }
             }
-            return null;
         });
-        // TODO version checking
+
     }
 
     @Override
     public void handlePublish(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.PUBLISH_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            String channel = protocolFrame.getString(Protocol.PUBLISH_CHANNEL);
-            BsonObject event = protocolFrame.getBsonObject(Protocol.PUBLISH_EVENT);
-            Integer sessID = protocolFrame.getInteger(Protocol.PUBLISH_SESSID);
-            Integer requestID = protocolFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
+        authoriseThenHandle(Protocol.PUBLISH_FRAME, frame, () -> {
+            String channel = frame.getString(Protocol.PUBLISH_CHANNEL);
+            BsonObject event = frame.getBsonObject(Protocol.PUBLISH_EVENT);
+            Integer sessID = frame.getInteger(Protocol.PUBLISH_SESSID);
+            Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
 
             if (channel == null) {
                 missingField(Protocol.PUBLISH_CHANNEL, Protocol.PUBLISH_FRAME);
@@ -107,31 +106,19 @@ public class ConnectionImpl implements ServerFrameHandler {
             }
             Log log = server.getLog(channel);
             if (log == null) {
-                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, requestID);
+                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, frame);
                 return;
             }
             CompletableFuture<Long> cf = server.publishEvent(log, event);
 
             cf.handle((v, ex) -> {
                 if (ex == null) {
-                    BsonObject resp = new BsonObject();
-                    resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
-                    resp.put(Protocol.RESPONSE_OK, true);
-                    writeResponse(Protocol.RESPONSE_FRAME, resp);
+                    writeResponseOK(frame);
                 } else {
-                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to persist", requestID);
+                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to persist", frame);
                 }
                 return null;
             });
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
     }
 
@@ -139,95 +126,63 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleStartTx(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.STARTTX_FRAME);
-
-        authorisedCF.handle((res, ex) -> null);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void handleCommitTx(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.COMMITTX_FRAME);
-
-        authorisedCF.handle((res, ex) -> null);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void handleAbortTx(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.ABORTTX_FRAME);
-
-        authorisedCF.handle((res, ex) -> null);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void handleSubscribe(BsonObject frame) {
         checkContext();
-
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.SUBSCRIBE_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            String channel = protocolFrame.getString(Protocol.SUBSCRIBE_CHANNEL);
+        authoriseThenHandle(Protocol.SUBSCRIBE_FRAME, frame, () -> {
+            String channel = frame.getString(Protocol.SUBSCRIBE_CHANNEL);
 
             if (channel == null) {
                 missingField(Protocol.SUBSCRIBE_CHANNEL, Protocol.SUBSCRIBE_FRAME);
             }
 
-            Integer requestID = protocolFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.SUBSCRIBE_FRAME);
-            }
-
-            Long startSeq = protocolFrame.getLong(Protocol.SUBSCRIBE_STARTPOS);
-            Long startTimestamp = protocolFrame.getLong(Protocol.SUBSCRIBE_STARTTIMESTAMP);
-            String durableID = protocolFrame.getString(Protocol.SUBSCRIBE_DURABLEID);
-            BsonObject matcher = protocolFrame.getBsonObject(Protocol.SUBSCRIBE_MATCHER);
+            Long startSeq = frame.getLong(Protocol.SUBSCRIBE_STARTPOS);
+            Long startTimestamp = frame.getLong(Protocol.SUBSCRIBE_STARTTIMESTAMP);
+            String durableID = frame.getString(Protocol.SUBSCRIBE_DURABLEID);
+            BsonObject matcher = frame.getBsonObject(Protocol.SUBSCRIBE_MATCHER);
             SubDescriptor subDescriptor = new SubDescriptor().setStartPos(startSeq == null ? -1 : startSeq).setStartTimestamp(startTimestamp)
                     .setMatcher(matcher).setDurableID(durableID).setChannel(channel);
             int subID = subSeq++;
             checkWrap(subSeq);
             Log log = server.getLog(channel);
             if (log == null) {
-                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, requestID);
+                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, frame);
             }
             SubscriptionImpl subscription = new SubscriptionImpl(this, subID, subDescriptor);
             subscriptionMap.put(subID, subscription);
             BsonObject resp = new BsonObject();
-            resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
             resp.put(Protocol.RESPONSE_OK, true);
             resp.put(Protocol.SUBRESPONSE_SUBID, subID);
-            writeResponse(Protocol.SUBRESPONSE_FRAME, resp);
+            writeResponse0(Protocol.SUBRESPONSE_FRAME, frame, resp);
             logger.trace("Subscribed channel: {} startSeq {}", channel, startSeq);
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
-
     }
 
     @Override
     public void handleSubClose(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.SUBCLOSE_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            Integer subID = protocolFrame.getInteger(Protocol.SUBCLOSE_SUBID);
+        authoriseThenHandle(Protocol.SUBCLOSE_FRAME, frame, () -> {
+            Integer subID = frame.getInteger(Protocol.SUBCLOSE_SUBID);
             if (subID == null) {
                 missingField(Protocol.SUBCLOSE_SUBID, Protocol.SUBCLOSE_FRAME);
-                return;
-            }
-            Integer requestID = protocolFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.SUBCLOSE_FRAME);
                 return;
             }
             SubscriptionImpl subscription = subscriptionMap.remove(subID);
@@ -236,38 +191,20 @@ public class ConnectionImpl implements ServerFrameHandler {
                 return;
             }
             subscription.close();
-            BsonObject resp = new BsonObject();
-            resp.put(Protocol.RESPONSE_OK, true);
-            resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
-            writeResponse(Protocol.RESPONSE_FRAME, resp);
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
+            writeResponseOK(frame);
         });
+
     }
 
     @Override
     public void handleUnsubscribe(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.UNSUBSCRIBE_FRAME);
 
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-
-            Integer subID = protocolFrame.getInteger(Protocol.UNSUBSCRIBE_SUBID);
+        authoriseThenHandle(Protocol.UNSUBSCRIBE_FRAME, frame, () -> {
+            Integer subID = frame.getInteger(Protocol.UNSUBSCRIBE_SUBID);
             if (subID == null) {
                 missingField(Protocol.UNSUBSCRIBE_SUBID, Protocol.UNSUBSCRIBE_FRAME);
-                return;
-            }
-            Integer requestID = protocolFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.UNSUBSCRIBE_FRAME);
                 return;
             }
             SubscriptionImpl subscription = subscriptionMap.remove(subID);
@@ -277,40 +214,27 @@ public class ConnectionImpl implements ServerFrameHandler {
             }
             subscription.close();
             subscription.unsubscribe();
-            BsonObject resp = new BsonObject();
-            resp.put(Protocol.RESPONSE_OK, true);
-            resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
-            writeResponse(Protocol.RESPONSE_FRAME, resp);
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
+            writeResponseOK(frame);
         });
+
     }
 
 
     @Override
     public void handleAckEv(BsonObject frame) {
         checkContext();
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.ACKEV_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            Integer subID = protocolFrame.getInteger(Protocol.ACKEV_SUBID);
+        authoriseThenHandle(Protocol.ACKEV_FRAME, frame, () -> {
+            Integer subID = frame.getInteger(Protocol.ACKEV_SUBID);
             if (subID == null) {
                 missingField(Protocol.ACKEV_SUBID, Protocol.ACKEV_FRAME);
                 return;
             }
-            Integer bytes = protocolFrame.getInteger(Protocol.ACKEV_BYTES);
+            Integer bytes = frame.getInteger(Protocol.ACKEV_BYTES);
             if (bytes == null) {
                 missingField(Protocol.ACKEV_BYTES, Protocol.ACKEV_FRAME);
                 return;
             }
-            Long pos = protocolFrame.getLong(Protocol.ACKEV_POS);
+            Long pos = frame.getLong(Protocol.ACKEV_POS);
             if (pos == null) {
                 missingField(Protocol.ACKEV_POS, Protocol.ACKEV_FRAME);
                 return;
@@ -321,15 +245,6 @@ public class ConnectionImpl implements ServerFrameHandler {
                 return;
             }
             subscription.handleAckEv(pos, bytes);
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
     }
 
@@ -337,9 +252,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleQuery(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.QUERY_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
+        authoriseThenHandle(Protocol.QUERY_FRAME, frame, () -> {
             Integer queryID = frame.getInteger(Protocol.QUERY_QUERYID);
             if (queryID == null) {
                 missingField(Protocol.QUERY_QUERYID, Protocol.QUERY_FRAME);
@@ -363,15 +276,6 @@ public class ConnectionImpl implements ServerFrameHandler {
                 queryStates.put(queryID, qe);
                 qe.start();
             }
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
 
     }
@@ -381,14 +285,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleFindByID(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.QUERY_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.FINDBYID_FRAME);
-                return;
-            }
+        authoriseThenHandle(Protocol.FINDBYID_FRAME, frame, () -> {
             String docID = frame.getString(Protocol.FINDBYID_DOCID);
             if (docID == null) {
                 missingField(Protocol.FINDBYID_DOCID, Protocol.FINDBYID_FRAME);
@@ -405,22 +302,12 @@ public class ConnectionImpl implements ServerFrameHandler {
                 cf.thenAccept(doc -> {
                     BsonObject resp = new BsonObject();
                     resp.put(Protocol.RESPONSE_OK, true);
-                    resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
                     resp.put(Protocol.FINDRESPONSE_RESULT, doc);
-                    writeResponse(Protocol.RESPONSE_FRAME, resp);
+                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
                 });
             } else {
-                sendErrorResponse(Client.ERR_NO_SUCH_BINDER, "No such binder " + binderName, requestID);
+                sendErrorResponse(Client.ERR_NO_SUCH_BINDER, "No such binder " + binderName, frame);
             }
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
     }
 
@@ -428,15 +315,13 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleQueryAck(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.QUERYACK_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            Integer queryID = protocolFrame.getInteger(Protocol.QUERYACK_QUERYID);
+        authoriseThenHandle(Protocol.QUERYACK_FRAME, frame, () -> {
+            Integer queryID = frame.getInteger(Protocol.QUERYACK_QUERYID);
             if (queryID == null) {
                 missingField(Protocol.QUERYACK_QUERYID, Protocol.QUERYACK_FRAME);
                 return;
             }
-            Integer bytes = protocolFrame.getInteger(Protocol.QUERYACK_BYTES);
+            Integer bytes = frame.getInteger(Protocol.QUERYACK_BYTES);
             if (bytes == null) {
                 missingField(Protocol.QUERYACK_BYTES, Protocol.QUERYACK_FRAME);
                 return;
@@ -445,34 +330,21 @@ public class ConnectionImpl implements ServerFrameHandler {
             if (queryState != null) {
                 queryState.handleAck(bytes);
             }
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed");
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
-
     }
 
     @Override
     public void handlePing(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.PING_FRAME);
-
-        authorisedCF.handle((res, ex) -> null);
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void handleCommand(BsonObject frame) {
         checkContext();
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.COMMAND_FRAME);
 
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
+        authoriseThenHandle(Protocol.COMMAND_FRAME, frame, () -> {
             String commandName = frame.getString(Protocol.COMMAND_NAME);
             if (commandName == null) {
                 missingField(Protocol.COMMAND_NAME, Protocol.COMMAND_FRAME);
@@ -483,33 +355,16 @@ public class ConnectionImpl implements ServerFrameHandler {
                 missingField(Protocol.COMMAND_COMMAND, Protocol.COMMAND_FRAME);
                 return;
             }
-            Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.UNSUBSCRIBE_FRAME);
-                return;
-            }
             CompletableFuture<Void> cf = server.getCqrsManager().callCommandHandler(commandName, command);
             cf.handle((res, t) -> {
                 if (t != null) {
                     // TODO what error to send?
                     //sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", requestID);
                 } else {
-                    BsonObject resp = new BsonObject();
-                    resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
-                    resp.put(Protocol.RESPONSE_OK, true);
-                    writeResponse(Protocol.RESPONSE_FRAME, resp);
+                    writeResponseOK(frame);
                 }
                 return null;
             });
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed");
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
 
     }
@@ -519,30 +374,12 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handleListBinders(BsonObject frame) {
         checkContext();
-
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.LIST_BINDERS_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            Integer requestID = protocolFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.LIST_BINDERS_FRAME);
-                return;
-            }
+        authoriseThenHandle(Protocol.LIST_BINDERS_FRAME, frame, () -> {
             BsonObject resp = new BsonObject();
-            resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
             resp.put(Protocol.RESPONSE_OK, true);
             BsonArray arr = new BsonArray(server.listBinders());
             resp.put(Protocol.LISTBINDERS_BINDERS, arr);
-            writeResponse(Protocol.RESPONSE_FRAME, resp);
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
+            writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
         });
     }
 
@@ -550,15 +387,8 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleCreateBinder(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.CREATEBINDER_NAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            Integer requestID = protocolFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.CREATE_BINDER_FRAME);
-                return;
-            }
-            String binderName = protocolFrame.getString(Protocol.CREATEBINDER_NAME);
+        authoriseThenHandle(Protocol.CREATEBINDER_NAME, frame, () -> {
+            String binderName = frame.getString(Protocol.CREATEBINDER_NAME);
             if (binderName == null) {
                 missingField(Protocol.CREATEBINDER_NAME, Protocol.CREATE_BINDER_FRAME);
                 return;
@@ -566,55 +396,29 @@ public class ConnectionImpl implements ServerFrameHandler {
             CompletableFuture<Boolean> cf = server.createBinder(binderName);
             cf.handle((res, t) -> {
                 if (t != null) {
-                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", requestID);
+                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", frame);
                 } else {
                     BsonObject resp = new BsonObject();
-                    resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
                     resp.put(Protocol.RESPONSE_OK, true);
                     resp.put(Protocol.CREATEBINDER_RESPONSE_EXISTS, !res);
-                    writeResponse(Protocol.RESPONSE_FRAME, resp);
+                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
                 }
                 return null;
             });
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
+
     }
 
     @Override
     public void handleListChannels(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.LIST_CHANNELS_FRAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            Integer requestID = protocolFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.LIST_CHANNELS_FRAME);
-                return;
-            }
+        authoriseThenHandle(Protocol.LIST_CHANNELS_FRAME, frame, () -> {
             BsonObject resp = new BsonObject();
-            resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
             resp.put(Protocol.RESPONSE_OK, true);
             BsonArray arr = new BsonArray(server.listChannels());
             resp.put(Protocol.LISTCHANNELS_CHANNELS, arr);
-            writeResponse(Protocol.RESPONSE_FRAME, resp);
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
+            writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
         });
     }
 
@@ -622,15 +426,8 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleCreateChannel(BsonObject frame) {
         checkContext();
 
-        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(Protocol.CREATECHANNEL_NAME);
-
-        Consumer<BsonObject> frameConsumer = (protocolFrame) -> {
-            Integer requestID = protocolFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.CREATE_CHANNEL_FRAME);
-                return;
-            }
-            String channelName = protocolFrame.getString(Protocol.CREATECHANNEL_NAME);
+        authoriseThenHandle(Protocol.CREATECHANNEL_NAME, frame, () -> {
+            String channelName = frame.getString(Protocol.CREATECHANNEL_NAME);
             if (channelName == null) {
                 missingField(Protocol.CREATECHANNEL_NAME, Protocol.CREATE_CHANNEL_FRAME);
                 return;
@@ -638,38 +435,54 @@ public class ConnectionImpl implements ServerFrameHandler {
             CompletableFuture<Boolean> cf = server.createChannel(channelName);
             cf.handle((res, t) -> {
                 if (t != null) {
-                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create channel", requestID);
+                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create channel", frame);
                 } else {
                     BsonObject resp = new BsonObject();
-                    resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
                     resp.put(Protocol.RESPONSE_OK, true);
                     resp.put(Protocol.CREATECHANNEL_RESPONSE_EXISTS, !res);
-                    writeResponse(Protocol.RESPONSE_FRAME, resp);
+                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
                 }
                 return null;
             });
-        };
-
-        authorisedCF.handle((res, ex) -> {
-            if (ex != null) {
-                sendErrorResponse(Client.ERR_AUTHORISATION_FAILED, "Authorisation failed", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-                logAndClose(ex.getMessage());
-            }
-            handleFrame(frame, frameConsumer, res);
-            return null;
         });
-
     }
 
-    private void handleFrame(BsonObject frame, Consumer<BsonObject> consumer, boolean res) {
-        if (res){
-            consumer.accept(frame);
+
+    private void writeResponse0(String responseFrameType, BsonObject requestFrame, BsonObject responseFrame) {
+        Integer requestID = requestFrame.getInteger(Protocol.REQUEST_REQUEST_ID);
+        if (requestID != null) {
+            responseFrame.put(Protocol.RESPONSE_REQUEST_ID, requestID);
+            writeResponse(responseFrameType, responseFrame);
         } else {
-            sendErrorResponse(Client.ERR_NOT_AUTHORISED, "User is not authorised", frame.getInteger(Protocol.REQUEST_REQUEST_ID));
-            logAndClose("User is not authorised");
+            logAndClose("No request id in frame");
         }
     }
 
+    private void writeResponseOK(BsonObject frame) {
+        BsonObject resp = new BsonObject();
+        resp.put(Protocol.RESPONSE_OK, true);
+        writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
+    }
+
+    private void authoriseThenHandle(String frameType, BsonObject frame, Runnable action) {
+        CompletableFuture<Boolean> authorisedCF = user.isAuthorised(frameType);
+        authorisedCF.whenComplete((res, ex) -> {
+            if (ex != null) {
+                String msg = "Authorisation failed";
+                logger.error(msg, ex);
+                sendErrorResponse(Client.ERR_SERVER_ERROR, msg, frame);
+                close();
+            } else {
+                if (!res) {
+                    sendErrorResponse(Client.ERR_NOT_AUTHORISED, "User is not authorised", frame);
+                    close();
+                } else {
+                    // OK
+                    action.run();
+                }
+            }
+        });
+    }
 
     protected Buffer writeQueryResult(BsonObject doc, int queryID, boolean last) {
         BsonObject res = new BsonObject();
@@ -680,7 +493,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         return writeResponse(Protocol.QUERYRESULT_FRAME, res);
     }
 
-    protected Buffer writeQueryError(int errCode, String errMsg, int queryID) {
+    private Buffer writeQueryError(int errCode, String errMsg, int queryID) {
         BsonObject res = new BsonObject();
         res.put(Protocol.QUERYRESULT_OK, false);
         res.put(Protocol.QUERYRESULT_QUERYID, queryID);
@@ -691,6 +504,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     }
 
     protected Buffer writeResponse(String frameName, BsonObject frame) {
+
         Buffer buff = Protocol.encodeFrame(frameName, frame);
         // TODO compare performance of writing directly in all cases and via context
         Context curr = Vertx.currentContext();
@@ -702,7 +516,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         return buff;
     }
 
-    protected void checkWrap(int i) {
+    private void checkWrap(int i) {
         // Sanity check - wrap around - won't happen but better to close connection than give incorrect behaviour
         if (i == Integer.MIN_VALUE) {
             String msg = "int wrapped!";
@@ -711,38 +525,45 @@ public class ConnectionImpl implements ServerFrameHandler {
         }
     }
 
-    protected void missingField(String fieldName, String frameType) {
+    private void missingField(String fieldName, String frameType) {
         logger.warn("protocol error: missing {} in {}. connection will be closed", fieldName, frameType);
         close();
     }
 
-    protected void invalidField(String fieldName, String frameType) {
+    private void invalidField(String fieldName, String frameType) {
         logger.warn("protocol error: invalid {} in {}. connection will be closed", fieldName, frameType);
         close();
     }
 
-    protected void logAndClose(String exceptionMessage) {
+    private void logAndClose(String exceptionMessage) {
         logger.error("{}, Connection will be closed", exceptionMessage);
         close();
     }
 
-    protected void sendErrorResponse(int errCode, String errMsg) {
-        sendErrorResponse(errCode, errMsg, null);
-    }
-
-    protected void sendErrorResponse(int errCode, String errMsg, Integer requestID) {
+    private void sendConnectErrorResponse(int errCode, String errMsg) {
         BsonObject resp = new BsonObject();
-        if (requestID != null) {
-            resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
-        }
         resp.put(Protocol.RESPONSE_OK, false);
         resp.put(Protocol.RESPONSE_ERRCODE, errCode);
         resp.put(Protocol.RESPONSE_ERRMSG, errMsg);
         writeResponse(Protocol.RESPONSE_FRAME, resp);
     }
 
+    private void sendErrorResponse(int errCode, String errMsg, BsonObject frame) {
+        BsonObject resp = new BsonObject();
+        Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
+        if (requestID != null) {
+            resp.put(Protocol.RESPONSE_REQUEST_ID, requestID);
+            resp.put(Protocol.RESPONSE_OK, false);
+            resp.put(Protocol.RESPONSE_ERRCODE, errCode);
+            resp.put(Protocol.RESPONSE_ERRMSG, errMsg);
+            writeResponse(Protocol.RESPONSE_FRAME, resp);
+        } else {
+            logAndClose(errMsg + ": " + errCode);
+        }
+    }
+
     // Sanity check - this should always be executed using the correct context
-    protected void checkContext() {
+    private void checkContext() {
         if (Vertx.currentContext() != context) {
             logger.trace("Wrong context!! " + Thread.currentThread() + " expected " + context, new Exception());
             throw new IllegalStateException("Wrong context!");
@@ -754,7 +575,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         queryStates.remove(queryID);
     }
 
-    protected void close() {
+    private void close() {
         checkContext();
         if (closed) {
             return;

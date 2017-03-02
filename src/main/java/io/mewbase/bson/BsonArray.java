@@ -21,7 +21,6 @@ package io.mewbase.bson;
 import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 
 import java.io.*;
 import java.time.Instant;
@@ -558,7 +557,7 @@ public class BsonArray implements Iterable<Object> {
     /**
      * Encode this to a String
      *
-     * @return  the string form
+     * @return the string form
      */
     public String encodeToString() {
         return toJsonArray().encode();
@@ -567,7 +566,7 @@ public class BsonArray implements Iterable<Object> {
     /**
      * Convert this into a JsonArray
      *
-     * @return  the equivalent JsonArray
+     * @return the equivalent JsonArray
      */
     public JsonArray toJsonArray() {
         return new JsonArray(list);
