@@ -33,14 +33,16 @@ public class ConnectionImpl implements ServerFrameHandler {
     private final Context context;
     private final Map<Integer, SubscriptionImpl> subscriptionMap = new HashMap<>();
     private final Map<Integer, QueryExecution> queryStates = new HashMap<>();
+    private final long idleTimeout;
 
     private boolean closed;
     private MewbaseAuthProvider authProvider;
     private MewbaseUser user;
     private int subSeq;
+    private long timerID;
 
     public ConnectionImpl(ServerImpl server, TransportConnection transportConnection, Context context,
-                          MewbaseAuthProvider authProvider) {
+                          MewbaseAuthProvider authProvider, long idleTimeout) {
         Protocol protocol = new Protocol(this);
         RecordParser recordParser = protocol.recordParser();
         transportConnection.handler(recordParser::handle);
@@ -49,6 +51,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         this.context = context;
         this.authProvider = authProvider;
         transportConnection.closeHandler(this::close);
+        this.idleTimeout = idleTimeout;
     }
 
     @Override
@@ -72,6 +75,7 @@ public class ConnectionImpl implements ServerFrameHandler {
                     user = result;
                     response.put(Protocol.RESPONSE_OK, true);
                     writeResponse(Protocol.RESPONSE_FRAME, response);
+                    resetTimeout();
                 } else {
                     String nullUserMsg = "AuthProvider returned a null user";
                     logAndClose(nullUserMsg);
@@ -337,7 +341,25 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handlePing(BsonObject frame) {
         checkContext();
 
-        throw new UnsupportedOperationException();
+        Integer typeID = frame.getInteger(Protocol.PING_TYPE);
+        if (typeID == null) {
+            missingField(Protocol.PING_TYPE, Protocol.PING_FRAME);
+            return;
+        }
+        Integer sequence = frame.getInteger(Protocol.PING_SEQUENCE);
+        if (sequence == null) {
+            missingField(Protocol.PING_SEQUENCE, Protocol.PING_FRAME);
+            return;
+        }
+        sequence++;
+        logger.trace("server. ping id ={}, seq ={}", new Object[]{typeID, sequence});
+        if (typeID == Protocol.PING_REQUEST) {
+            resetTimeout();
+            BsonObject resp = new BsonObject();
+            resp.put(Protocol.PING_TYPE, Protocol.PING_REPLY);
+            resp.put(Protocol.PING_SEQUENCE, sequence);
+            writeResponse(Protocol.PING_FRAME, resp);
+        }
     }
 
     @Override
@@ -595,4 +617,11 @@ public class ConnectionImpl implements ServerFrameHandler {
         return server;
     }
 
+    private void resetTimeout() {
+        context.owner().cancelTimer(timerID);
+        timerID = context.owner().setTimer(idleTimeout, id -> {
+            close();
+            logger.debug("Connection was closed by timeout.");
+        });
+    }
 }

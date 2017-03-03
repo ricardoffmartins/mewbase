@@ -15,9 +15,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -35,6 +37,7 @@ public class ClientImpl implements Client, ClientFrameHandler {
     private final Map<Integer, SubscriptionImpl> subscriptionMap = new ConcurrentHashMap<>();
     private final Map<Integer, Consumer<BsonObject>> responseHandlers = new ConcurrentHashMap<>();
     private final Map<Integer, Consumer<QueryResult>> queryResultHandlers = new ConcurrentHashMap<>();
+    private final Set<Integer> pingSequences = ConcurrentHashMap.newKeySet();
     private final Vertx vertx;
     private final NetClient netClient;
     private final ClientOptions clientOptions;
@@ -283,6 +286,21 @@ public class ClientImpl implements Client, ClientFrameHandler {
 
     @Override
     public void handlePing(BsonObject frame) {
+        Integer typeID = frame.getInteger(Protocol.PING_TYPE);
+        if (typeID == null) {
+            missingField(Protocol.PING_TYPE, Protocol.PING_FRAME);
+            return;
+        }
+        Integer sequence = frame.getInteger(Protocol.PING_SEQUENCE);
+        if (sequence == null) {
+            missingField(Protocol.PING_SEQUENCE, Protocol.PING_FRAME);
+            return;
+        }
+        sequence--;
+        logger.trace("client.ping id ={}, seq ={}, set={}", new Object[]{typeID, sequence, pingSequences});
+        if (!pingSequences.remove(sequence)) {
+            logger.warn("incorrect ping sequence seq ={}", sequence);
+        }
     }
 
     @Override
@@ -380,6 +398,14 @@ public class ClientImpl implements Client, ClientFrameHandler {
         write(buffer);
     }
 
+    protected void doQueryPing(int typeID, long seqNum) {
+        BsonObject frame = new BsonObject();
+        frame.put(Protocol.PING_TYPE, typeID);
+        frame.put(Protocol.PING_SEQUENCE, seqNum);
+        Buffer buffer = Protocol.encodeFrame(Protocol.PING_FRAME, frame);
+        write(buffer);
+    }
+
     protected CompletableFuture<Void> doPublish(String channel, int producerID, BsonObject event) {
         CompletableFuture<Void> cf = new CompletableFuture<>();
         BsonObject frame = new BsonObject();
@@ -420,6 +446,22 @@ public class ClientImpl implements Client, ClientFrameHandler {
         Buffer buffer = Protocol.encodeFrame(Protocol.CONNECT_FRAME, frame);
         connectResponse = resp -> connected(cfConnect, resp);
         netSocket.write(buffer);
+
+        vertx.setPeriodic(PING_PERIOD, id -> {
+            if (pingSequences.size() < PING_MAX_TRIES) {
+                int sequence = ThreadLocalRandom.current().nextInt(100, Integer.MAX_VALUE);
+                pingSequences.add(sequence);
+                logger.debug("client. send ping ={}", sequence);
+                doQueryPing(Protocol.PING_REQUEST, sequence);
+            } else {
+                close();
+                logger.debug("Connection was closed by timeout.");
+            }
+        });
+    }
+
+    protected void missingField(String fieldName, String frameType) {
+        logger.warn("protocol error: missing {} in {}.", fieldName, frameType);
     }
 
     private synchronized void connected(CompletableFuture cfConnect, BsonObject resp) {
