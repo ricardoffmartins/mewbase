@@ -49,7 +49,6 @@ public class AFBasicFile implements BasicFile {
     }
 
     public CompletableFuture<Void> close() {
-        Exception e = new Exception();
         AsyncResCF<Void> ar = new AsyncResCF<>();
         af.flush(res -> {
             if (res.succeeded()) {
@@ -58,6 +57,12 @@ public class AFBasicFile implements BasicFile {
                 ar.completeExceptionally(res.cause());
             }
         });
+        return ar;
+    }
+
+    public CompletableFuture<Void> flush() {
+        AsyncResCF<Void> ar = new AsyncResCF<>();
+        af.flush(ar);
         return ar;
     }
 }

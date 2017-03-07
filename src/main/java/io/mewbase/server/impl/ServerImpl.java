@@ -81,6 +81,7 @@ public class ServerImpl implements Server {
 
     @Override
     public synchronized CompletableFuture<Void> start() {
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
         return startBinders().thenCompose(v -> startLogs())
                 .thenCompose(v -> startTransports()).thenCompose(v -> restServiceAdaptor.start());
     }

@@ -3,6 +3,7 @@ package io.mewbase.log;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.Log;
 import io.mewbase.server.impl.ServerImpl;
+import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,10 +64,11 @@ public class InitialiseTest extends LogTestBase {
     public void test_when_restarting_existing_files_are_unchanged() throws Exception {
         startLog();
         // Create the files
-        test_when_starting_with_existing_log_dir_new_files_are_created();
-        log.close().get();
-        log.start().get();
-        test_when_starting_with_existing_log_dir_new_files_are_created();
+        verifyInitialFiles(logsDir, TEST_CHANNEL_1);
+        stopServerAndClient();
+        verifyInfoFile(TEST_CHANNEL_1, true);
+        startLog();
+        verifyInitialFiles(logsDir, TEST_CHANNEL_1);
     }
 
     @Test
@@ -353,9 +355,8 @@ public class InitialiseTest extends LogTestBase {
         }
     }
 
-
-    private void verifyInitialFiles(File logDir, String channel) throws Exception {
-        verifyInfoFile(channel);
+    private void verifyInitialFiles(File logDir, String channel, boolean shutdown) throws Exception {
+        verifyInfoFile(channel, shutdown);
 
         File logFile = new File(logDir, channel + "-0.log");
         assertTrue(logFile.exists());
@@ -367,7 +368,11 @@ public class InitialiseTest extends LogTestBase {
         assertEquals(logFile.getName(), dirList[0]);
     }
 
-    private void verifyInfoFile(String channel) {
+    private void verifyInitialFiles(File logDir, String channel) throws Exception {
+        verifyInitialFiles(logDir, channel, false);
+    }
+
+    private void verifyInfoFile(String channel, boolean shutdown) {
         File infoFile = new File(logsDir, channel + "-log-info.dat");
         assertTrue(infoFile.exists());
         BsonObject info = readInfoFromFile(infoFile);
@@ -380,9 +385,8 @@ public class InitialiseTest extends LogTestBase {
         Integer headPos = info.getInteger("headPos");
         assertNotNull(headPos);
         assertEquals(0, (long)headPos);
-        Boolean shutdown = info.getBoolean("shutdown");
-        assertNotNull(shutdown);
-        assertTrue(shutdown);
+        Boolean bshutdown = info.getBoolean("shutdown");
+        assertEquals(shutdown, bshutdown);
     }
 
 
