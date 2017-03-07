@@ -42,6 +42,7 @@ public class LogImpl implements Log {
 
     private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
     private static final String LOG_INFO_FILE_TAIL = "-log-info.dat";
+    private static final long FLUSH_INTERVAL = 10000;
 
     private final Vertx vertx;
     private final FileAccess faf;
@@ -59,6 +60,9 @@ public class LogImpl implements Log {
     private long writeSequence;
     private long expectedSeq;
     private final PriorityQueue<WriteHolder> pq = new PriorityQueue<>();
+    private CompletableFuture<Void> startRes;
+    private long flushTimerID = -1;
+    private boolean closed;
 
     public LogImpl(Vertx vertx, FileAccess faf, ServerOptions options, String channel) {
         this.vertx = vertx;
@@ -82,9 +86,8 @@ public class LogImpl implements Log {
         }
     }
 
-    private CompletableFuture<Void> startRes;
-
     public synchronized CompletableFuture<Void> start() {
+        closed = false;
         logger.trace("Starting file log " + this);
         if (startRes != null) {
             return startRes;
@@ -115,8 +118,24 @@ public class LogImpl implements Log {
         startRes = cf.thenAccept(bf -> {
             currWriteFile = bf;
             logger.trace("Opened file log " + this);
-        });
+        }).thenCompose(v -> saveInfoAsync(false)).thenRun(this::scheduleFlush);
+
         return startRes;
+    }
+
+    private synchronized void flush() {
+        if (!closed) {
+            if (currWriteFile == null) {
+                // Sanity check
+                throw new IllegalStateException("No currWriteFile");
+            }
+            logger.trace("Flushing log file");
+            currWriteFile.flush().thenCompose(v -> saveInfoAsync(false)).thenRun(this::scheduleFlush);
+        }
+    }
+
+    private synchronized void scheduleFlush() {
+        flushTimerID = vertx.setTimer(FLUSH_INTERVAL, tid -> flush());
     }
 
     @Override
@@ -209,7 +228,14 @@ public class LogImpl implements Log {
 
     @Override
     public synchronized CompletableFuture<Void> close() {
-        saveInfo(true);
+        if (closed) {
+            return CompletableFuture.completedFuture(null);
+        }
+        closed = true;
+        if (flushTimerID != -1) {
+            vertx.cancelTimer(flushTimerID);
+            flushTimerID = -1;
+        }
         CompletableFuture<Void> ret;
         if (currWriteFile != null) {
             ret = currWriteFile.close();
@@ -223,6 +249,7 @@ public class LogImpl implements Log {
             CompletableFuture<Void> ncf = nextFileCF;
             ret = ret.thenCompose(v -> ncf);
         }
+        ret = ret.thenRun(() -> saveInfo(true));
         return ret;
     }
 
@@ -292,7 +319,8 @@ public class LogImpl implements Log {
         return currWriteFile.append(record, writePos).thenApply(v -> overallWritePos);
     }
 
-    private void saveInfo(boolean shutdown) {
+    private synchronized void saveInfo(boolean shutdown) {
+        logger.trace("Saving file info with shutdown: " + shutdown);
         BsonObject info = new BsonObject();
         info.put("fileNumber", fileNumber);
         info.put("headPos", headPos);
@@ -302,8 +330,18 @@ public class LogImpl implements Log {
         saveFileInfo(info);
     }
 
+    private CompletableFuture<Void> saveInfoAsync(boolean shutdown) {
+        AsyncResCF<Void> ar = new AsyncResCF<>();
+        vertx.executeBlocking(fut -> {
+            saveInfo(shutdown);
+            fut.complete();
+        }, ar);
+        return ar;
+    }
+
     private void loadInfo() {
         BsonObject info = loadFileInfo();
+        logger.trace("loaded fileinfo: " + info);
         if (info != null) {
             try {
                 Integer fNumber = info.getInteger("fileNumber");
@@ -342,6 +380,11 @@ public class LogImpl implements Log {
                 if (shutdown == null) {
                     throw new MewException("Invalid log info file, no shutdown");
                 }
+                if (!shutdown) {
+                    // TODO
+                    // Bail out for now, need to deal with this gracefully
+                    throw new MewException("Log was not shutdown cleanly, could be corrupt!");
+                }
             } catch (ClassCastException e) {
                 throw new MewException("Invalid info file for channel " + channel, e);
             }
@@ -372,7 +415,7 @@ public class LogImpl implements Log {
                     throw new MewException("Failed to create file " + f);
                 }
             }
-            Files.write(f.toPath(), buff.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
+            Files.write(f.toPath(), buff.getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
         } catch (IOException e) {
             throw new MewException(e);
         }
