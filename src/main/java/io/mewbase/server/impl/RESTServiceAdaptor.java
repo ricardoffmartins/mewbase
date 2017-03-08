@@ -44,9 +44,12 @@ public class RESTServiceAdaptor {
 
     public void exposeCommand(String commandName, String uri, HttpMethod httpMethod) {
         router.route(httpMethod, uri).handler(rc -> {
-            // TODO what about params?
+            BsonObject pathParams = new BsonObject(rc.pathParams());
             Buffer buff = rc.getBody();
             BsonObject command = new BsonObject(buff);
+            if (!pathParams.isEmpty()) {
+                command.put("pathParams", pathParams);
+            }
             CompletableFuture<Void> cf = cqrsManager.callCommandHandler(commandName, command);
             cf.whenComplete((v, t) -> {
                 if (t == null) {

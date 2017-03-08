@@ -49,12 +49,14 @@ public class RESTAdaptorTest extends ServerTestBase {
     }
 
     @Test
-    public void testSimpleCommand(TestContext testContext) throws Exception {
+    public void testCommandWithPathParam(TestContext testContext) throws Exception {
         String commandName = "testcommand";
+        String customerID = "customer123";
 
         CommandHandler handler = server.buildCommandHandler(commandName)
                 .emittingTo(TEST_CHANNEL_1)
                 .as((command, context) -> {
+                    testContext.assertEquals(customerID, command.getBsonObject("pathParams").getString("customerID"));
                     context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
                     context.complete();
                 })
@@ -71,14 +73,52 @@ public class RESTAdaptorTest extends ServerTestBase {
             async.complete();
         };
 
-        Subscription sub = client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
+        client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
 
-        server.exposeCommand(commandName, "/orders/:customerID/", HttpMethod.POST);
+        server.exposeCommand(commandName, "/orders/:customerID", HttpMethod.POST);
 
         BsonObject sentCommand = new BsonObject().put("commandField", "foobar");
 
         HttpClient httpClient = vertx.createHttpClient();
-        HttpClientRequest req = httpClient.request(HttpMethod.POST, 8080, "localhost", "/orders/customer123/", resp -> {
+        HttpClientRequest req = httpClient.request(HttpMethod.POST, 8080, "localhost", "/orders/" + customerID, resp -> {
+            assertEquals(200, resp.statusCode());
+            async.complete();
+        });
+        req.putHeader("content-type", "text/json");
+        req.end(sentCommand.encode());
+    }
+
+    @Test
+    public void testSimpleCommand(TestContext testContext) throws Exception {
+        String commandName = "testcommand";
+        CommandHandler handler = server.buildCommandHandler(commandName)
+                .emittingTo(TEST_CHANNEL_1)
+                .as((command, context) -> {
+                    testContext.assertNull(command.getBsonObject("pathParams"));
+                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
+                    context.complete();
+                })
+                .create();
+
+        assertNotNull(handler);
+        assertEquals(commandName, handler.getName());
+
+        Async async = testContext.async(2);
+
+        Consumer<ClientDelivery> subHandler = del -> {
+            BsonObject event = del.event();
+            testContext.assertEquals("foobar", event.getString("eventField"));
+            async.complete();
+        };
+
+        client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
+
+        server.exposeCommand(commandName, "/orders", HttpMethod.POST);
+
+        BsonObject sentCommand = new BsonObject().put("commandField", "foobar");
+
+        HttpClient httpClient = vertx.createHttpClient();
+        HttpClientRequest req = httpClient.request(HttpMethod.POST, 8080, "localhost", "/orders", resp -> {
             assertEquals(200, resp.statusCode());
             async.complete();
         });
