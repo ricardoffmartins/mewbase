@@ -356,8 +356,7 @@ public class ConnectionImpl implements ServerFrameHandler {
             CompletableFuture<Void> cf = server.getCqrsManager().callCommandHandler(commandName, command);
             cf.handle((res, t) -> {
                 if (t != null) {
-                    // TODO what error to send?
-                    //sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", requestID);
+                    sendErrorResponse(Client.ERR_COMMAND_NOT_PROCESSED, t.getMessage(), frame);
                 } else {
                     writeResponseOK(frame);
                 }
