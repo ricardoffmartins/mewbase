@@ -54,7 +54,7 @@ public class CQRSManager {
 
         CommandHandlerImpl commandHandler = commandHandlers.get(commandName);
         if (commandHandler == null) {
-            String msg = "Command received but no handler for " + commandName;
+            String msg = "No handler for " + commandName;
             logger.trace(msg);
             cfCommand.completeExceptionally(new MewException(msg));
         } else {
@@ -69,7 +69,7 @@ public class CQRSManager {
 
             context.whenComplete((v, t) -> {
                 if (t != null) {
-                    logger.trace("Failure in command processing", t);
+                    cfCommand.completeExceptionally(t);
                 } else {
                     // 3. Actually publish the events
                     // TODO this should be in a transaction
@@ -93,7 +93,8 @@ public class CQRSManager {
             try {
                 commandHandler.getHandler().accept(commandBson, context);
             } catch (Throwable t) {
-                logger.trace("Failure in command handler", t);
+                logger.warn("Failure in command handler", t);
+                cfCommand.completeExceptionally(t);
             }
         }
 
