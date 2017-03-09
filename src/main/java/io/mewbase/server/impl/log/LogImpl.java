@@ -31,8 +31,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>
  * 1. Corruption detection, incl CRC checks
  * 2. Version header
- * 3. Batching
- * 4. Configurable fsync
  * <p>
  * Created by tim on 07/10/16.
  */
@@ -42,7 +40,6 @@ public class LogImpl implements Log {
 
     private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
     private static final String LOG_INFO_FILE_TAIL = "-log-info.dat";
-    private static final long FLUSH_INTERVAL = 10000;
 
     private final Vertx vertx;
     private final FileAccess faf;
@@ -135,7 +132,7 @@ public class LogImpl implements Log {
     }
 
     private synchronized void scheduleFlush() {
-        flushTimerID = vertx.setTimer(FLUSH_INTERVAL, tid -> flush());
+        flushTimerID = vertx.setTimer(options.getLogFlushInterval(), tid -> flush());
     }
 
     @Override

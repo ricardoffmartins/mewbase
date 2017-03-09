@@ -4,6 +4,8 @@ import io.vertx.ext.unit.junit.RepeatRule;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
+import java.util.Random;
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -59,6 +61,20 @@ public class MewbaseTestBase {
                 throw new IllegalStateException("Timed out");
             }
         }
+    }
+
+    private final Random random = new Random();
+
+    protected int randomInt() {
+        return random.nextInt();
+    }
+
+    protected long randomLong() {
+        return random.nextLong();
+    }
+
+    protected String randomString() {
+        return UUID.randomUUID().toString();
     }
 
 }

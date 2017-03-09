@@ -69,7 +69,7 @@ public class ServerImpl implements Server {
         }
         this.serverOptions = serverOptions;
         this.faf = new AFFileAccess(vertx);
-        this.systemBinderFactory = new LmdbBinderFactory(serverOptions.getDocsDir(), vertx);
+        this.systemBinderFactory = new LmdbBinderFactory(serverOptions, vertx);
         this.projectionManager = new ProjectionManager(this);
         this.cqrsManager = new CQRSManager(this);
         this.restServiceAdaptor = new RESTServiceAdaptor(this);

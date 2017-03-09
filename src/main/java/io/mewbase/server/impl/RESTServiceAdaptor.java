@@ -70,7 +70,8 @@ public class RESTServiceAdaptor {
 
         router.route(HttpMethod.GET, uri).handler(rc -> {
             BsonObject params = new BsonObject(rc.pathParams());
-            RESTServiceAdaptorQueryExecution qe = new RESTServiceAdaptorQueryExecution(query, params, rc.response());
+            RESTServiceAdaptorQueryExecution qe = new RESTServiceAdaptorQueryExecution(query, params, rc.response(),
+                    server.getServerOptions().getQueryMaxUnackedBytes());
             rc.response().closeHandler(v -> qe.close());
             qe.start();
         });
@@ -117,8 +118,8 @@ public class RESTServiceAdaptor {
         private final HttpServerResponse response;
 
         public RESTServiceAdaptorQueryExecution(QueryImpl query, BsonObject params,
-                                                HttpServerResponse response) {
-            super(query, params);
+                                                HttpServerResponse response, int maxUnackedBytes) {
+            super(query, params, maxUnackedBytes);
             response.setChunked(true);
             this.response = response;
             response.write("[");

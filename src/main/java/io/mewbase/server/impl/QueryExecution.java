@@ -18,13 +18,13 @@ public abstract class QueryExecution {
 
     private final static Logger logger = LoggerFactory.getLogger(QueryExecution.class);
 
-    private static final int MAX_UNACKED_BYTES = 4 * 1024 * 1024; // TODO make configurable
-
+    private int maxUnackedBytes;
     private final DocReadStream readStream;
     private int unackedBytes;
     protected Context context;
 
-    public QueryExecution(QueryImpl query, BsonObject params) {
+    public QueryExecution(QueryImpl query, BsonObject params, int maxUnackedBytes) {
+        this.maxUnackedBytes = maxUnackedBytes;
         Binder binder = query.getBinder();
         readStream = binder.getMatching(doc -> true);
         QueryContext qc = new QueryContext(params);
@@ -44,7 +44,7 @@ public abstract class QueryExecution {
         checkContext();
         unackedBytes -= bytes;
         // Low watermark to prevent thrashing
-        if (unackedBytes < MAX_UNACKED_BYTES / 2) {
+        if (unackedBytes < maxUnackedBytes / 2) {
             readStream.resume();
         }
     }
@@ -53,7 +53,7 @@ public abstract class QueryExecution {
         checkContext();
         Buffer buff = writeQueryResult(doc, last);
         unackedBytes += buff.length();
-        if (unackedBytes > MAX_UNACKED_BYTES) {
+        if (unackedBytes > maxUnackedBytes) {
             readStream.pause();
         }
         if (last) {

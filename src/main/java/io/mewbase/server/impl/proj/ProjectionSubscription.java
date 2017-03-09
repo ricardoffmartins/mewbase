@@ -12,8 +12,7 @@ import java.util.function.BiConsumer;
  */
 public class ProjectionSubscription extends SubscriptionBase {
 
-    private static final int MAX_UNACKED_EVENTS = 1000; // TODO make configurable
-
+    private final int maxUnackedEvents;
     private final BiConsumer<Long, BsonObject> frameHandler;
     private int unackedEvents;
 
@@ -21,12 +20,13 @@ public class ProjectionSubscription extends SubscriptionBase {
                                   BiConsumer<Long, BsonObject> frameHandler) {
         super(server, subDescriptor);
         this.frameHandler = frameHandler;
+        this.maxUnackedEvents = server.getServerOptions().getProjectionMaxUnackedEvents();
     }
 
     @Override
     protected void onReceiveFrame(long pos, BsonObject frame) {
         unackedEvents++;
-        if (unackedEvents > MAX_UNACKED_EVENTS) {
+        if (unackedEvents > maxUnackedEvents) {
             readStream.pause();
         }
         frameHandler.accept(pos, frame);
@@ -35,7 +35,7 @@ public class ProjectionSubscription extends SubscriptionBase {
     void acknowledge(long pos) {
         unackedEvents--;
         // Low watermark to prevent thrashing
-        if (unackedEvents < MAX_UNACKED_EVENTS / 2) {
+        if (unackedEvents < maxUnackedEvents / 2) {
             readStream.resume();
         }
         afterAcknowledge(pos);

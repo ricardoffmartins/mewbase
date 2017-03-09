@@ -13,8 +13,7 @@ public class SubscriptionImpl extends SubscriptionBase {
 
     private final static Logger logger = LoggerFactory.getLogger(SubscriptionImpl.class);
 
-    private static final int MAX_UNACKED_BYTES = 4 * 1024 * 1024; // TODO make configurable
-
+    private final int maxUnackedBytes;
     private final ConnectionImpl connection;
     private final int id;
     private int unackedBytes;
@@ -23,6 +22,7 @@ public class SubscriptionImpl extends SubscriptionBase {
         super(connection.server(), subDescriptor);
         this.id = id;
         this.connection = connection;
+        this.maxUnackedBytes = connection.server().getServerOptions().getSubscriptionMaxUnackedBytes();
     }
 
     @Override
@@ -32,7 +32,7 @@ public class SubscriptionImpl extends SubscriptionBase {
         frame.put(Protocol.RECEV_POS, pos);
         Buffer buff = connection.writeResponse(Protocol.RECEV_FRAME, frame);
         unackedBytes += buff.length();
-        if (unackedBytes > MAX_UNACKED_BYTES) {
+        if (unackedBytes > maxUnackedBytes) {
             readStream.pause();
         }
     }
@@ -41,7 +41,7 @@ public class SubscriptionImpl extends SubscriptionBase {
         checkContext();
         unackedBytes -= bytes;
         // Low watermark to prevent thrashing
-        if (unackedBytes < MAX_UNACKED_BYTES / 2) {
+        if (unackedBytes < maxUnackedBytes / 2) {
             readStream.resume();
         }
         afterAcknowledge(pos);

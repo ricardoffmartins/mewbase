@@ -2,6 +2,7 @@ package io.mewbase.server.impl.doc.lmdb;
 
 import io.mewbase.client.MewException;
 import io.mewbase.server.Binder;
+import io.mewbase.server.ServerOptions;
 import io.mewbase.server.impl.BinderFactory;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
@@ -21,20 +22,21 @@ public class LmdbBinderFactory implements BinderFactory {
 
     private final static Logger logger = LoggerFactory.getLogger(LmdbBinderFactory.class);
 
-    // TODO make configurable
     private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.docmanagerpool";
     private static final int LMDB_DOCMANAGER_POOL_SIZE = 10;
-    private static final int MAX_DBS = 128;
-    private static final long MAX_DB_SIZE = 1024L * 1024L * 1024L * 1024L; // 1 Terabyte
 
     private final String docsDir;
+    private final int maxDBs;
+    private final long maxDBSize;
     private final Vertx vertx;
     private final WorkerExecutor exec;
     private Env env;
 
-    public LmdbBinderFactory(String docsDir, Vertx vertx) {
-        logger.trace("Starting lmdb binder factory with docs dir: " + docsDir);
-        this.docsDir = docsDir;
+    public LmdbBinderFactory(ServerOptions serverOptions, Vertx vertx) {
+        logger.trace("Starting lmdb binder factory with docs dir: " + serverOptions.getDocsDir());
+        this.docsDir = serverOptions.getDocsDir();
+        this.maxDBs = serverOptions.getMaxBinders();
+        this.maxDBSize = serverOptions.getMaxBinderSize();
         this.vertx = vertx;
         exec = vertx.createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME, LMDB_DOCMANAGER_POOL_SIZE);
     }
@@ -46,8 +48,8 @@ public class LmdbBinderFactory implements BinderFactory {
             File fDocsDir = new File(docsDir);
             createIfDoesntExists(fDocsDir);
             env = new Env();
-            env.setMaxDbs(MAX_DBS);
-            env.setMapSize(MAX_DB_SIZE);
+            env.setMaxDbs(maxDBs);
+            env.setMapSize(maxDBSize);
             env.open(fDocsDir.getPath(), Constants.NOTLS);
             fut.complete(null);
         }, res);
