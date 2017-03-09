@@ -13,8 +13,8 @@ public class ConnectionQueryExecution extends QueryExecution {
     private final int queryID;
 
     public ConnectionQueryExecution(ConnectionImpl connection, int queryID, QueryImpl query,
-                                    BsonObject params) {
-        super(query, params);
+                                    BsonObject params, int maxUnackedBytes) {
+        super(query, params, maxUnackedBytes);
         this.connection = connection;
         this.queryID = queryID;
     }

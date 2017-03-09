@@ -22,7 +22,6 @@ import static org.junit.Assert.assertSame;
 public class OptionsTest extends MewbaseTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(OptionsTest.class);
-    private static final int fsize = 4 * 1024;
 
     @Test
     public void testClientOptions() throws Exception {
@@ -31,16 +30,16 @@ public class OptionsTest extends MewbaseTestBase {
         assertEquals(new NetClientOptions(), options.getNetClientOptions());
         assertEquals(ClientOptions.DEFAULT_PORT, options.getPort());
         assertEquals(ClientOptions.DEFAULT_HOST, options.getHost());
-
         NetClientOptions netClientOptions2 = new NetClientOptions();
         options.setNetClientOptions(netClientOptions2);
         assertSame(netClientOptions2, options.getNetClientOptions());
 
-        options.setPort(1547);
-        assertEquals(1547, options.getPort());
-
-        options.setHost("somehost");
-        assertEquals("somehost", options.getHost());
+        int i = randomInt();
+        options.setPort(i);
+        assertEquals(i, options.getPort());
+        String s = randomString();
+        options.setHost(s);
+        assertEquals(s, options.getHost());
     }
 
     @Test
@@ -52,21 +51,60 @@ public class OptionsTest extends MewbaseTestBase {
         options.setNetServerOptions(netServerOptions2);
         assertSame(netServerOptions2, options.getNetServerOptions());
 
-        options.setDocsDir("foo");
-        assertSame("foo", options.getDocsDir());
+        assertEquals(ServerOptions.DEFAULT_DOCS_DIR, options.getDocsDir());
+        String s = randomString();
+        options.setDocsDir(s);
+        assertEquals(s, options.getDocsDir());
 
-        options.setDocsDir("foo");
-        assertSame("foo", options.getDocsDir());
+        assertEquals(ServerOptions.DEFAULT_MAX_LOG_CHUNK_SIZE, options.getMaxLogChunkSize());
+        int i = randomInt();
+        options.setMaxLogChunkSize(i);
+        assertEquals(i, options.getMaxLogChunkSize());
 
-        options.setMaxLogChunkSize(fsize);
-        options.setMaxRecordSize(fsize);
-        options.setPreallocateSize(fsize);
-        options.setMaxRecordSize(fsize);
+        assertEquals(ServerOptions.DEFAULT_PREALLOCATE_SIZE, options.getPreallocateSize());
+        i = randomInt();
+        options.setPreallocateSize(i);
+        assertEquals(i, options.getPreallocateSize());
 
-        assert (options.getMaxLogChunkSize() == fsize);
-        assert (options.getPreallocateSize() == fsize);
-        assert (options.getMaxRecordSize() == fsize);
-        assert (options.getReadBufferSize() == fsize);
+        assertEquals(ServerOptions.DEFAULT_READ_BUFFER_SIZE, options.getReadBufferSize());
+        i = randomInt();
+        options.setReadBufferSize(i);
+        assertEquals(i, options.getReadBufferSize());
+
+        assertEquals(ServerOptions.DEFAULT_QUERY_MAX_UNACKED_BYTES, options.getQueryMaxUnackedBytes());
+        i = randomInt();
+        options.setQueryMaxUnackedBytes(i);
+        assertEquals(i, options.getQueryMaxUnackedBytes());
+
+        assertEquals(ServerOptions.DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES, options.getSubscriptionMaxUnackedBytes());
+        i = randomInt();
+        options.setSubscriptionMaxUnackedBytes(i);
+        assertEquals(i, options.getSubscriptionMaxUnackedBytes());
+
+        assertEquals(ServerOptions.DEFAULT_PROJECTION_MAX_UNACKED_EVENTS, options.getProjectionMaxUnackedEvents());
+        i = randomInt();
+        options.setProjectionMaxUnackedEvents(i);
+        assertEquals(i, options.getProjectionMaxUnackedEvents());
+
+        assertEquals(ServerOptions.DEFAULT_LOG_FLUSH_INTERVAL, options.getLogFlushInterval());
+        long l = randomLong();
+        options.setLogFlushInterval(l);
+        assertEquals(l, options.getLogFlushInterval());
+
+        assertEquals(ServerOptions.DEFAULT_MAX_BINDER_SIZE, options.getMaxBinderSize());
+        l = randomLong();
+        options.setMaxBinderSize(l);
+        assertEquals(l, options.getMaxBinderSize());
+
+        assertEquals(ServerOptions.DEFAULT_MAX_BINDERS, options.getMaxBinders());
+        i = randomInt();
+        options.setMaxBinders(i);
+        assertEquals(i, options.getMaxBinders());
+
+        assertEquals(ServerOptions.DEFAULT_DOC_STREAM_BATCH_SIZE, options.getDocStreamBatchSize());
+        i = randomInt();
+        options.setDocStreamBatchSize(i);
+        assertEquals(i, options.getDocStreamBatchSize());
     }
 
     @Test
@@ -79,30 +117,66 @@ public class OptionsTest extends MewbaseTestBase {
         assertEquals(ServerOptions.DEFAULT_MAX_RECORD_SIZE, options.getMaxRecordSize());
         assertEquals(ServerOptions.DEFAULT_PREALLOCATE_SIZE, options.getPreallocateSize());
         assertEquals(ServerOptions.DEFAULT_READ_BUFFER_SIZE, options.getReadBufferSize());
+        assertEquals(ServerOptions.DEFAULT_QUERY_MAX_UNACKED_BYTES, options.getQueryMaxUnackedBytes());
+        assertEquals(ServerOptions.DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES, options.getSubscriptionMaxUnackedBytes());
+        assertEquals(ServerOptions.DEFAULT_PROJECTION_MAX_UNACKED_EVENTS, options.getProjectionMaxUnackedEvents());
+        assertEquals(ServerOptions.DEFAULT_LOG_FLUSH_INTERVAL, options.getLogFlushInterval());
+        assertEquals(ServerOptions.DEFAULT_MAX_BINDER_SIZE, options.getMaxBinderSize());
+        assertEquals(ServerOptions.DEFAULT_MAX_BINDERS, options.getMaxBinders());
+        assertEquals(ServerOptions.DEFAULT_DOC_STREAM_BATCH_SIZE, options.getDocStreamBatchSize());
         assertEquals(new NetServerOptions(), options.getNetServerOptions());
     }
 
     @Test
     public void testServerOptionsFromJson() throws Exception {
         JsonObject json = new JsonObject();
-        json.put("docsDir", "/testdocsdir");
-        json.put("logsDir", "/testlogsdir");
-        json.put("maxLogChunkSize", 12345);
-        json.put("maxRecordSize", 1234);
-        json.put("preallocateSize", 123456);
-        json.put("readBufferSize", 321);
-        NetServerOptions nso = new NetServerOptions().setHost("somehost");
+        String docsDir = randomString();
+        String logsDir = randomString();
+        int maxLogChunkSize = randomInt();
+        int maxRecordSize = randomInt();
+        int preallocateSize = randomInt();
+        int readBufferSize = randomInt();
+        String hostName = randomString();
+        int queryMaxUnackedBytes = randomInt();
+        int subscriptionMaxUnackedBytes = randomInt();
+        int projectionMaxUnackedEvents = randomInt();
+        long logFlushInterval = randomLong();
+        long maxBinderSize = randomLong();
+        int maxBinders = randomInt();
+
+        json.put("docsDir", docsDir);
+        json.put("logsDir", logsDir);
+        json.put("maxLogChunkSize", maxLogChunkSize);
+        json.put("maxRecordSize", maxRecordSize);
+        json.put("preallocateSize", preallocateSize);
+        json.put("readBufferSize", readBufferSize);
+        json.put("queryMaxUnackedBytes", queryMaxUnackedBytes);
+        json.put("subscriptionMaxUnackedBytes", subscriptionMaxUnackedBytes);
+        json.put("projectionMaxUnackedEvents", projectionMaxUnackedEvents);
+        json.put("logFlushInterval", logFlushInterval);
+        json.put("maxBinderSize", maxBinderSize);
+        json.put("maxBinders", maxBinders);
+
+        NetServerOptions nso = new NetServerOptions().setHost(hostName);
         JsonObject jnso = new JsonObject();
         NetServerOptionsConverter.toJson(nso, jnso);
         json.put("netServerOptions", jnso);
         ServerOptions options = new ServerOptions(json);
-        assertEquals("/testdocsdir", options.getDocsDir());
-        assertEquals("/testlogsdir", options.getLogsDir());
-        assertEquals(12345, options.getMaxLogChunkSize());
-        assertEquals(1234, options.getMaxRecordSize());
-        assertEquals(123456, options.getPreallocateSize());
-        assertEquals(321, options.getReadBufferSize());
+        assertEquals(docsDir, options.getDocsDir());
+        assertEquals(logsDir, options.getLogsDir());
+        assertEquals(maxLogChunkSize, options.getMaxLogChunkSize());
+        assertEquals(maxRecordSize, options.getMaxRecordSize());
+        assertEquals(preallocateSize, options.getPreallocateSize());
+        assertEquals(readBufferSize, options.getReadBufferSize());
+
+        assertEquals(queryMaxUnackedBytes, options.getQueryMaxUnackedBytes());
+        assertEquals(subscriptionMaxUnackedBytes, options.getSubscriptionMaxUnackedBytes());
+        assertEquals(projectionMaxUnackedEvents, options.getProjectionMaxUnackedEvents());
+        assertEquals(logFlushInterval, options.getLogFlushInterval());
+        assertEquals(maxBinderSize, options.getMaxBinderSize());
+        assertEquals(maxBinders, options.getMaxBinders());
 
         assertEquals(nso, options.getNetServerOptions());
+        assertEquals(hostName, options.getNetServerOptions().getHost());
     }
 }

@@ -272,7 +272,8 @@ public class ConnectionImpl implements ServerFrameHandler {
             if (query == null) {
                 writeQueryError(Client.ERR_NO_SUCH_QUERY, "No such query " + queryName, queryID);
             } else {
-                QueryExecution qe = new ConnectionQueryExecution(this, queryID, query, params);
+                QueryExecution qe = new ConnectionQueryExecution(this, queryID, query, params,
+                        server.getServerOptions().getQueryMaxUnackedBytes());
                 queryStates.put(queryID, qe);
                 qe.start();
             }
