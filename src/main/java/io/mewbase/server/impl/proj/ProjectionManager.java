@@ -11,7 +11,10 @@ import io.mewbase.server.ProjectionBuilder;
 import io.mewbase.server.impl.Protocol;
 import io.mewbase.server.impl.ServerImpl;
 import io.mewbase.util.AsyncResCF;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.shareddata.Lock;
+import io.vertx.core.shareddata.impl.AsynchronousLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -35,9 +39,13 @@ public class ProjectionManager {
 
     public static final String PROJECTION_STATE_FIELD = "_mb.lastSeqs";
 
+    private static final long LOCK_TIMEOUT = 10000;
+
     private final Map<String, ProjectionImpl> projections = new ConcurrentHashMap<>();
 
     private final ServerImpl server;
+
+    private final ConcurrentMap<String, AsynchronousLock> localLocks = new ConcurrentHashMap<>();
 
     public ProjectionManager(ServerImpl server) {
         this.server = server;
@@ -53,6 +61,11 @@ public class ProjectionManager {
 
     public Projection getProjection(String projectionName) {
         return projections.get(projectionName);
+    }
+
+    private void getLocalLock(String name, long timeout, Handler<AsyncResult<Lock>> resultHandler) {
+        AsynchronousLock lock = localLocks.computeIfAbsent(name, n -> new AsynchronousLock(server.getVertx()));
+        lock.acquire(timeout, resultHandler);
     }
 
     private class ProjectionImpl implements Projection {
@@ -97,7 +110,7 @@ public class ProjectionManager {
             // TODO this can be optimised
             AsyncResCF<Lock> cfLock = new AsyncResCF<>();
             String lockName = binder.getName() + "." + docID;
-            server.getVertx().sharedData().getLock(lockName, cfLock);
+            getLocalLock(lockName, LOCK_TIMEOUT, cfLock);
 
             cfLock
                     // 2. Get doc

@@ -63,10 +63,6 @@ public class ServerImpl implements Server {
     ServerImpl(Vertx vertx, boolean ownVertx, ServerOptions serverOptions) {
         this.vertx = vertx;
         this.ownVertx = ownVertx;
-        if (vertx.isClustered()) {
-            // Usage of locks in projection manager disallows clustered vert.x
-            throw new IllegalStateException("Clustered Vert.x not supported");
-        }
         this.serverOptions = serverOptions;
         this.faf = new AFFileAccess(vertx);
         this.systemBinderFactory = new LmdbBinderFactory(serverOptions, vertx);
