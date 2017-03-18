@@ -55,14 +55,21 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleConnect(BsonObject frame) {
         checkContext();
 
-        // TODO version checking
-
+        String clientVersion = (String)frame.getValue(Protocol.CONNECT_VERSION);
         BsonObject value = (BsonObject)frame.getValue(Protocol.CONNECT_AUTH_INFO);
         CompletableFuture<MewbaseUser> cf = authProvider.authenticate(value);
 
         cf.whenComplete((result, ex) -> {
 
             checkContext();
+            boolean versionCompatible = ServerVersionProvider.isCompatibleWith(clientVersion);
+            if (!versionCompatible) {
+                final String errorMsg = "Client version not supported";
+                sendConnectErrorResponse(Client.ERR_SERVER_ERROR, errorMsg);
+                logAndClose(errorMsg);
+                return;
+            }
+
             BsonObject response = new BsonObject();
             if (ex != null) {
                 sendConnectErrorResponse(Client.ERR_AUTHENTICATION_FAILED, "Authentication failed");
