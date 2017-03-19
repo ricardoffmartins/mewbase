@@ -434,10 +434,6 @@ public class ClientImpl implements Client, ClientFrameHandler {
         });
     }
 
-    protected void missingField(String fieldName, String frameType) {
-        logger.warn("protocol error: missing {} in {}.", fieldName, frameType);
-    }
-
     private synchronized void connected(CompletableFuture cfConnect, BsonObject resp) {
         connecting = false;
         boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);

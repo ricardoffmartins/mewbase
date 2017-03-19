@@ -337,7 +337,6 @@ public class ConnectionImpl implements ServerFrameHandler {
     @Override
     public void handlePing(BsonObject frame) {
         checkContext();
-        logger.trace("server.get ping");
     }
 
     @Override
