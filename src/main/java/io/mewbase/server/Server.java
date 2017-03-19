@@ -11,8 +11,6 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface Server extends Mewbase {
 
-    long CLIENT_IDLE_TIMEOUT = 35000;
-
     static Server newServer(ServerOptions serverOptions) {
         return factory.newServer(serverOptions);
     }

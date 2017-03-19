@@ -38,7 +38,6 @@ public class ConnectionImpl implements ServerFrameHandler {
     private MewbaseAuthProvider authProvider;
     private MewbaseUser user;
     private int subSeq;
-    private long timerID;
 
     public ConnectionImpl(ServerImpl server, TransportConnection transportConnection, Context context,
                           MewbaseAuthProvider authProvider) {

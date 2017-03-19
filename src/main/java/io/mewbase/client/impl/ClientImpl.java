@@ -283,7 +283,7 @@ public class ClientImpl implements Client, ClientFrameHandler {
 
     @Override
     public void handlePing(BsonObject frame) {
-        logger.trace("client.ping id ={}, seq ={}, set={}", new Object[]{});
+        logger.trace("client got ping frame");
     }
 
     @Override
@@ -385,7 +385,6 @@ public class ClientImpl implements Client, ClientFrameHandler {
         BsonObject frame = new BsonObject();
         Buffer buffer = Protocol.encodeFrame(Protocol.PING_FRAME, frame);
         write(buffer);
-        logger.trace("client sent ping");
     }
 
     protected CompletableFuture<Void> doPublish(String channel, int producerID, BsonObject event) {
