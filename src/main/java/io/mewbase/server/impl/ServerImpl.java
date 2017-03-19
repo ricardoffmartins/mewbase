@@ -389,7 +389,7 @@ public class ServerImpl implements Server {
 
     private void connectHandler(TransportConnection transportConnection) {
         new ConnectionImpl(this, transportConnection, Vertx.currentContext(),
-                serverOptions.getAuthProvider(), CLIENT_IDLE_TIMEOUT);
+                serverOptions.getAuthProvider());
     }
 
     private CompletableFuture<Void> stopTransports() {

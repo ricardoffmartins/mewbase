@@ -35,7 +35,6 @@ public interface Client {
     int ERR_SERVER_ERROR = 100;
 
     long PING_PERIOD = 10000;
-    long PING_MAX_TRIES = 3;
 
     ClientFactory factory = ServiceHelper.loadFactory(ClientFactory.class);
 

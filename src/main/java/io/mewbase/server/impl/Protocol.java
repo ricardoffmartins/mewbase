@@ -120,12 +120,6 @@ public class Protocol {
     public static final String COMMAND_NAME = "name";
     public static final String COMMAND_COMMAND = "command";
 
-    // Ping fields
-    public static final String PING_TYPE = "type";
-    public static final String PING_SEQUENCE = "sequence";
-    public static final int PING_REQUEST = 8;
-    public static final int PING_REPLY = 0;
-
     private final static Logger logger = LoggerFactory.getLogger(Protocol.class);
 
     private final FrameHandler frameHandler;
