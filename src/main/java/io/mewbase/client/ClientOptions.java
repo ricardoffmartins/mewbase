@@ -10,9 +10,11 @@ public class ClientOptions {
 
     public static final String DEFAULT_HOST = "localhost";
     public static final int DEFAULT_PORT = 7451;
+    public static final long DEFAULT_PING_PERIOD = 10000;
 
     private String host = DEFAULT_HOST;
     private int port = DEFAULT_PORT;
+    private long pingPeriod = DEFAULT_PING_PERIOD;
     private NetClientOptions netClientOptions = new NetClientOptions();
     private BsonObject authInfo;
 
@@ -32,6 +34,14 @@ public class ClientOptions {
     public ClientOptions setPort(int port) {
         this.port = port;
         return this;
+    }
+
+    public long getPingPeriod() {
+        return pingPeriod;
+    }
+
+    public void setPingPeriod(long pingPeriod) {
+        this.pingPeriod = pingPeriod;
     }
 
     public NetClientOptions getNetClientOptions() {

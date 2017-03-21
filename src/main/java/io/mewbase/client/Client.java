@@ -34,8 +34,6 @@ public interface Client {
 
     int ERR_SERVER_ERROR = 100;
 
-    long PING_PERIOD = 10000;
-
     ClientFactory factory = ServiceHelper.loadFactory(ClientFactory.class);
 
     // Binder operations

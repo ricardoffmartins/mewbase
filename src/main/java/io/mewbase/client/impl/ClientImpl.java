@@ -283,7 +283,6 @@ public class ClientImpl implements Client, ClientFrameHandler {
 
     @Override
     public void handlePing(BsonObject frame) {
-        logger.trace("client got ping frame");
     }
 
     @Override
@@ -342,6 +341,9 @@ public class ClientImpl implements Client, ClientFrameHandler {
         AsyncResCF<NetSocket> cf = new AsyncResCF<>();
         netClient.connect(clientOptions.getPort(), clientOptions.getHost(), cf);
         connecting = true;
+        vertx.setPeriodic(clientOptions.getPingPeriod(), id -> {
+            writePing();
+        });
         cf.thenAccept(ns -> sendConnect(cfConnect, ns)).exceptionally(t -> {
             cfConnect.completeExceptionally(t);
             return null;
@@ -381,7 +383,7 @@ public class ClientImpl implements Client, ClientFrameHandler {
         write(buffer);
     }
 
-    protected void doQueryPing() {
+    protected void writePing() {
         BsonObject frame = new BsonObject();
         Buffer buffer = Protocol.encodeFrame(Protocol.PING_FRAME, frame);
         write(buffer);
@@ -427,10 +429,6 @@ public class ClientImpl implements Client, ClientFrameHandler {
         Buffer buffer = Protocol.encodeFrame(Protocol.CONNECT_FRAME, frame);
         connectResponse = resp -> connected(cfConnect, resp);
         netSocket.write(buffer);
-
-        vertx.setPeriodic(PING_PERIOD, id -> {
-            doQueryPing();
-        });
     }
 
     private synchronized void connected(CompletableFuture cfConnect, BsonObject resp) {

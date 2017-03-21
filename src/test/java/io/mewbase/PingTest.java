@@ -30,7 +30,7 @@ public class PingTest extends ServerTestBase {
     private final static Logger logger = LoggerFactory.getLogger(PingTest.class);
     private final static String CERT_PATH = "src/test/resources/server-cert.pem";
     private final static String KEY_PATH = "src/test/resources/server-key.pem";
-    private final static int PING_PERIOD_IN_SEC = (int) (Client.PING_PERIOD/1000);
+    private final static int PING_PERIOD_IN_SEC = (int) (ClientOptions.DEFAULT_PING_PERIOD / 1000);
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
@@ -68,7 +68,7 @@ public class PingTest extends ServerTestBase {
         baseTestCase(context);
     }
 
-    @Test(expected= TimeoutException.class)
+    @Test(expected = TimeoutException.class)
     public void testExceedTimeout(TestContext context) throws Exception {
         baseTestCase(context);
     }
