@@ -24,6 +24,7 @@ public class ServerOptions {
     public static final long DEFAULT_MAX_BINDER_SIZE = 1024L * 1024L * 1024L * 1024L; // 1 Terabyte
     public static final int DEFAULT_MAX_BINDERS = 128;
     public static final int DEFAULT_DOC_STREAM_BATCH_SIZE = 1000;
+    public static final boolean DEFAULT_REST_SERVICE_ADAPTOR_ENABLED = true;
 
 
     private NetServerOptions netServerOptions = new NetServerOptions().setPort(DEFAULT_PORT).setHost(DEFAULT_HOST);
@@ -42,6 +43,7 @@ public class ServerOptions {
     private long maxBinderSize = DEFAULT_MAX_BINDER_SIZE;
     private int maxBinders = DEFAULT_MAX_BINDERS;
     private int docStreamBatchSize = DEFAULT_DOC_STREAM_BATCH_SIZE;
+    private boolean restServiceAdaptorEnabled = DEFAULT_REST_SERVICE_ADAPTOR_ENABLED;
 
 
     public ServerOptions() {
@@ -66,6 +68,8 @@ public class ServerOptions {
         this.maxBinders = jsonObject.getInteger("maxBinders", DEFAULT_MAX_BINDERS);
 
         this.docStreamBatchSize = jsonObject.getInteger("docStreamBatchSize", DEFAULT_DOC_STREAM_BATCH_SIZE);
+
+        this.restServiceAdaptorEnabled = jsonObject.getBoolean("restServiceAdaptorEnabled", DEFAULT_REST_SERVICE_ADAPTOR_ENABLED);
     }
 
     public NetServerOptions getNetServerOptions() {
@@ -203,29 +207,40 @@ public class ServerOptions {
         return this;
     }
 
+    public boolean isRestServiceAdaptorEnabled() {
+        return restServiceAdaptorEnabled;
+    }
+
+    public ServerOptions setRestServiceAdaptorEnabled(boolean restServiceAdaptorEnabled) {
+        this.restServiceAdaptorEnabled = restServiceAdaptorEnabled;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ServerOptions that = (ServerOptions)o;
+        ServerOptions options = (ServerOptions)o;
 
-        if (maxLogChunkSize != that.maxLogChunkSize) return false;
-        if (preallocateSize != that.preallocateSize) return false;
-        if (maxRecordSize != that.maxRecordSize) return false;
-        if (readBufferSize != that.readBufferSize) return false;
-        if (queryMaxUnackedBytes != that.queryMaxUnackedBytes) return false;
-        if (subscriptionMaxUnackedBytes != that.subscriptionMaxUnackedBytes) return false;
-        if (projectionMaxUnackedEvents != that.projectionMaxUnackedEvents) return false;
-        if (logFlushInterval != that.logFlushInterval) return false;
-        if (maxBinderSize != that.maxBinderSize) return false;
-        if (maxBinders != that.maxBinders) return false;
-        if (docStreamBatchSize != that.docStreamBatchSize) return false;
-        if (netServerOptions != null ? !netServerOptions.equals(that.netServerOptions) : that.netServerOptions != null)
+        if (maxLogChunkSize != options.maxLogChunkSize) return false;
+        if (preallocateSize != options.preallocateSize) return false;
+        if (maxRecordSize != options.maxRecordSize) return false;
+        if (readBufferSize != options.readBufferSize) return false;
+        if (queryMaxUnackedBytes != options.queryMaxUnackedBytes) return false;
+        if (subscriptionMaxUnackedBytes != options.subscriptionMaxUnackedBytes) return false;
+        if (projectionMaxUnackedEvents != options.projectionMaxUnackedEvents) return false;
+        if (logFlushInterval != options.logFlushInterval) return false;
+        if (maxBinderSize != options.maxBinderSize) return false;
+        if (maxBinders != options.maxBinders) return false;
+        if (docStreamBatchSize != options.docStreamBatchSize) return false;
+        if (restServiceAdaptorEnabled != options.restServiceAdaptorEnabled) return false;
+        if (netServerOptions != null ? !netServerOptions.equals(options.netServerOptions) : options.netServerOptions != null)
             return false;
-        if (docsDir != null ? !docsDir.equals(that.docsDir) : that.docsDir != null) return false;
-        if (authProvider != null ? !authProvider.equals(that.authProvider) : that.authProvider != null) return false;
-        return logsDir != null ? logsDir.equals(that.logsDir) : that.logsDir == null;
+        if (docsDir != null ? !docsDir.equals(options.docsDir) : options.docsDir != null) return false;
+        if (authProvider != null ? !authProvider.equals(options.authProvider) : options.authProvider != null)
+            return false;
+        return logsDir != null ? logsDir.equals(options.logsDir) : options.logsDir == null;
     }
 
     @Override
@@ -245,6 +260,7 @@ public class ServerOptions {
         result = 31 * result + (int)(maxBinderSize ^ (maxBinderSize >>> 32));
         result = 31 * result + maxBinders;
         result = 31 * result + docStreamBatchSize;
+        result = 31 * result + (restServiceAdaptorEnabled ? 1 : 0);
         return result;
     }
 }

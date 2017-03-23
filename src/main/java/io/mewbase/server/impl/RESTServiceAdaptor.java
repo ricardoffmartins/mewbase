@@ -100,17 +100,26 @@ public class RESTServiceAdaptor {
     }
 
     public CompletableFuture<Void> start() {
-        // TODO more than one instance of server
+        // Quick hack to disable adaptor
+        if (server.getServerOptions().isRestServiceAdaptorEnabled()) {
+            // TODO more than one instance of server
 
-        AsyncResCF<HttpServer> ar = new AsyncResCF<>();
-        httpServer.listen(ar);
-        return ar.thenApply(server -> null);
+            AsyncResCF<HttpServer> ar = new AsyncResCF<>();
+            httpServer.listen(ar);
+            return ar.thenApply(server -> null);
+        } else {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     public CompletableFuture<Void> stop() {
-        AsyncResCF<Void> ar = new AsyncResCF<>();
-        httpServer.close(ar);
-        return ar;
+        if (server.getServerOptions().isRestServiceAdaptorEnabled()) {
+            AsyncResCF<Void> ar = new AsyncResCF<>();
+            httpServer.close(ar);
+            return ar;
+        } else {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     private class RESTServiceAdaptorQueryExecution extends QueryExecution {

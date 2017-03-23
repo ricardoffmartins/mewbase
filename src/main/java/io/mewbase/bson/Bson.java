@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import de.undercouch.bson4jackson.BsonFactory;
 import io.mewbase.client.MewException;
+import io.vertx.core.json.Json;
 
 import java.io.IOException;
 import java.io.InputStream;

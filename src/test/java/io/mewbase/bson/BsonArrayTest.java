@@ -855,6 +855,23 @@ public class BsonArrayTest {
     }
 
     @Test
+    public void testEncodeToString() throws Exception {
+        bsonArray.add("foo");
+        bsonArray.add(123);
+        bsonArray.add(1234l);
+        bsonArray.add(1.23f);
+        bsonArray.add(2.34d);
+        bsonArray.add(true);
+        byte[] bytes = new byte[] {4, 7, 89, 32, 24};
+        bsonArray.add(bytes);
+        bsonArray.addNull();
+        bsonArray.add(new BsonObject().put("foo", "bar"));
+        bsonArray.add(new BsonArray().add("foo").add(123));
+        String str = bsonArray.encodeToString();
+        assertEquals("[\"foo\",123,1234,1.23,2.34,true,\"BAdZIBg=\",null,{\"foo\":\"bar\"},[\"foo\",123]]", str);
+    }
+
+    @Test
     public void testInvalidJson() {
         Buffer invalid = Buffer.buffer(TestUtils.randomByteArray(100));
         try {

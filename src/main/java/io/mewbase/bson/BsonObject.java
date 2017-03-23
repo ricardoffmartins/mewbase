@@ -22,6 +22,7 @@ package io.mewbase.bson;
 import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.shareddata.impl.ClusterSerializable;
 
 import java.io.*;
 import java.time.Instant;
@@ -41,9 +42,12 @@ import static java.time.format.DateTimeFormatter.ISO_INSTANT;
  * <p>
  * Please see the documentation for more information.
  *
+ *
+ * TODO binary support!
+ *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-public class BsonObject implements Iterable<Map.Entry<String, Object>> {
+public class BsonObject implements Iterable<Map.Entry<String, Object>>, ClusterSerializable {
 
     private Map<String, Object> map;
 
@@ -780,7 +784,20 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
      * @return the equivalent JsonObject
      */
     public JsonObject toJsonObject() {
-        return new JsonObject(map);
+        Map<String, Object> m = new HashMap<>(map.size());
+        for (Map.Entry<String, Object> entry: map.entrySet()) {
+            Object o = entry.getValue();
+            if (o instanceof BsonObject) {
+                BsonObject bo = (BsonObject)o;
+                m.put(entry.getKey(), bo.toJsonObject());
+            } else if (o instanceof BsonArray) {
+                BsonArray ba = (BsonArray)o;
+                m.put(entry.getKey(), ba.toJsonArray());
+            } else {
+                m.put(entry.getKey(), o);
+            }
+        }
+        return new JsonObject(m);
     }
 
     @Override
@@ -795,6 +812,22 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
      */
     public boolean isEmpty() {
         return map.isEmpty();
+    }
+
+    @Override
+    public void writeToBuffer(Buffer buffer) {
+        Buffer encoded = encode();
+        buffer.appendInt(encoded.length());
+        buffer.appendBuffer(encoded);
+    }
+
+    @Override
+    public int readFromBuffer(int pos, Buffer buffer) {
+        int length = buffer.getInt(pos);
+        pos += 4;
+        byte[] bytes = buffer.getBytes(pos, pos + length);
+        fromBson(new ByteArrayInputStream(bytes));
+        return pos + length;
     }
 
     @Override

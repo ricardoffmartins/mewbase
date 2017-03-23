@@ -1,8 +1,10 @@
 package io.mewbase.server.impl;
 
+import com.hazelcast.core.Cluster;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
 import io.mewbase.server.*;
+import io.mewbase.server.cluster.TopologyManager;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
 import io.mewbase.server.impl.doc.lmdb.LmdbBinderFactory;
@@ -14,6 +16,7 @@ import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.impl.ConcurrentHashSet;
+import io.vertx.core.spi.cluster.ClusterManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,12 +58,15 @@ public class ServerImpl implements Server {
 
     private final RESTServiceAdaptor restServiceAdaptor;
 
+    private final ClusterManager clusterManager;
+    private final TopologyManager topologyManager;
+
     // The system binders
     private Binder bindersBinder;
     private Binder channelsBinder;
     private Binder durableSubsBinder;
 
-    ServerImpl(Vertx vertx, boolean ownVertx, ServerOptions serverOptions) {
+    ServerImpl(Vertx vertx, ClusterManager clusterManager, boolean ownVertx, ServerOptions serverOptions) {
         this.vertx = vertx;
         this.ownVertx = ownVertx;
         this.serverOptions = serverOptions;
@@ -69,23 +75,25 @@ public class ServerImpl implements Server {
         this.projectionManager = new ProjectionManager(this);
         this.cqrsManager = new CQRSManager(this);
         this.restServiceAdaptor = new RESTServiceAdaptor(this);
+        this.clusterManager = clusterManager;
+        this.topologyManager = new TopologyManager(vertx, clusterManager);
     }
 
     ServerImpl(ServerOptions serverOptions) {
-        this(Vertx.vertx(), true, serverOptions);
+        this(Vertx.vertx(), null, true, serverOptions);
     }
 
     @Override
     public synchronized CompletableFuture<Void> start() {
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
-        return startBinders().thenCompose(v -> startLogs())
+        return startBinders().thenCompose(v -> startLogs()).thenCompose(v -> startTopologyManager())
                 .thenCompose(v -> startTransports()).thenCompose(v -> restServiceAdaptor.start());
     }
 
     @Override
     public synchronized CompletableFuture<Void> stop() {
         CompletableFuture<Void> cf = restServiceAdaptor.stop().thenCompose(v -> stopTransports())
-                .thenCompose(v -> stopBinders()).thenCompose(v -> stopLogs());
+                .thenCompose(v -> stopBinders()).thenCompose(v -> stopTopologyManager()).thenCompose(v -> stopLogs());
         if (ownVertx) {
             cf = cf.thenCompose(v -> {
                 AsyncResCF<Void> cfCloseVertx = new AsyncResCF<>();
@@ -175,6 +183,8 @@ public class ServerImpl implements Server {
                     synchronized (ServerImpl.this) {
                         logs.put(channel, thelog);
                         startingLogs.remove(channel);
+                        topologyManager.addChannel(channel);
+                        topologyManager.syncToCluster();
                     }
                 }).handle((v, t) -> {
                     if (t == null) {
@@ -231,6 +241,11 @@ public class ServerImpl implements Server {
     @Override
     public QueryBuilder buildQuery(String queryName) {
         return new QueryBuilderImpl(cqrsManager, queryName);
+    }
+
+    @Override
+    public ClusterManager getClusterManager() {
+        return clusterManager;
     }
 
     // REST Adaptor API
@@ -358,6 +373,20 @@ public class ServerImpl implements Server {
             arr[i++] = log.close();
         }
         return CompletableFuture.allOf(arr);
+    }
+
+    private CompletableFuture<Void> startTopologyManager() {
+        topologyManager.start();
+        for (String channelName: logs.keySet()) {
+            topologyManager.addChannel(channelName);
+        }
+        topologyManager.syncToCluster();
+        return CompletableFuture.completedFuture(null);
+    }
+
+    private CompletableFuture<Void> stopTopologyManager() {
+        topologyManager.stop();
+        return CompletableFuture.completedFuture(null);
     }
 
     private CompletableFuture<Void> startLogs(List<String> logNames) {
