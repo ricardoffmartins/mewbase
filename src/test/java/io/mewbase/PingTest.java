@@ -1,16 +1,9 @@
 package io.mewbase;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.Client;
-import io.mewbase.client.ClientDelivery;
 import io.mewbase.client.ClientOptions;
-import io.mewbase.client.Producer;
-import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Server;
 import io.mewbase.server.ServerOptions;
-import io.vertx.core.net.PemKeyCertOptions;
-import io.vertx.core.net.PemTrustOptions;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
@@ -34,42 +27,25 @@ public class PingTest extends ServerTestBase {
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
-        server.createChannel(TEST_CHANNEL_1);
+        server.createChannel(TEST_CHANNEL_1).get();
     }
 
-    @Override
-    protected ServerOptions createServerOptions() {
-        ServerOptions serverOptions = super.createServerOptions();
-        serverOptions.getNetServerOptions()
-                // tiny idle timeout
-                .setIdleTimeout(1)
-                .setSsl(true).setPemKeyCertOptions(
-                new PemKeyCertOptions()
-                        .setKeyPath(KEY_PATH)
-                        .setCertPath(CERT_PATH)
-        );
-        return serverOptions;
-    }
-
-    @Override
-    protected ClientOptions createClientOptions() {
-        ClientOptions clientOptions = super.createClientOptions();
-        clientOptions.getNetClientOptions()
-                .setSsl(true)
-                .setPemTrustOptions(
-                        new PemTrustOptions().addCertPath(CERT_PATH)
-                );
-        return clientOptions;
-    }
-
-    // TODO fix test for usual work
-//    @Test
+    @Test
     public void testUsualWork(TestContext context) throws Exception {
         baseTestCase(context);
     }
 
     @Test(expected = TimeoutException.class)
     public void testExceedTimeout(TestContext context) throws Exception {
+        // Customize idle timeout
+        stopServerAndClient();
+        ServerOptions serverOptions = super.createServerOptions();
+        serverOptions.getNetServerOptions()
+                .setIdleTimeout(1);
+        server = Server.newServer(vertx, serverOptions);
+        server.start().get();
+
+        startClient();
         baseTestCase(context);
     }
 
