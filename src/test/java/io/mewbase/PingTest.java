@@ -20,10 +20,8 @@ import java.util.concurrent.TimeoutException;
 @RunWith(VertxUnitRunner.class)
 public class PingTest extends ServerTestBase {
 
-    private final static Logger logger = LoggerFactory.getLogger(PingTest.class);
-    private final static String CERT_PATH = "src/test/resources/server-cert.pem";
-    private final static String KEY_PATH = "src/test/resources/server-key.pem";
     private final static int PING_PERIOD_IN_SEC = (int) (ClientOptions.DEFAULT_PING_PERIOD / 1000);
+    private final static int IDLE_TIMEOUT_SEC = 1;
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
@@ -41,7 +39,7 @@ public class PingTest extends ServerTestBase {
         stopServerAndClient();
         ServerOptions serverOptions = super.createServerOptions();
         serverOptions.getNetServerOptions()
-                .setIdleTimeout(1);
+                .setIdleTimeout(IDLE_TIMEOUT_SEC);
         server = Server.newServer(vertx, serverOptions);
         server.start().get();
 
