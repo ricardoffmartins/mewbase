@@ -71,7 +71,6 @@ public class VersionTest extends ServerTestBase {
             testContext.assertFalse(isClosed.get(), "Expected connection not closed");
             async.complete();
         });
-
     }
 
     @Test
@@ -79,16 +78,11 @@ public class VersionTest extends ServerTestBase {
             throws InterruptedException {
         final Async async = testContext.async();
 
-        AtomicBoolean isClosed = new AtomicBoolean();
         final String invalidVersion = String.valueOf(Double.MAX_VALUE);
-        final Handler<Void> closeHandler = h -> isClosed.set(true);
+        final Handler<Void> closeHandler = h -> async.complete();
 
         sendConnectFrame(invalidVersion, closeHandler);
 
-        vertx.setTimer(500, e -> {
-            testContext.assertTrue(isClosed.get(), "Expected connection closed");
-            async.complete();
-        });
     }
 
     private void sendConnectFrame(String clientVersion, Handler<Void> closeHandler) throws InterruptedException {
