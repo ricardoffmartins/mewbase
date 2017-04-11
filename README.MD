@@ -1,4 +1,5 @@
 ﻿# mewbase
+[![Build Status](https://travis-ci.org/Tesco/mewbase.svg)](https://travis-ci.org/Tesco/mewbase)
 
 ## The problem
 
