@@ -24,9 +24,10 @@ public class ServerOptions {
     public static final long DEFAULT_MAX_BINDER_SIZE = 1024L * 1024L * 1024L * 1024L; // 1 Terabyte
     public static final int DEFAULT_MAX_BINDERS = 128;
     public static final int DEFAULT_DOC_STREAM_BATCH_SIZE = 1000;
+    public static final int DEFAULT_CONNECTION_IDLE_TIMEOUT = 30;
 
-
-    private NetServerOptions netServerOptions = new NetServerOptions().setPort(DEFAULT_PORT).setHost(DEFAULT_HOST);
+    private NetServerOptions netServerOptions = new NetServerOptions().setPort(DEFAULT_PORT).setHost(DEFAULT_HOST)
+            .setIdleTimeout(DEFAULT_CONNECTION_IDLE_TIMEOUT);
     private String docsDir = DEFAULT_DOCS_DIR;
     private MewbaseAuthProvider authProvider = new NoAuthAuthProvider();
     private String logsDir = DEFAULT_LOGS_DIR;
@@ -34,7 +35,6 @@ public class ServerOptions {
     private int preallocateSize = DEFAULT_PREALLOCATE_SIZE;
     private int maxRecordSize = DEFAULT_MAX_RECORD_SIZE;
     private int readBufferSize = DEFAULT_READ_BUFFER_SIZE;
-
     private int queryMaxUnackedBytes = DEFAULT_QUERY_MAX_UNACKED_BYTES;
     private int subscriptionMaxUnackedBytes = DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES;
     private int projectionMaxUnackedEvents = DEFAULT_PROJECTION_MAX_UNACKED_EVENTS;
@@ -42,7 +42,6 @@ public class ServerOptions {
     private long maxBinderSize = DEFAULT_MAX_BINDER_SIZE;
     private int maxBinders = DEFAULT_MAX_BINDERS;
     private int docStreamBatchSize = DEFAULT_DOC_STREAM_BATCH_SIZE;
-
 
     public ServerOptions() {
     }
@@ -56,15 +55,12 @@ public class ServerOptions {
         this.preallocateSize = jsonObject.getInteger("preallocateSize", DEFAULT_PREALLOCATE_SIZE);
         this.maxRecordSize = jsonObject.getInteger("maxRecordSize", DEFAULT_MAX_RECORD_SIZE);
         this.readBufferSize = jsonObject.getInteger("readBufferSize", DEFAULT_READ_BUFFER_SIZE);
-
         this.queryMaxUnackedBytes = jsonObject.getInteger("queryMaxUnackedBytes", DEFAULT_QUERY_MAX_UNACKED_BYTES);
         this.subscriptionMaxUnackedBytes = jsonObject.getInteger("subscriptionMaxUnackedBytes", DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES);
         this.projectionMaxUnackedEvents = jsonObject.getInteger("projectionMaxUnackedEvents", DEFAULT_PROJECTION_MAX_UNACKED_EVENTS);
-
         this.logFlushInterval = jsonObject.getLong("logFlushInterval", DEFAULT_LOG_FLUSH_INTERVAL);
         this.maxBinderSize = jsonObject.getLong("maxBinderSize", DEFAULT_MAX_BINDER_SIZE);
         this.maxBinders = jsonObject.getInteger("maxBinders", DEFAULT_MAX_BINDERS);
-
         this.docStreamBatchSize = jsonObject.getInteger("docStreamBatchSize", DEFAULT_DOC_STREAM_BATCH_SIZE);
     }
 
@@ -208,24 +204,25 @@ public class ServerOptions {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ServerOptions that = (ServerOptions)o;
+        ServerOptions options = (ServerOptions)o;
 
-        if (maxLogChunkSize != that.maxLogChunkSize) return false;
-        if (preallocateSize != that.preallocateSize) return false;
-        if (maxRecordSize != that.maxRecordSize) return false;
-        if (readBufferSize != that.readBufferSize) return false;
-        if (queryMaxUnackedBytes != that.queryMaxUnackedBytes) return false;
-        if (subscriptionMaxUnackedBytes != that.subscriptionMaxUnackedBytes) return false;
-        if (projectionMaxUnackedEvents != that.projectionMaxUnackedEvents) return false;
-        if (logFlushInterval != that.logFlushInterval) return false;
-        if (maxBinderSize != that.maxBinderSize) return false;
-        if (maxBinders != that.maxBinders) return false;
-        if (docStreamBatchSize != that.docStreamBatchSize) return false;
-        if (netServerOptions != null ? !netServerOptions.equals(that.netServerOptions) : that.netServerOptions != null)
+        if (maxLogChunkSize != options.maxLogChunkSize) return false;
+        if (preallocateSize != options.preallocateSize) return false;
+        if (maxRecordSize != options.maxRecordSize) return false;
+        if (readBufferSize != options.readBufferSize) return false;
+        if (queryMaxUnackedBytes != options.queryMaxUnackedBytes) return false;
+        if (subscriptionMaxUnackedBytes != options.subscriptionMaxUnackedBytes) return false;
+        if (projectionMaxUnackedEvents != options.projectionMaxUnackedEvents) return false;
+        if (logFlushInterval != options.logFlushInterval) return false;
+        if (maxBinderSize != options.maxBinderSize) return false;
+        if (maxBinders != options.maxBinders) return false;
+        if (docStreamBatchSize != options.docStreamBatchSize) return false;
+        if (netServerOptions != null ? !netServerOptions.equals(options.netServerOptions) : options.netServerOptions != null)
             return false;
-        if (docsDir != null ? !docsDir.equals(that.docsDir) : that.docsDir != null) return false;
-        if (authProvider != null ? !authProvider.equals(that.authProvider) : that.authProvider != null) return false;
-        return logsDir != null ? logsDir.equals(that.logsDir) : that.logsDir == null;
+        if (docsDir != null ? !docsDir.equals(options.docsDir) : options.docsDir != null) return false;
+        if (authProvider != null ? !authProvider.equals(options.authProvider) : options.authProvider != null)
+            return false;
+        return logsDir != null ? logsDir.equals(options.logsDir) : options.logsDir == null;
     }
 
     @Override

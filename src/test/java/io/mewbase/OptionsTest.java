@@ -46,7 +46,8 @@ public class OptionsTest extends MewbaseTestBase {
     public void testServerOptions() throws Exception {
 
         ServerOptions options = new ServerOptions();
-        assertEquals(new NetServerOptions().setPort(ServerOptions.DEFAULT_PORT), options.getNetServerOptions());
+        assertEquals(new NetServerOptions().setPort(ServerOptions.DEFAULT_PORT)
+                .setIdleTimeout(ServerOptions.DEFAULT_CONNECTION_IDLE_TIMEOUT), options.getNetServerOptions());
         NetServerOptions netServerOptions2 = new NetServerOptions();
         options.setNetServerOptions(netServerOptions2);
         assertSame(netServerOptions2, options.getNetServerOptions());

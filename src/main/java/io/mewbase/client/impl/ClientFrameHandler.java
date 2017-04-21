@@ -92,4 +92,9 @@ public interface ClientFrameHandler extends FrameHandler {
     default void handleCommand(BsonObject frame) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    default void handlePing(BsonObject frame) {
+        throw new UnsupportedOperationException();
+    }
 }

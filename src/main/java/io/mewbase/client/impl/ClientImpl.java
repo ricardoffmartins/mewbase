@@ -44,6 +44,8 @@ public class ClientImpl implements Client, ClientFrameHandler {
     private boolean connecting;
     private Queue<Buffer> bufferedWrites = new ConcurrentLinkedQueue<>();
     private Consumer<BsonObject> connectResponse;
+    private long pingTimerID = -1;
+    private boolean closed;
 
     ClientImpl(ClientOptions clientOptions) {
         this(Vertx.vertx(), clientOptions, true);
@@ -237,7 +239,10 @@ public class ClientImpl implements Client, ClientFrameHandler {
     }
 
     @Override
-    public CompletableFuture<Void> close() {
+    public synchronized CompletableFuture<Void> close() {
+        if (pingTimerID != -1) {
+            vertx.cancelTimer(pingTimerID);
+        }
         netClient.close();
         if (ownVertx) {
             AsyncResCF<Void> cf = new AsyncResCF<>();
@@ -282,10 +287,6 @@ public class ClientImpl implements Client, ClientFrameHandler {
     }
 
     @Override
-    public void handlePing(BsonObject frame) {
-    }
-
-    @Override
     public void handleSubResponse(BsonObject frame) {
         handleResponse(frame);
     }
@@ -314,6 +315,9 @@ public class ClientImpl implements Client, ClientFrameHandler {
 
     protected synchronized void write(CompletableFuture cf, String frameType, BsonObject frame,
                                       Consumer<BsonObject> respHandler) {
+        if (closed) {
+            throw new MewException("Connection is closed");
+        }
         if (respHandler != null) {
             Integer requestID = requestIDSequence.getAndIncrement();
             frame.put(Protocol.RESPONSE_REQUEST_ID, requestID);
@@ -326,7 +330,7 @@ public class ClientImpl implements Client, ClientFrameHandler {
             }
             bufferedWrites.add(buff);
         } else {
-            netSocket.write(buff);
+            write(buff);
         }
     }
 
@@ -341,9 +345,7 @@ public class ClientImpl implements Client, ClientFrameHandler {
         AsyncResCF<NetSocket> cf = new AsyncResCF<>();
         netClient.connect(clientOptions.getPort(), clientOptions.getHost(), cf);
         connecting = true;
-        vertx.setPeriodic(clientOptions.getPingPeriod(), id -> {
-            writePing();
-        });
+
         cf.thenAccept(ns -> sendConnect(cfConnect, ns)).exceptionally(t -> {
             cfConnect.completeExceptionally(t);
             return null;
@@ -418,6 +420,7 @@ public class ClientImpl implements Client, ClientFrameHandler {
     private synchronized void sendConnect(CompletableFuture cfConnect, NetSocket ns) {
         netSocket = ns;
         netSocket.handler(new Protocol(this).recordParser());
+        netSocket.closeHandler(this::closeHandler);
 
         BsonObject authInfo = clientOptions.getAuthInfo();
 
@@ -431,6 +434,12 @@ public class ClientImpl implements Client, ClientFrameHandler {
         netSocket.write(buffer);
     }
 
+    private synchronized void closeHandler(Void v) {
+        logger.trace("Connection has been closed");
+        closed = true;
+        netSocket = null;
+    }
+
     private synchronized void connected(CompletableFuture cfConnect, BsonObject resp) {
         connecting = false;
         boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);
@@ -442,10 +451,15 @@ public class ClientImpl implements Client, ClientFrameHandler {
                 }
                 netSocket.write(buff);
             }
+            startPinger();
         } else {
             cfConnect.completeExceptionally(new MewException(resp.getString(Protocol.RESPONSE_ERRMSG),
                     resp.getInteger(Protocol.RESPONSE_ERRCODE)));
         }
+    }
+
+    private void startPinger() {
+        pingTimerID = vertx.setPeriodic(clientOptions.getPingPeriod(), id -> writePing());
     }
 
     private class QueryResultImpl implements QueryResult {
