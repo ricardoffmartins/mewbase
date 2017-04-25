@@ -41,9 +41,12 @@ import static java.time.format.DateTimeFormatter.ISO_INSTANT;
  * <p>
  * Please see the documentation for more information.
  *
+ *
+ * TODO binary support!
+ *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-public class BsonObject implements Iterable<Map.Entry<String, Object>> {
+public class BsonObject implements Iterable<Map.Entry<String, Object>>  {
 
     private Map<String, Object> map;
 
@@ -780,7 +783,20 @@ public class BsonObject implements Iterable<Map.Entry<String, Object>> {
      * @return the equivalent JsonObject
      */
     public JsonObject toJsonObject() {
-        return new JsonObject(map);
+        Map<String, Object> m = new HashMap<>(map.size());
+        for (Map.Entry<String, Object> entry: map.entrySet()) {
+            Object o = entry.getValue();
+            if (o instanceof BsonObject) {
+                BsonObject bo = (BsonObject)o;
+                m.put(entry.getKey(), bo.toJsonObject());
+            } else if (o instanceof BsonArray) {
+                BsonArray ba = (BsonArray)o;
+                m.put(entry.getKey(), ba.toJsonArray());
+            } else {
+                m.put(entry.getKey(), o);
+            }
+        }
+        return new JsonObject(m);
     }
 
     @Override

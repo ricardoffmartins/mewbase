@@ -28,9 +28,8 @@ The client must send a CONNECT before doing any other operations on a connection
 Fields:
 
 * `version` - mandatory - the version of the client making the connection.
-* `username` - optional - username
-* `password` - optional - password
-  
+* `authInfo` - optional - BSON object containing credentials to authenticate the user
+
 The server will respond with a RESPONSE frame. In the case of a failed connect, the server will close the connection
   after sending the RESPONSE frame.
   

@@ -55,6 +55,8 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleConnect(BsonObject frame) {
         checkContext();
 
+        System.out.println("Got connect frame");
+
         String clientVersion = (String)frame.getValue(Protocol.CONNECT_VERSION);
         BsonObject value = (BsonObject)frame.getValue(Protocol.CONNECT_AUTH_INFO);
         CompletableFuture<MewbaseUser> cf = authProvider.authenticate(value);

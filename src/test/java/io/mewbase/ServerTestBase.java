@@ -71,6 +71,7 @@ public class ServerTestBase extends MewbaseTestBase {
         ServerOptions serverOptions = createServerOptions();
         server = Server.newServer(vertx, serverOptions);
         server.start().get();
+        System.out.println("Started server");
     }
 
     protected void startClient() throws Exception {
