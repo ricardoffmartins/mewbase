@@ -3,6 +3,7 @@ package io.mewbase.server.impl;
 import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.Client;
+import io.mewbase.client.MewException;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
 import io.mewbase.server.Log;
@@ -55,8 +56,6 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handleConnect(BsonObject frame) {
         checkContext();
 
-        System.out.println("Got connect frame");
-
         String clientVersion = (String)frame.getValue(Protocol.CONNECT_VERSION);
         BsonObject value = (BsonObject)frame.getValue(Protocol.CONNECT_AUTH_INFO);
         CompletableFuture<MewbaseUser> cf = authProvider.authenticate(value);
@@ -91,28 +90,72 @@ public class ConnectionImpl implements ServerFrameHandler {
 
     }
 
+    private String getMandatoryStringField(BsonObject frame, String frameType, String fieldName) {
+        Object value = frame.getValue(fieldName);
+        if (value == null) {
+            missingField(fieldName, frameType);
+            return null;
+        }
+        if (!(value instanceof String)) {
+            invalidField(fieldName, frameType);
+            return null;
+        }
+        return (String)value;
+    }
+
+    private BsonObject getMandatoryBsonObjectField(BsonObject frame, String frameType, String fieldName) {
+        Object value = frame.getValue(fieldName);
+        if (value == null) {
+            missingField(fieldName, frameType);
+            return null;
+        }
+        if (!(value instanceof BsonObject)) {
+            invalidField(fieldName, frameType);
+            return null;
+        }
+        return (BsonObject)value;
+    }
+
+    private Integer getMandatoryIntegerField(BsonObject frame, String frameType, String fieldName) {
+        Object value = frame.getValue(fieldName);
+        if (value == null) {
+            missingField(fieldName, frameType);
+            return null;
+        }
+        if (!(value instanceof Integer)) {
+            invalidField(fieldName, frameType);
+            return null;
+        }
+        return (Integer)value;
+    }
+
+
+
     @Override
     public void handlePublish(BsonObject frame) {
         checkContext();
 
         authoriseThenHandle(Protocol.PUBLISH_FRAME, frame, () -> {
-            String channel = frame.getString(Protocol.PUBLISH_CHANNEL);
-            BsonObject event = frame.getBsonObject(Protocol.PUBLISH_EVENT);
-            Integer sessID = frame.getInteger(Protocol.PUBLISH_SESSID);
-            Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
 
+            String channel = getMandatoryStringField(frame, Protocol.PUBLISH_FRAME, Protocol.PUBLISH_CHANNEL);
             if (channel == null) {
-                missingField(Protocol.PUBLISH_CHANNEL, Protocol.PUBLISH_FRAME);
                 return;
             }
+            BsonObject event = getMandatoryBsonObjectField(frame, Protocol.PUBLISH_FRAME, Protocol.PUBLISH_EVENT);
             if (event == null) {
-                missingField(Protocol.PUBLISH_EVENT, Protocol.PUBLISH_FRAME);
                 return;
             }
+            Integer requestID = getMandatoryIntegerField(frame, Protocol.PUBLISH_FRAME, Protocol.REQUEST_REQUEST_ID);
             if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.PUBLISH_FRAME);
                 return;
             }
+            Object value = frame.getValue(Protocol.PUBLISH_SESSID);
+            if (value != null && !(value instanceof Integer)) {
+                invalidField(Protocol.PUBLISH_SESSID, Protocol.PUBLISH_FRAME);
+                return;
+            }
+            Integer sessID = (Integer)value;
+
             Log log = server.getLog(channel);
             if (log == null) {
                 sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, frame);
@@ -472,6 +515,9 @@ public class ConnectionImpl implements ServerFrameHandler {
     }
 
     private void authoriseThenHandle(String frameType, BsonObject frame, Runnable action) {
+        if (user == null) {
+            throw new MewException("No authenticated user");
+        }
         CompletableFuture<Boolean> authorisedCF = user.isAuthorised(frameType);
         authorisedCF.whenComplete((res, ex) -> {
             if (ex != null) {
@@ -485,7 +531,11 @@ public class ConnectionImpl implements ServerFrameHandler {
                     close();
                 } else {
                     // OK
-                    action.run();
+                    try {
+                        action.run();
+                    } catch (Exception e) {
+                        logger.error("Failure in protocol handler", e);
+                    }
                 }
             }
         });

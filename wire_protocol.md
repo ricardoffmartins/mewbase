@@ -47,7 +47,7 @@ Fields:
 * `errMsg` - optional, string. Error message in case of failure
 
 
-### PUBLISH
+### PUB
 
 Publish an event to the server for storage.
 
