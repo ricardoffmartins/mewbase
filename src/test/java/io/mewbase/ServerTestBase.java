@@ -4,11 +4,14 @@ import io.mewbase.client.Client;
 import io.mewbase.client.ClientOptions;
 import io.mewbase.server.Server;
 import io.mewbase.server.ServerOptions;
+import io.mewbase.server.impl.ConnectionImpl;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -16,6 +19,9 @@ import java.io.File;
  * Created by tim on 01/01/17.
  */
 public class ServerTestBase extends MewbaseTestBase {
+
+    private final static Logger logger = LoggerFactory.getLogger(ServerTestBase.class);
+
 
     protected static final String TEST_CHANNEL_1 = "channel1";
     protected static final String TEST_CHANNEL_2 = "channel2";
@@ -71,7 +77,7 @@ public class ServerTestBase extends MewbaseTestBase {
         ServerOptions serverOptions = createServerOptions();
         server = Server.newServer(vertx, serverOptions);
         server.start().get();
-        System.out.println("Started server");
+        logger.trace("Started server");
     }
 
     protected void startClient() throws Exception {
@@ -86,6 +92,7 @@ public class ServerTestBase extends MewbaseTestBase {
         if (server != null) {
             server.stop().get();
         }
+        logger.trace("Stopped server and client");
     }
 
     protected void restart() throws Exception {

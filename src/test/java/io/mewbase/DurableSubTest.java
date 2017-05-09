@@ -91,6 +91,8 @@ public class DurableSubTest extends ServerTestBase {
 
         }
 
+        logger.trace("Restarted");
+
         Async async2 = context.async();
 
         AtomicInteger expectedCount2 = new AtomicInteger(-1);

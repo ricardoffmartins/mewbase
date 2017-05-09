@@ -126,6 +126,7 @@ public class Protocol {
     private final RecordParser parser;
 
     public Protocol(FrameHandler frameHandler) {
+
         this.frameHandler = frameHandler;
         parser = RecordParser.newFixed(4, null);
         Handler<Buffer> handler = new Handler<Buffer>() {

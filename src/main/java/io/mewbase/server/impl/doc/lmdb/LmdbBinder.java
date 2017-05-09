@@ -24,6 +24,7 @@ public class LmdbBinder implements Binder {
     private final String name;
     private Database db;
     private AsyncResCF<Void> startRes;
+    private volatile boolean closed;
 
     public LmdbBinder(LmdbBinderFactory binderFactory, String name) {
         this.binderFactory = binderFactory;
@@ -39,13 +40,15 @@ public class LmdbBinder implements Binder {
     public CompletableFuture<BsonObject> get(String id) {
         AsyncResCF<BsonObject> res = new AsyncResCF<>();
         binderFactory.getExec().executeBlocking(fut -> {
-            byte[] key = getKey(id);
-            byte[] val = db.get(key);
-            if (val != null) {
-                BsonObject obj = new BsonObject(Buffer.buffer(val));
-                fut.complete(obj);
-            } else {
-                fut.complete(null);
+            if (!closed) {
+                byte[] key = getKey(id);
+                byte[] val = db.get(key);
+                if (val != null) {
+                    BsonObject obj = new BsonObject(Buffer.buffer(val));
+                    fut.complete(obj);
+                } else {
+                    fut.complete(null);
+                }
             }
         }, res);
         return res;
@@ -53,12 +56,15 @@ public class LmdbBinder implements Binder {
 
     @Override
     public CompletableFuture<Void> put(String id, BsonObject doc) {
+
         AsyncResCF<Void> res = new AsyncResCF<>();
         binderFactory.getExec().executeBlocking(fut -> {
-            byte[] key = getKey(id);
-            byte[] val = doc.encode().getBytes();
-            db.put(key, val);
-            fut.complete(null);
+            if (!closed) {
+                byte[] key = getKey(id);
+                byte[] val = doc.encode().getBytes();
+                db.put(key, val);
+                fut.complete(null);
+            }
         }, res);
         return res;
     }
@@ -67,9 +73,11 @@ public class LmdbBinder implements Binder {
     public CompletableFuture<Boolean> delete(String id) {
         AsyncResCF<Boolean> res = new AsyncResCF<>();
         binderFactory.getExec().executeBlocking(fut -> {
-            byte[] key = getKey(id);
-            boolean deleted = db.delete(key);
-            fut.complete(deleted);
+            if (!closed) {
+                byte[] key = getKey(id);
+                boolean deleted = db.delete(key);
+                fut.complete(deleted);
+            }
         }, res);
         return res;
     }
@@ -77,6 +85,7 @@ public class LmdbBinder implements Binder {
     @Override
     public CompletableFuture<Void> close() {
         AsyncResCF<Void> res = new AsyncResCF<>();
+        closed = true;
         binderFactory.getExec().executeBlocking(fut -> {
             db.close();
             binderFactory.getEnv().sync(true);
