@@ -10,7 +10,7 @@ import io.mewbase.server.ServerOptions;
 
 
 /**
- * Created by tim on 08/11/16.
+ * Created by Nige on 17/05/17.
  */
 public class FridgeExample {
 
@@ -29,8 +29,7 @@ public class FridgeExample {
     private void exampleServer() throws Exception {
 
         // Setup and start a server
-        ServerOptions options = new ServerOptions();
-        Server server = Server.newServer(options);
+        Server server = Server.newServer(new ServerOptions());
         server.start().get();
         server.createChannel("fridge.status").get();
         server.createBinder("fridges").get();
@@ -44,23 +43,18 @@ public class FridgeExample {
                 .as( (BsonObject fridge, Delivery del) ->  { // projection function
                         BsonObject evt = del.event();
                         long time =  del.timeStamp();
-                        String status = evt.getString("status");
-                        if (status.equals("open")) {
-                            BsonPath.set(fridge, time, "timeStamp");
-                            BsonPath.set(fridge, "open", "door");
-                        }
-                        else if (status.equals("shut")) {
-                            BsonPath.set(fridge, time, "timeStamp");
-                            BsonPath.set(fridge, "shut", "door");
-                        }
+                        String doorStatus = evt.getString("status");
+                        BsonPath.set(fridge, time, "timeStamp");
+                        BsonPath.set(fridge, doorStatus, "door");
                         return fridge;
                 } )
                 .create();
 
-        // now run the client to exercise the server
+        // run the client to exercise the server
         exampleClient();
         server.stop().get();
     }
+
 
     private void exampleClient() throws Exception {
 
@@ -78,7 +72,7 @@ public class FridgeExample {
         // Now get the status
         BsonObject fridge = client.findByID("fridges", "f1").get();
         System.out.println("Fridge is: " + fridge);
-        
+
         // Shut the door
         client.publish("fridge.status", event.copy().put("status", "shut"));
         Thread.sleep(100);
