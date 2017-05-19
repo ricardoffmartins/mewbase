@@ -1,6 +1,7 @@
 package io.mewbase.log;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.client.MewException;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,6 +34,29 @@ public class StreamTest extends LogTestBase {
     private BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
     private int objLen = obj.encode().length();
     private int numObjects = 100;
+
+
+    @Test
+    //@Repeat(value = 10000)
+    public void deny_contradicting_subscription_params(TestContext testContext) throws Exception {
+
+        final SubDescriptor bothDefault = new SubDescriptor().setChannel(TEST_CHANNEL_1);
+
+        final SubDescriptor positionSet = new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(1000);
+
+        final SubDescriptor timeSet = new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartTimestamp(1234);
+
+        try {
+            final SubDescriptor bothSet = new SubDescriptor()
+                    .setChannel(TEST_CHANNEL_1)
+                    .setStartTimestamp(1234)
+                    .setStartPos(1000);
+            testContext.fail("Allowed to set contradicting params in subscription");
+        } catch (IllegalArgumentException expectedException) {
+            // all good
+        }
+    }
+
 
     @Test
     public void test_stream_single_file_less_than_max_file_size(TestContext testContext) throws Exception {
@@ -428,7 +453,7 @@ public class StreamTest extends LogTestBase {
 
 
     /*
-    Calculate the apend position of the nth object to be appended to the log, n starts at zero
+    Calculate the append position of the nth object to be appended to the log, n starts at zero
      */
     protected long calcPos(int nth, int maxLogChunkSize, int objLength) {
 
@@ -471,7 +496,52 @@ public class StreamTest extends LogTestBase {
         latch.await();
     }
 
-    private void handleRecords(LogReadStreamImpl rs, TestContext testContext, CountDownLatch latch, int fileSize) {
+
+
+    @Test
+    //@Repeat(value = 10000)
+    public void test_stream_from_timestamp(TestContext testContext) throws Exception {
+
+        int fileSize = objLen * numObjects / 5 + objLen / 2;
+        serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+        startLog();
+
+        // Log and record time
+        final long preTime = System.currentTimeMillis();
+        log.append( new BsonObject().put("num", 3) ).get(); // block to ensure write
+
+        TimeUnit.MILLISECONDS.sleep(1000);
+        final long midTime = System.currentTimeMillis();
+        log.append( new BsonObject().put("num", 2) ).get(); // block to ensure write
+
+        // stream from the mid time
+        final SubDescriptor subDesc = new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartTimestamp(midTime);
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(subDesc);
+
+        CountDownLatch latch = new CountDownLatch(2);
+        rs.handler( (pos, record) -> {
+            testContext.assertEquals(latch.getCount(), record.getInteger("num"));
+            if (latch.getCount() == 2) {
+                testContext.assertTrue(rs.isRetro());
+            }
+            else {
+                testContext.assertFalse(rs.isRetro());
+                rs.close();
+            }
+            latch.countDown();
+        });
+        rs.start();
+
+        TimeUnit.MILLISECONDS.sleep(1000);
+        final long lastTime = System.currentTimeMillis();
+        log.append( new BsonObject().put("num", 1) ).get(); // block to ensure write
+
+        latch.await(1, TimeUnit.SECONDS);
+    }
+
+
+        private void handleRecords(LogReadStreamImpl rs, TestContext testContext, CountDownLatch latch, int fileSize) {
         AtomicInteger cnt = new AtomicInteger();
         rs.handler((pos, record) -> {
             testContext.assertEquals("bar", record.getString("foo"));

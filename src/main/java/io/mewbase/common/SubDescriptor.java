@@ -1,6 +1,7 @@
 package io.mewbase.common;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.client.MewException;
 
 /**
  * Created by tim on 22/09/16.
@@ -8,11 +9,12 @@ import io.mewbase.bson.BsonObject;
 public class SubDescriptor {
 
     public static final long DEFAULT_START_POS = -1;
+    public static final long DEFAULT_START_TIME = 0;
 
     private String channel;
     private String durableID;
     private long startPos = DEFAULT_START_POS;
-    private long startTimestamp;
+    private long startTimestamp = DEFAULT_START_TIME;
     private BsonObject matcher;
     private String group;
 
@@ -40,6 +42,7 @@ public class SubDescriptor {
 
     public SubDescriptor setStartPos(long startPos) {
         this.startPos = startPos;
+        ensurePositionAndTimeNotBothSet();
         return this;
     }
 
@@ -49,6 +52,7 @@ public class SubDescriptor {
 
     public SubDescriptor setStartTimestamp(long startTimestamp) {
         this.startTimestamp = startTimestamp;
+        ensurePositionAndTimeNotBothSet();
         return this;
     }
 
@@ -75,7 +79,7 @@ public class SubDescriptor {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SubDescriptor that = (SubDescriptor)o;
+        SubDescriptor that = (SubDescriptor) o;
 
         if (startTimestamp != that.startTimestamp) return false;
         if (startPos != that.startPos) return false;
@@ -90,10 +94,15 @@ public class SubDescriptor {
     public int hashCode() {
         int result = durableID != null ? durableID.hashCode() : 0;
         result = 31 * result + (channel != null ? channel.hashCode() : 0);
-        result = 31 * result + (int)(startPos ^ (startPos >>> 32));
-        result = 31 * result + (int)(startTimestamp ^ (startTimestamp >>> 32));
+        result = 31 * result + (int) (startPos ^ (startPos >>> 32));
+        result = 31 * result + (int) (startTimestamp ^ (startTimestamp >>> 32));
         result = 31 * result + (matcher != null ? matcher.hashCode() : 0);
         result = 31 * result + (group != null ? group.hashCode() : 0);
         return result;
+    }
+
+    private void ensurePositionAndTimeNotBothSet() {
+        if (getStartPos() != DEFAULT_START_POS && getStartTimestamp() != DEFAULT_START_TIME)
+            throw new IllegalArgumentException("Cannot set both start position and start time on a subscription");
     }
 }
