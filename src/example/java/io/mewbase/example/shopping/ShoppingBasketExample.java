@@ -39,7 +39,7 @@ public class ShoppingBasketExample {
                 .filteredBy(ev -> ev.getString("eventType").equals("add_item")) // event filter
                 .onto("baskets")                                                // binder name
                 .identifiedBy(ev -> ev.getString("basketID"))                   // document id selector; how to obtain the doc id from the event bson
-                .as((basket, del) ->                                            // projection function
+                .as((basket, del) -> // projection function
                         BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
                 .create();
 
