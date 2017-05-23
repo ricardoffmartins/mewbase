@@ -17,7 +17,6 @@ public class AFFileAccess implements FileAccess {
 
     private final static Logger logger = LoggerFactory.getLogger(AFFileAccess.class);
 
-
     private final Vertx vertx;
 
     public AFFileAccess(Vertx vertx) {

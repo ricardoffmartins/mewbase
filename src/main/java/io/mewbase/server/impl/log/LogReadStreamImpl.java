@@ -79,8 +79,9 @@ public class LogReadStreamImpl implements LogReadStream {
             goRetro(false, subDescriptor.getStartPos());
         } else if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
             goHistory();
+        } else {
+            fileLog.readdSubHolder(this);
         }
-        fileLog.readdSubHolder(this);
 
     }
 
@@ -124,8 +125,8 @@ public class LogReadStreamImpl implements LogReadStream {
         fileLog.removeSubHolder(this);
         retro = true;
         history = true;
-        // reread the whole stream but because we are in history we dispose of those events
-        // before the start time
+        // reread the whole stream but because we are in history we dispose
+        // of those events prior to the start time
         openFileStream(0, false);
     }
 
@@ -159,9 +160,10 @@ public class LogReadStreamImpl implements LogReadStream {
             // the stream re-added then the message delivered live, so we can just ignore it
             return;
         }
-        // In history we replay everything and ignore all messages before a given time
-        // this probably insanely expensive.
-        if ( history && bsonObject.getLong(Protocol.RECEV_TIMESTAMP) < subDescriptor.getStartTimestamp())
+        // In history we ignore all messages before a given time - this probably insanely expensive.
+        if ( history && bsonObject.getLong(Protocol.RECEV_TIMESTAMP) < subDescriptor.getStartTimestamp()) {
+            return;
+        }
         handle0(pos, bsonObject);
     }
 
@@ -245,6 +247,7 @@ public class LogReadStreamImpl implements LogReadStream {
                     if (fileStreamPos == lwep) {
                         // We've got to the head
                         retro = false;
+                        history = false;
                         streamFile.close();
                         streamFile = null;
                         resetParser();
