@@ -41,8 +41,7 @@ public class LogReadStreamImpl implements LogReadStream {
     private boolean paused;
     private boolean closed;
     private long deliveredPos = -1;
-    private boolean retro = false;  // replay a stream
-    private boolean history = false; // use timestamps
+    private boolean retro;
     private long fileStreamPos;
     private boolean ignoreFirst;
     private int fileNumber;
@@ -77,12 +76,12 @@ public class LogReadStreamImpl implements LogReadStream {
         checkContext();
         if (subDescriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS) {
             goRetro(false, subDescriptor.getStartPos());
-        } else if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
-            goHistory();
+        } if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
+            final long runStreamFromStart = 0;
+            goRetro(false, runStreamFromStart);
         } else {
             fileLog.readdSubHolder(this);
         }
-
     }
 
     @Override
@@ -120,16 +119,6 @@ public class LogReadStreamImpl implements LogReadStream {
         openFileStream(pos, ignoreFirst);
     }
 
-
-    private void goHistory() {
-        fileLog.removeSubHolder(this);
-        retro = true;
-        history = true;
-        // reread the whole stream but because we are in history we dispose
-        // of those events prior to the start time
-        openFileStream(0, false);
-    }
-
     @Override
     public synchronized void close() {
         if (closed) {
@@ -158,10 +147,6 @@ public class LogReadStreamImpl implements LogReadStream {
         if (pos <= deliveredPos) {
             // This can happen if the stream is retro and a message is persisted, delivered from file, then
             // the stream re-added then the message delivered live, so we can just ignore it
-            return;
-        }
-        // In history we ignore all messages before a given time - this probably insanely expensive.
-        if ( history && bsonObject.getLong(Protocol.RECEV_TIMESTAMP) < subDescriptor.getStartTimestamp()) {
             return;
         }
         handle0(pos, bsonObject);
@@ -247,7 +232,6 @@ public class LogReadStreamImpl implements LogReadStream {
                     if (fileStreamPos == lwep) {
                         // We've got to the head
                         retro = false;
-                        history = false;
                         streamFile.close();
                         streamFile = null;
                         resetParser();

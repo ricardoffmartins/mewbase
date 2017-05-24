@@ -164,8 +164,18 @@ public class ConnectionImpl implements ServerFrameHandler {
             Long startTimestamp = frame.getLong(Protocol.SUBSCRIBE_STARTTIMESTAMP);
             String durableID = frame.getString(Protocol.SUBSCRIBE_DURABLEID);
             BsonObject matcher = frame.getBsonObject(Protocol.SUBSCRIBE_MATCHER);
-            SubDescriptor subDescriptor = new SubDescriptor().setStartPos(startSeq == null ? -1 : startSeq).setStartTimestamp(startTimestamp)
-                    .setMatcher(matcher).setDurableID(durableID).setChannel(channel);
+
+            SubDescriptor subDescriptor = new SubDescriptor()
+                    .setStartPos(startSeq == null ? SubDescriptor.DEFAULT_START_POS : startSeq)
+                    .setStartTimestamp(startTimestamp)
+                    .setMatcher(matcher)
+                    .setDurableID(durableID).setChannel(channel);
+
+            if (subDescriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS &&
+                subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
+                logAndClose("Cannot set both non default startPosition and timestamp in Subscription");
+            }
+
             int subID = subSeq++;
             checkWrap(subSeq);
             Log log = server.getLog(channel);

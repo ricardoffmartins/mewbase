@@ -42,7 +42,6 @@ public class SubDescriptor {
 
     public SubDescriptor setStartPos(long startPos) {
         this.startPos = startPos;
-        ensurePositionAndTimeNotBothSet();
         return this;
     }
 
@@ -52,7 +51,6 @@ public class SubDescriptor {
 
     public SubDescriptor setStartTimestamp(long startTimestamp) {
         this.startTimestamp = startTimestamp;
-        ensurePositionAndTimeNotBothSet();
         return this;
     }
 
@@ -101,8 +99,4 @@ public class SubDescriptor {
         return result;
     }
 
-    private void ensurePositionAndTimeNotBothSet() {
-        if (getStartPos() != DEFAULT_START_POS && getStartTimestamp() != DEFAULT_START_TIME)
-            throw new IllegalArgumentException("Cannot set both start position and start time on a subscription");
-    }
 }
