@@ -44,7 +44,7 @@ public class VersionTest extends ServerTestBase {
         }
     }
 
-
+git 
     @Test
     public void testVersionCompatibility() {
         Assert.assertTrue(ServerVersionProvider.isCompatibleWith(expectedVersion));

@@ -74,12 +74,20 @@ public class ClientImpl implements Client, ClientFrameHandler {
     public CompletableFuture<Subscription> subscribe(SubDescriptor descriptor, Consumer<ClientDelivery> handler) {
         CompletableFuture<Subscription> cf = new CompletableFuture<>();
         BsonObject frame = new BsonObject();
+
         if (descriptor.getChannel() == null) {
             throw new IllegalArgumentException("No channel in SubDescriptor");
         }
         frame.put(Protocol.SUBSCRIBE_CHANNEL, descriptor.getChannel());
+
+        // @see wire_protocol.md
+        if (descriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS &&
+            descriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
+            throw new IllegalArgumentException("Cannot set both start position and start timestamp");
+        }
         frame.put(Protocol.SUBSCRIBE_STARTPOS, descriptor.getStartPos());
         frame.put(Protocol.SUBSCRIBE_STARTTIMESTAMP, descriptor.getStartTimestamp());
+
         frame.put(Protocol.SUBSCRIBE_DURABLEID, descriptor.getDurableID());
         frame.put(Protocol.SUBSCRIBE_MATCHER, descriptor.getMatcher());
         write(cf, Protocol.SUBSCRIBE_FRAME, frame, resp -> {
