@@ -213,6 +213,7 @@ public class ChannelsTest extends ServerTestBase {
             long count = receivedCount.getAndIncrement();
             // count should ignore the event previous to the timestamp
             context.assertEquals(count, (long)event.getInteger("num") - preEvents);
+            context.assertTrue(re.timeStamp() >= preTime);
             if (count == postEvents - 1) {
                 async.complete();
             }

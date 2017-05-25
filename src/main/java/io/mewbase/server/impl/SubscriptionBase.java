@@ -90,10 +90,11 @@ public abstract class SubscriptionBase {
             return;
         }
         // only do the Bson lookup if there is a non default timestamp and watch for the "fast fail" return
-        if ( subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME ) {
+        if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
             final long timeStamp = frame.getLong(Protocol.RECEV_TIMESTAMP);
-            if ( timeStamp < subDescriptor.getStartTimestamp() )
+            if (timeStamp < subDescriptor.getStartTimestamp()) {
                 return;
+            }
         }
         onReceiveFrame(pos, frame);
     }

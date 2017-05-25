@@ -158,6 +158,7 @@ public class ConnectionImpl implements ServerFrameHandler {
 
             if (channel == null) {
                 missingField(Protocol.SUBSCRIBE_CHANNEL, Protocol.SUBSCRIBE_FRAME);
+                return;
             }
 
             Long startSeq = frame.getLong(Protocol.SUBSCRIBE_STARTPOS);
@@ -174,6 +175,7 @@ public class ConnectionImpl implements ServerFrameHandler {
             if (subDescriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS &&
                 subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
                 logAndClose("Cannot set both non default startPosition and timestamp in Subscription");
+                return;
             }
 
             int subID = subSeq++;
