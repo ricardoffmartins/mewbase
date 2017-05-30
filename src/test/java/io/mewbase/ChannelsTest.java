@@ -168,4 +168,58 @@ public class ChannelsTest extends ServerTestBase {
         };
         Subscription sub = client.subscribe(descriptor, handler).get();
     }
+
+
+    @Test
+    //@Repeat(value = 10000)
+    public void testSubscribeFromTimestamp(TestContext context) throws Exception {
+        Producer prod = client.createProducer(TEST_CHANNEL_1);
+        final int preEvents = 10;
+        for (int i = 0; i < preEvents; i++) {
+            BsonObject event = new BsonObject().put("foo", "bar").put("num", i);
+            CompletableFuture<Void> cf = prod.publish(event);
+            // wait for the 'ack' on the last event to ensure that it has be timestamped
+            if (i == preEvents - 1) {
+                cf.get();
+            }
+        }
+        // take a local timestamp before adding more
+        final long preTime = System.currentTimeMillis();
+
+        // write some more after this timestamp
+        final int postEvents = 10;
+        for (int i = preEvents; i < postEvents + preEvents; i++) {
+            BsonObject event = new BsonObject().put("foo", "bar").put("num", i);
+            CompletableFuture<Void> cf = prod.publish(event);
+            // wait for the 'ack' on the last event to ensure that it to has be timestamped
+            if (i == preEvents + postEvents  - 1) {
+                cf.get();
+            }
+        }
+
+        SubDescriptor descriptor = new SubDescriptor();
+        descriptor.setChannel(TEST_CHANNEL_1);
+        descriptor.setStartTimestamp(preTime);
+
+        Async async = context.async();
+        AtomicLong lastPos = new AtomicLong(-1);
+        AtomicInteger receivedCount = new AtomicInteger();
+        Consumer<ClientDelivery> handler = re -> {
+            context.assertEquals(TEST_CHANNEL_1, re.channel());
+            long last = lastPos.get();
+            context.assertTrue(re.channelPos() > last);
+            lastPos.set(re.channelPos());
+            BsonObject event = re.event();
+            long count = receivedCount.getAndIncrement();
+            // count should ignore the event previous to the timestamp
+            context.assertEquals(count, (long)event.getInteger("num") - preEvents);
+            context.assertTrue(re.timeStamp() >= preTime);
+            if (count == postEvents - 1) {
+                async.complete();
+            }
+        };
+        Subscription sub = client.subscribe(descriptor, handler).get();
+    }
+
+
 }

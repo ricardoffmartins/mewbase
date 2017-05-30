@@ -1,12 +1,14 @@
 package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.client.ClientOptions;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
 import io.mewbase.server.Log;
 import io.mewbase.server.LogReadStream;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import io.vertx.core.net.ClientOptionsBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +89,13 @@ public abstract class SubscriptionBase {
             ignoreFirst = false;
             return;
         }
+        // only do the Bson lookup if there is a non default timestamp and watch for the "fast fail" return
+        if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
+            final long timeStamp = frame.getLong(Protocol.RECEV_TIMESTAMP);
+            if (timeStamp < subDescriptor.getStartTimestamp()) {
+                return;
+            }
+        }
         onReceiveFrame(pos, frame);
     }
 
@@ -99,6 +108,7 @@ public abstract class SubscriptionBase {
             server.getDurableSubsBinder().put(subDescriptor.getDurableID(), ackedDoc);
         }
     }
+
 
     // Sanity check - this should always be executed using the correct context
     protected void checkContext() {

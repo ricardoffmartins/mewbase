@@ -4,6 +4,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.impl.BasicFile;
+import io.mewbase.server.impl.Protocol;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -73,8 +74,11 @@ public class LogReadStreamImpl implements LogReadStream {
     @Override
     public synchronized void start() {
         checkContext();
-        if (subDescriptor.getStartPos() != -1) {
+        if (subDescriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS) {
             goRetro(false, subDescriptor.getStartPos());
+        } if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
+            final long runStreamFromStart = 0;
+            goRetro(false, runStreamFromStart);
         } else {
             fileLog.readdSubHolder(this);
         }
@@ -142,7 +146,7 @@ public class LogReadStreamImpl implements LogReadStream {
         }
         if (pos <= deliveredPos) {
             // This can happen if the stream is retro and a message is persisted, delivered from file, then
-            // the stream readded then the message delivered live, so we can just ignore it
+            // the stream re-added then the message delivered live, so we can just ignore it
             return;
         }
         handle0(pos, bsonObject);
@@ -222,7 +226,7 @@ public class LogReadStreamImpl implements LogReadStream {
                 }
             }
             if (fileStreamPos == lwep) {
-                // Need to lock to prevent messages sneaking in before we readd the stream
+                // Need to lock to prevent messages sneaking in before we read the stream
                 synchronized (fileLog) {
                     lwep = fileLog.getLastWrittenEndPos();
                     if (fileStreamPos == lwep) {

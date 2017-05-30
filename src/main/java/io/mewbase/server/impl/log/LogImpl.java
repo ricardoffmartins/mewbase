@@ -70,7 +70,7 @@ public class LogImpl implements Log {
             throw new IllegalArgumentException("maxLogChunkSize must be > 1");
         }
         if (options.getPreallocateSize() < 0) {
-            throw new IllegalArgumentException("maxLogChunkSize must be >= 0");
+            throw new IllegalArgumentException("PreallocateSize must be >= 0");
         }
         if (options.getMaxRecordSize() < 1) {
             throw new IllegalArgumentException("maxRecordSize must be > 1");

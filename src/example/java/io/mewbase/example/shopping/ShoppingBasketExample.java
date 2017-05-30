@@ -44,6 +44,7 @@ public class ShoppingBasketExample {
                     final Path path = new Path("products." + del.event().getString("productID"));
                     return BsonPath.add(basket, path, del.event().getInteger("quantity"));
                 } )
+
                 .create();
 
         // Create a client

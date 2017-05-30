@@ -428,7 +428,7 @@ public class StreamTest extends LogTestBase {
 
 
     /*
-    Calculate the apend position of the nth object to be appended to the log, n starts at zero
+    Calculate the append position of the nth object to be appended to the log, n starts at zero
      */
     protected long calcPos(int nth, int maxLogChunkSize, int objLength) {
 

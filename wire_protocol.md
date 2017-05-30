@@ -118,7 +118,9 @@ resume an existing subscription for that name, otherwise a new durable subscript
 * `matcher` - optional BSONObject. Object to match on the event fields. Non matching events will be filtered out.
  
 if `startPos` or `startTimestamp` are omitted then only events starting from when the subscription was created will
- be received.
+be received. 
+
+Set either the`startPos` or the `startTimestamp`, setting both with result in a client and server error
  
 ### SUBRESPONSE
 
