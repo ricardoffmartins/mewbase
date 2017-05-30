@@ -2,6 +2,7 @@ package io.mewbase.example.shopping;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
+import io.mewbase.bson.Path;
 import io.mewbase.client.Client;
 import io.mewbase.client.ClientOptions;
 import io.mewbase.server.Server;
@@ -39,8 +40,10 @@ public class ShoppingBasketExample {
                 .filteredBy(ev -> ev.getString("eventType").equals("add_item")) // event filter
                 .onto("baskets")                                                // binder name
                 .identifiedBy(ev -> ev.getString("basketID"))                   // document id selector; how to obtain the doc id from the event bson
-                .as((basket, del) ->                                            // projection function
-                        BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
+                .as((basket, del) -> {                                          // projection function
+                    final Path path = new Path("products." + del.event().getString("productID"));
+                    return BsonPath.add(basket, path, del.event().getInteger("quantity"));
+                } )
                 .create();
 
         // Create a client

@@ -2,6 +2,7 @@ package io.mewbase.example.retail;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
+import io.mewbase.bson.Path;
 import io.mewbase.server.Binder;
 import io.mewbase.server.Channel;
 import io.mewbase.server.Mewbase;
@@ -159,7 +160,7 @@ public class OrderServiceMewblet implements Mewblet {
         }
 
         public BsonObject incrementQuantity(String productID, Integer quantity) {
-            return BsonPath.add(bsonObject, quantity, "products", productID);
+            return BsonPath.add(bsonObject, new Path("products." + productID), quantity);
         }
     }
 

@@ -2,6 +2,7 @@ package io.mewbase;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
+import io.mewbase.bson.Path;
 import io.mewbase.client.Producer;
 import io.mewbase.server.Projection;
 import io.mewbase.server.impl.ServerImpl;
@@ -73,7 +74,8 @@ public class ProjectionTest extends ServerTestBase {
                             projRef.get().resume();
                         });
                     }
-                    return BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID"));
+                    final Path path = new Path("products." + del.event().getString("productID"));
+                    return BsonPath.add(basket, path, del.event().getInteger("quantity") );
                 })
                 .create();
         projRef.set(projection);
@@ -147,8 +149,10 @@ public class ProjectionTest extends ServerTestBase {
     private Projection registerProjection(String projectionName) {
         return server.buildProjection(projectionName).projecting(TEST_CHANNEL_1).onto(TEST_BINDER1)
                 .filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
-                .as((basket, del) ->
-                        BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
+                .as((basket, del) -> {
+                    final Path path = new Path( "products." + del.event().getString("productID") );
+                    return BsonPath.add(basket, path, del.event().getInteger("quantity"));
+                })
                 .create();
     }
 
@@ -165,6 +169,7 @@ public class ProjectionTest extends ServerTestBase {
                 throw new RuntimeException(e);
             }
         });
+
     }
 
 

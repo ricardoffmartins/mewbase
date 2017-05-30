@@ -2,6 +2,7 @@ package io.mewbase.example.shopping;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
+import io.mewbase.bson.Path;
 import io.mewbase.client.Client;
 import io.mewbase.client.ClientOptions;
 import io.mewbase.common.Delivery;
@@ -57,8 +58,8 @@ public class FridgeExample {
                 .as( (BsonObject fridge, Delivery del) ->  { // projection function
                         final long time =  del.timeStamp();
                         final String doorStatus = del.event().getString("status");
-                        BsonPath.set(fridge, time, "timeStamp");
-                        BsonPath.set(fridge, doorStatus, "door");
+                        BsonPath.set(fridge, new Path("timeStamp"), time);
+                        BsonPath.set(fridge, new Path("door"), doorStatus);
                         return fridge;
                 } )
                 .create();

@@ -5,17 +5,16 @@ package io.mewbase.bson;
  */
 public class BsonPath {
 
-    public static BsonObject set(BsonObject doc, Object value, Object... path) {
+    public static BsonObject set(BsonObject doc, Path path, Object value) {
         BsonObject root = getRoot(doc, path);
-        String lastElem = (String)path[path.length - 1];
-        root.put(lastElem, value);
+        root.put(path.last().getKey(), value);
         return doc;
     }
 
-    public static BsonObject add(BsonObject doc, int value, Object... path) {
+    public static BsonObject add(BsonObject doc, Path path, int value ) {
         BsonObject root = getRoot(doc, path);
-        String lastElem = (String)path[path.length - 1];
-        Object prevVal = root.getValue(lastElem);
+        String key = path.last().getKey();
+        Object prevVal = root.getValue(key);
         Object newVal;
         if (prevVal != null) {
             if (prevVal instanceof Integer) {
@@ -32,34 +31,24 @@ public class BsonPath {
         } else {
             newVal = value;
         }
-        root.put(lastElem, newVal);
+        root.put(key, newVal);
         return doc;
     }
 
-    public static BsonObject inc(BsonObject doc, Object... path) {
-        return add(doc, 1, path);
-    }
 
-    public static BsonObject inc(BsonObject doc, String path) {
-        return null;
-    }
+    public static BsonObject inc(BsonObject doc, Path path) { return add(doc, path, 1); }
 
     // TODO support BsonArray
-    private static BsonObject getRoot(BsonObject doc, Object... path) {
+    private static BsonObject getRoot(BsonObject doc, Path path) {
         BsonObject rootObj = doc;
-        for (int i = 0; i < path.length - 1; i++) {
-            Object o = path[i];
-            if (o instanceof String) {
-                String key = (String)o;
-                BsonObject child = rootObj.getBsonObject(key);
-                if (child == null) {
-                    child = new BsonObject();
-                    rootObj.put(key, child);
-                }
-                rootObj = child;
-            } else {
-                throw new IllegalArgumentException("Invalid path element " + o);
+        for ( PathElement elem : path.getElems() ) {
+            String key = elem.getKey();
+            BsonObject child = rootObj.getBsonObject(key);
+            if (child == null) {
+                child = new BsonObject();
+                rootObj.put(key, child);
             }
+            rootObj = child;
         }
         return rootObj;
     }
