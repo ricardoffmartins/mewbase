@@ -62,12 +62,14 @@ public class BsonPathTest {
         assertEquals( path.getElems()[0].getKey(), car );
         assertEquals( path.getElems()[1].getKey(), house);
         assertEquals( path.getElems()[2].getKey(), dog );
-
     }
 
-//    @Test
-//    public void testGetIntegerDefault() {
-//        bsonObject.put("foo", 123);
+    @Test
+    public void testSet() {
+        final String pathStr = "house";
+        BsonObject bs = BsonPath.set(bsonObject, new Path(pathStr),123);
+        assertEquals(Integer.valueOf(123), bs.getInteger(pathStr));
+
 //        assertEquals(Integer.valueOf(123), bsonObject.getInteger("foo", 321));
 //        assertEquals(Integer.valueOf(123), bsonObject.getInteger("foo", null));
 //        bsonObject.put("bar", "hello");
@@ -86,7 +88,7 @@ public class BsonPathTest {
 //        assertEquals(Integer.valueOf(123), bsonObject.getInteger("foo", 321));
 //        bsonObject.put("foo", Long.MAX_VALUE);
 //        assertEquals(Integer.valueOf(-1), bsonObject.getInteger("foo", 321));
-//
+
 //        // Null and absent values
 //        bsonObject.putNull("foo");
 //        assertNull(bsonObject.getInteger("foo", 321));
@@ -104,7 +106,7 @@ public class BsonPathTest {
 //    }
 
 
-
+    }
 }
 
 
