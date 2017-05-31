@@ -521,7 +521,8 @@ public class LogImpl implements Log {
         // TODO test this
         for (int i = 0; i < files.length; i++) {
             if (i < fileNumber && options.getMaxLogChunkSize() != files[i].length()) {
-                throw new MewException("File unexpected size: " + files[i]);
+                throw new MewException("File unexpected size: " + files[i] + " i: " + i + " fileNumber "
+                        + fileNumber + " max log chunk size " + options.getMaxLogChunkSize() + " length " + files[i].length());
             }
         }
 
@@ -537,7 +538,7 @@ public class LogImpl implements Log {
     }
 
     private String getFileName(int i) {
-        return channel + "-" + i + ".log";
+        return channel + "-" + String.format("%09d", i) + ".log";
     }
 
     private String getLogInfoFileName() {
