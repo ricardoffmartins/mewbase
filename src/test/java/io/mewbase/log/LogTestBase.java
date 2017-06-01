@@ -87,7 +87,7 @@ public class LogTestBase extends ServerTestBase {
     }
 
     protected String getLogFileName(String channel, int i) {
-        return channel + "-" + i + ".log";
+        return channel + "-" + String.format("%012d", i) + ".log";
     }
 
 

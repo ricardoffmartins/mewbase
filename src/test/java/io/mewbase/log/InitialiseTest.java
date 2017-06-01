@@ -24,6 +24,9 @@ public class InitialiseTest extends LogTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(InitialiseTest.class);
 
+    private final static String INITIAL_FILE_END =  "-000000000000.log";
+
+
     @Test
     public void test_when_starting_log_dir_is_created() throws Exception {
         File ftestDir = testFolder.newFolder();
@@ -86,7 +89,7 @@ public class InitialiseTest extends LogTestBase {
         verifyInitialFiles(logsDir, TEST_CHANNEL_1);
         log.close().get();
 
-        File logFile = new File(logsDir, TEST_CHANNEL_1 + "-0.log");
+        File logFile = new File(logsDir, TEST_CHANNEL_1 + INITIAL_FILE_END);
         assertTrue(logFile.exists());
 
         assertTrue(logFile.delete());
@@ -102,7 +105,7 @@ public class InitialiseTest extends LogTestBase {
         verifyInitialFiles(logsDir, TEST_CHANNEL_1);
         log.close().get();
 
-        File logFile = new File(logsDir, TEST_CHANNEL_1 + "-0.log");
+        File logFile = new File(logsDir, TEST_CHANNEL_1 + INITIAL_FILE_END);
         assertTrue(logFile.exists());
 
         assertTrue(logFile.delete());
@@ -127,7 +130,7 @@ public class InitialiseTest extends LogTestBase {
         verifyInitialFiles(logsDir, TEST_CHANNEL_1);
         log.close().get();
 
-        File logFile = new File(logsDir, TEST_CHANNEL_1 + "-0.log");
+        File logFile = new File(logsDir, TEST_CHANNEL_1 + INITIAL_FILE_END);
         assertTrue(logFile.exists());
 
         assertTrue(logFile.delete());
@@ -358,7 +361,7 @@ public class InitialiseTest extends LogTestBase {
     private void verifyInitialFiles(File logDir, String channel, boolean shutdown) throws Exception {
         verifyInfoFile(channel, shutdown);
 
-        File logFile = new File(logDir, channel + "-0.log");
+        File logFile = new File(logDir, channel + INITIAL_FILE_END);
         assertTrue(logFile.exists());
         assertEquals(serverOptions.getPreallocateSize(), logFile.length());
 

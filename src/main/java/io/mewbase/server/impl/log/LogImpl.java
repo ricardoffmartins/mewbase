@@ -538,7 +538,7 @@ public class LogImpl implements Log {
     }
 
     private String getFileName(int i) {
-        return channel + "-" + String.format("%09d", i) + ".log";
+        return channel + "-" + String.format("%012d", i) + ".log";
     }
 
     private String getLogInfoFileName() {
