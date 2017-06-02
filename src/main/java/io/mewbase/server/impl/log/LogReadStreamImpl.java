@@ -4,6 +4,8 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.impl.BasicFile;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -48,7 +50,11 @@ public class LogReadStreamImpl implements LogReadStream {
     private BasicFile streamFile;
     private int fileSize;
     private RecordParser parser;
-    private int recordSize = -1;
+
+    private final static int HEADER_SENTINAL = -1;
+    private final static int HEADER_AND_SIZE = HeaderOps.HEADER_OFFSET + Integer.BYTES;
+    private int recordSize = HEADER_SENTINAL;
+    private Buffer headerBuffer = null;
 
     public LogReadStreamImpl(LogImpl fileLog, SubDescriptor subDescriptor, int readBufferSize,
                              int fileSize) {
@@ -152,7 +158,7 @@ public class LogReadStreamImpl implements LogReadStream {
     }
 
     private void resetParser() {
-        parser = RecordParser.newFixed(4, this::handleRec);
+        parser = RecordParser.newFixed(HEADER_AND_SIZE, this::handleRec);
     }
 
     private void handle0(long pos, BsonObject bsonObject) {
@@ -182,35 +188,62 @@ public class LogReadStreamImpl implements LogReadStream {
         });
     }
 
+    /**
+     * This method interacts with the parser to grab
+     * 1) Header
+     * 2) Body
+     * Until the first int of the header is 0
+     * @param buff
+     */
     private void handleRec(Buffer buff) {
-        if (recordSize == -1) {
-            int intle = buff.getIntLE(0);
-            if (intle == 0) {
+
+        if (recordSize == HEADER_SENTINAL) {
+            // Got a header so
+            // check for padding (alt magic number)
+            int possPadding = buff.getInt(0);
+            if (possPadding == 0) {
                 // Padding at end of file
+                // so just keep looking for ints until we get to end of file at which point the
+                // parser is reset to look for 'header plus size' again
+                parser.fixedSizeMode(Integer.BYTES);
             } else {
-                recordSize = intle - 4;
+                // Assuming magic number found
+                // Looks like a valid header so store the header ready to put the whole buffer back
+                // together again when the body comes back in.
+                headerBuffer = buff;
+                recordSize = buff.getIntLE(HeaderOps.HEADER_OFFSET) - Integer.BYTES; // we already read the size from the body
                 parser.fixedSizeMode(recordSize);
             }
         } else {
+            // Got a body so
+            // join the header and the rest of the body back up
+            // do all the header checks and send the body to be processed
             if (recordSize != 0) {
-                handleFrame(buff);
-                parser.fixedSizeMode(4);
-                recordSize = -1;
+                final ByteBuf headerAndSize = headerBuffer.getByteBuf();
+                final ByteBuf bodyRemaining = buff.getByteBuf();
+                // “Thus strangely are our souls constructed, and by slight ligaments are we bound to prosperity and ruin.”
+                final ByteBuf full = Unpooled.wrappedBuffer(headerAndSize, bodyRemaining);
+                final Buffer frame = HeaderOps.readHeader(Buffer.buffer(full));
+                handleFrame(frame);
+
+                // set up for the next header
+                parser.fixedSizeMode(HEADER_AND_SIZE);
+                recordSize = HEADER_SENTINAL;
+                headerBuffer = null; // gc hint
             }
         }
     }
 
-    private synchronized void handleFrame(Buffer checksumBuffer) {
+    private synchronized void handleFrame(Buffer buffer) {
         if (closed) {
             return;
         }
-        //Buffer buffer = HeaderOps.readHeader(checksumBuffer);
-        Buffer buffer = checksumBuffer;
         // TODO bit clunky - need to add size back in so it can be decoded, improve this!
-        int bl = buffer.length() + 4;
-        Buffer buff2 = Buffer.buffer(bl);
-        buff2.appendIntLE(bl).appendBuffer(buffer);
-        BsonObject bson = new BsonObject(buff2);
+        // DONE - at the cost of some complexity in handleRec
+//        int bl = buffer.length() + 4;
+//        Buffer buff2 = Buffer.buffer(bl);
+//        buff2.appendIntLE(bl).appendBuffer(buffer);
+        BsonObject bson = new BsonObject(buffer);
         if (ignoreFirst) {
             ignoreFirst = false;
         } else {
@@ -241,7 +274,7 @@ public class LogReadStreamImpl implements LogReadStream {
                 }
             }
         }
-        fileStreamPos += bl;
+        fileStreamPos += HeaderOps.HEADER_OFFSET + buffer.length();
     }
 
     private void handleException(Throwable t) {

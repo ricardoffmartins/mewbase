@@ -36,7 +36,7 @@ public class HeaderOps {
     static final int MAGIC_OFFSET = 0;
     static final int CODEC_OFFSET = Byte.BYTES;
     static final int CHECKSUM_OFFSET = CODEC_OFFSET + Byte.BYTES;
-    static final int HEADER_OFFSET = CHECKSUM_OFFSET + Integer.BYTES;
+    public static final int HEADER_OFFSET = CHECKSUM_OFFSET + Integer.BYTES;
 
     //static final Checksum checksumOp = new CRC32();
     static final Checksum checksumOp = new Adler32();
