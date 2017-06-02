@@ -4,6 +4,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
+import io.mewbase.server.impl.log.HeaderOps;
 import io.mewbase.server.impl.log.LogImpl;
 import io.mewbase.server.impl.log.LogReadStreamImpl;
 import io.vertx.ext.unit.Async;
@@ -30,7 +31,7 @@ public class StreamTest extends LogTestBase {
     private final static Logger logger = LoggerFactory.getLogger(StreamTest.class);
 
     private BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-    private int objLen = obj.encode().length();
+    private int objLen = obj.encode().length() + HeaderOps.HEADER_OFFSET;
     private int numObjects = 100;
 
     @Test
@@ -439,7 +440,7 @@ public class StreamTest extends LogTestBase {
             pos += objLength;
             filePos += objLength;
             int remainingSpace = maxLogChunkSize - filePos;
-            if (remainingSpace < objLength) {
+            if (remainingSpace < objLength + HeaderOps.HEADER_OFFSET) {
                 pos += remainingSpace;
                 filePos = 0;
             }
@@ -452,7 +453,7 @@ public class StreamTest extends LogTestBase {
     //@Repeat(value = 10000)
     public void test_stream_multiple(TestContext testContext) throws Exception {
 
-        int fileSize = objLen * numObjects / 5 + objLen / 2;
+        int fileSize = objLen * (numObjects / 5) + objLen / 2;
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
                 setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
         startLog();

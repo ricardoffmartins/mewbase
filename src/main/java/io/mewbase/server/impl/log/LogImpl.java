@@ -165,7 +165,7 @@ public class LogImpl implements Log {
         // Reading logic will try to get a new header and the payload size so we need to account
         // for the record (inc header) plus a new header plus the first int of the payload (size)
         final int spaceRequired = record.length() + HeaderOps.HEADER_OFFSET + Integer.BYTES;
-        if (spaceRequired >= remainingSpace) {
+        if (spaceRequired > remainingSpace) {
             if (remainingSpace > 0) {
                 // Write into the remaining space so all log chunk files are same size
                 Buffer buffer = Buffer.buffer(new byte[remainingSpace]);
