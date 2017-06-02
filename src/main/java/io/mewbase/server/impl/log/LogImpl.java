@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>
  * 1. Corruption detection, incl CRC checks
  * 2. Version header
+ * 3. Compression
  * <p>
  * Created by tim on 07/10/16.
  */
@@ -150,6 +151,7 @@ public class LogImpl implements Log {
     @Override
     public synchronized CompletableFuture<Long> append(BsonObject obj) {
 
+        //Buffer record = HeaderOps.writeHeader(obj.encode());
         Buffer record = obj.encode();
         int len = record.length();
         if (record.length() > options.getMaxRecordSize()) {
@@ -518,7 +520,7 @@ public class LogImpl implements Log {
 
         Arrays.sort(files, (f1, f2) -> f1.compareTo(f2));
         // All files before the head file must be right size
-        // TODO test this
+        // FchecTODO test this
         for (int i = 0; i < files.length; i++) {
             if (i < fileNumber && options.getMaxLogChunkSize() != files[i].length()) {
                 throw new MewException("File unexpected size: " + files[i] + " i: " + i + " fileNumber "

@@ -4,7 +4,6 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.impl.BasicFile;
-import io.mewbase.server.impl.Protocol;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -201,10 +200,12 @@ public class LogReadStreamImpl implements LogReadStream {
         }
     }
 
-    private synchronized void handleFrame(Buffer buffer) {
+    private synchronized void handleFrame(Buffer checksumBuffer) {
         if (closed) {
             return;
         }
+        //Buffer buffer = HeaderOps.readHeader(checksumBuffer);
+        Buffer buffer = checksumBuffer;
         // TODO bit clunky - need to add size back in so it can be decoded, improve this!
         int bl = buffer.length() + 4;
         Buffer buff2 = Buffer.buffer(bl);
