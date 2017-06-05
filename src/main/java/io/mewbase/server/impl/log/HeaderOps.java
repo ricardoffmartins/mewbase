@@ -45,11 +45,10 @@ public class HeaderOps {
     /**
      * Wrap the stateful checksum op in a pure function
      */
-    private static int getChecksum(byte[]  bytes) {
+    private static synchronized int getChecksum(byte[]  bytes) {
         checksumOp.reset();
         checksumOp.update(bytes, 0 , bytes.length);
-        final long val = (int)checksumOp.getValue();
-        return Math.toIntExact(val);
+        return (int)checksumOp.getValue();
     }
 
 

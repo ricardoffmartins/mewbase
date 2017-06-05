@@ -479,13 +479,12 @@ public class StreamTest extends LogTestBase {
 
         rs.handler((pos, record) -> {
             testContext.assertEquals("bar", record.getString("foo"));
-            int currCount = counter.get();
-            testContext.assertEquals(currCount, record.getInteger("num"));
-            long expectedPos = calcPos(currCount, fileSize, objLen);
+            // int currCount = counter.get();
+            testContext.assertEquals(counter.get(), record.getInteger("num"));
+            long expectedPos = calcPos(counter.get(), fileSize, objLen);
             testContext.assertEquals(expectedPos, (long)pos);
             if (counter.incrementAndGet() == numObjects) {
                 rs.close();
-                final long latchVal = latch.getCount();
                 latch.countDown();
             }
         });
