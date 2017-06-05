@@ -48,7 +48,8 @@ public class HeaderOps {
     private static int getChecksum(byte[]  bytes) {
         checksumOp.reset();
         checksumOp.update(bytes, 0 , bytes.length);
-        return Math.toIntExact(checksumOp.getValue());
+        final long val = (int)checksumOp.getValue();
+        return Math.toIntExact(val);
     }
 
 
