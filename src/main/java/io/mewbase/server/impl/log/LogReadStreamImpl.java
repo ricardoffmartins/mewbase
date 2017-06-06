@@ -20,6 +20,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import static io.mewbase.server.impl.log.FramingOps.HEADER_SIZE;
+
 /**
  * Public methods always accessed from same event loop
  * <p>
@@ -52,7 +54,6 @@ public class LogReadStreamImpl implements LogReadStream {
     private RecordParser parser;
 
     private final static int HEADER_SENTINAL = -1;
-    private final static int HEADER_AND_SIZE = HeaderOps.HEADER_OFFSET + Integer.BYTES;
     private int recordSize = HEADER_SENTINAL;
     private Buffer headerBuffer = null;
 
@@ -158,7 +159,7 @@ public class LogReadStreamImpl implements LogReadStream {
     }
 
     private void resetParser() {
-        parser = RecordParser.newFixed(HEADER_AND_SIZE, this::handleRec);
+        parser = RecordParser.newFixed(HEADER_SIZE, this::handleRec);
     }
 
     private void handle0(long pos, BsonObject bsonObject) {
@@ -204,14 +205,14 @@ public class LogReadStreamImpl implements LogReadStream {
             if (possPadding == 0) {
                 // Padding at end of file
                 // so just keep looking for ints until we get to end of file at which point the
-                // parser is reset to look for 'header plus size' again
+                // parser is reset to look for 'header size' again
                 parser.fixedSizeMode(Integer.BYTES);
             } else {
                 // Assuming magic number found
                 // Looks like a valid header so store the header ready to put the whole buffer back
                 // together again when the body comes back in.
                 headerBuffer = buff;
-                recordSize = buff.getIntLE(HeaderOps.HEADER_OFFSET) - Integer.BYTES; // we already read the size from the body
+                recordSize = buff.getIntLE(FramingOps.CHECKSUM_SIZE);  // the size is directly after the checksum
                 parser.fixedSizeMode(recordSize);
             }
         } else {
@@ -223,26 +224,28 @@ public class LogReadStreamImpl implements LogReadStream {
                 final ByteBuf bodyRemaining = buff.getByteBuf();
                 // “Thus strangely are our souls constructed, and by slight ligaments are we bound to prosperity and ruin.”
                 final ByteBuf full = Unpooled.wrappedBuffer(headerAndSize, bodyRemaining);
-                final Buffer frame = HeaderOps.readHeader(Buffer.buffer(full));
-                handleFrame(frame);
 
-                // set up for the next header
-                parser.fixedSizeMode(HEADER_AND_SIZE);
-                recordSize = HEADER_SENTINAL;
-                headerBuffer = null; // gc hint
+                try {
+                    final Buffer body = FramingOps.unframe(Buffer.buffer(full));
+                    handleBody(body);
+                    // set up for the next header
+                    parser.fixedSizeMode(FramingOps.HEADER_SIZE);
+                    recordSize = HEADER_SENTINAL;
+                    headerBuffer = null; // gc hint
+                } catch (Exception badDiskRead) {
+                    logger.error("Corrupt log file", badDiskRead);
+                    close();
+                }
             }
         }
     }
 
-    private synchronized void handleFrame(Buffer buffer) {
+    private synchronized void handleBody(Buffer buffer) {
         if (closed) {
             return;
         }
-        // TODO bit clunky - need to add size back in so it can be decoded, improve this!
-        // DONE - at the cost of some complexity in handleRec
-//        int bl = buffer.length() + 4;
-//        Buffer buff2 = Buffer.buffer(bl);
-//        buff2.appendIntLE(bl).appendBuffer(buffer);
+        // DONE - TODO bit clunky - need to add size back in so it can be decoded, improve this!
+        // at the cost of some complexity in handleRec method
         BsonObject bson = new BsonObject(buffer);
         if (ignoreFirst) {
             ignoreFirst = false;
@@ -274,7 +277,7 @@ public class LogReadStreamImpl implements LogReadStream {
                 }
             }
         }
-        fileStreamPos += HeaderOps.HEADER_OFFSET + buffer.length();
+        fileStreamPos += FramingOps.FRAME_SIZE + buffer.length();
     }
 
     private void handleException(Throwable t) {

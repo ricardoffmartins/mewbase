@@ -151,7 +151,7 @@ public class LogImpl implements Log {
     @Override
     public synchronized CompletableFuture<Long> append(BsonObject obj) {
         // encode the BsonObject and add a header.
-        Buffer record = HeaderOps.writeHeader(obj.encode());
+        Buffer record = FramingOps.frame(obj.encode());
         // Buffer record = obj.encode();
         int len = record.length();
         if (record.length() > options.getMaxRecordSize()) {
@@ -164,7 +164,7 @@ public class LogImpl implements Log {
 
         // Reading logic will try to get a new header and the payload size so we need to account
         // for the record (inc header) plus a new header plus the first int of the payload (size)
-        final int spaceRequired = record.length() + HeaderOps.HEADER_OFFSET + Integer.BYTES;
+        final int spaceRequired = record.length() + FramingOps.FRAME_SIZE;
         if (spaceRequired > remainingSpace) {
             if (remainingSpace > 0) {
                 // Write into the remaining space so all log chunk files are same size
