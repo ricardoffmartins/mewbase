@@ -30,7 +30,6 @@ public class FramingOps {
             (byte)0x05,(byte)0x79,(byte)0x70,(byte)0xE8,(byte)0x86,(byte)0xA4,(byte)0xB8,(byte)0x9C
     };
 
-
     // frame layout
     public static final int CHECKSUM_SIZE = Integer.BYTES;
     public static final int MAGIC_SIZE = MAGIC_BYTES.length;
@@ -43,8 +42,7 @@ public class FramingOps {
     public static final int MAGIC_BYTES_ERROR = 2;
 
     private static final Checksum checksumOp = new CRC32();
-    //private static final Checksum checksumOp = new Adler32();
-
+    
     /**
      * Wrap the stateful checksum op in a threadsafe pure function.
      * For our purposes we force the checksum to never be 0
