@@ -6,7 +6,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
 
-//import java.util.zip.Adler32;
+import java.util.zip.Adler32;
 import java.util.Arrays;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
@@ -25,32 +25,35 @@ import java.util.zip.Checksum;
  */
 public class FramingOps {
 
-    static final byte[] MAGIC_BYTES = {
+    private static final byte[] MAGIC_BYTES = {
             (byte)0xE6,(byte)0x1A,(byte)0xCD,(byte)0x2F,(byte)0x49,(byte)0xA9,(byte)0x42,(byte)0x8A,
-            (byte)0x00,(byte)0x79,(byte)0x70,(byte)0xE8,(byte)0x86,(byte)0xA4,(byte)0xB8,(byte)0x9C
+            (byte)0x05,(byte)0x79,(byte)0x70,(byte)0xE8,(byte)0x86,(byte)0xA4,(byte)0xB8,(byte)0x9C
     };
-    static final ByteBuf footer = Unpooled.wrappedBuffer(MAGIC_BYTES);
 
 
     // frame layout
     public static final int CHECKSUM_SIZE = Integer.BYTES;
     public static final int MAGIC_SIZE = MAGIC_BYTES.length;
-    // header is the checksum plus the size field of the body
+    // "header" is the checksum plus the size field of the body
     public static final int HEADER_SIZE = CHECKSUM_SIZE + Integer.BYTES;
     public static final int FRAME_SIZE = CHECKSUM_SIZE + MAGIC_SIZE;
 
+    // Error Codes for MewException
+    public static final int CHECKSUM_ERROR = 1;
+    public static final int MAGIC_BYTES_ERROR = 2;
 
-    static final Checksum checksumOp = new CRC32();
-    //static final Checksum checksumOp = new Adler32();
-
+    private static final Checksum checksumOp = new CRC32();
+    //private static final Checksum checksumOp = new Adler32();
 
     /**
-     * Wrap the stateful checksum op in a threadsafe pure function
+     * Wrap the stateful checksum op in a threadsafe pure function.
+     * For our purposes we force the checksum to never be 0
      */
-    private static synchronized int getChecksum(byte[]  bytes) {
+    static synchronized int getNonZeroChecksum(byte[]  bytes) {
         checksumOp.reset();
         checksumOp.update(bytes, 0 , bytes.length);
-        return (int)checksumOp.getValue();
+        final int value = (int)checksumOp.getValue();
+        return value == 0 ? 1 : value;
     }
 
 
@@ -62,10 +65,11 @@ public class FramingOps {
      */
     public static Buffer frame(Buffer in)  {
             final ByteBuf header = Unpooled.buffer(CHECKSUM_SIZE);
-            header.writeInt(getChecksum(in.getBytes()));
+            header.writeInt(getNonZeroChecksum(in.getBytes()));
             // zero copy compound buffer
+            final ByteBuf footer = Unpooled.wrappedBuffer(MAGIC_BYTES);
             final ByteBuf framedEvent = Unpooled.wrappedBuffer(3, header, in.getByteBuf(), footer);
-            return  Buffer.buffer(framedEvent);
+            return Buffer.buffer(framedEvent);
     }
 
     /**
@@ -80,16 +84,17 @@ public class FramingOps {
         // size is part of the body
         final int bodyEndPos = CHECKSUM_SIZE+bsonSize;
         final byte[] bsonBody = in.getBytes(CHECKSUM_SIZE,bodyEndPos);
-        final byte[] storedMagic = in.getBytes(bodyEndPos, bodyEndPos+MAGIC_SIZE);
 
-        final int bodyChecksum = getChecksum(bsonBody);
-
-        if (!Arrays.equals(storedMagic, MAGIC_BYTES)) {
-            throw new MewException("Magic bytes error - probable file corruption");
+        // Ensure the body including the size header was not corrupt
+        final int bodyChecksum = getNonZeroChecksum(bsonBody);
+        if (bodyChecksum != storedChecksum) {
+            throw new MewException("Checksum error - probable message corruption",CHECKSUM_ERROR);
         }
 
-        if (bodyChecksum != storedChecksum) {
-            throw new MewException("Checksum error - probable message corruption");
+        // Ensure the magic bytes appear in the correct place at the end of the frame
+        final byte[] storedMagic = in.getBytes(bodyEndPos, bodyEndPos+MAGIC_SIZE);
+        if (!Arrays.equals(storedMagic, MAGIC_BYTES)) {
+            throw new MewException("Magic bytes error - probable file corruption",MAGIC_BYTES_ERROR);
         }
 
         return Buffer.buffer(bsonBody);

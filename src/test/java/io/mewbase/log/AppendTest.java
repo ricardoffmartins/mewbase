@@ -46,8 +46,7 @@ public class AppendTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         int length = obj.encode().length() + FramingOps.FRAME_SIZE;
         int numObjects = 100;
-        // space is reserved for header so will overspill without subtracting 1
-        serverOptions = origServerOptions().setMaxLogChunkSize(length * numObjects).setMaxRecordSize(length + 1);
+        serverOptions = origServerOptions().setMaxLogChunkSize(length * (numObjects - 1)).setMaxRecordSize(length + 1);
         startLog();
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
         assertExists(0);
@@ -129,7 +128,7 @@ public class AppendTest extends LogTestBase {
         int pos = 0;
         int count = 0;
         while (true) {
-            final int objStart = FramingOps.FRAME_SIZE + pos;
+            final int objStart = FramingOps.CHECKSUM_SIZE + pos;
             int objLen = buff.getIntLE(objStart);
             if (objLen == 0) {
                 break;

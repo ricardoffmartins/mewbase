@@ -1,6 +1,7 @@
 package io.mewbase.server.impl.log;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.client.MewException;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.impl.BasicFile;
@@ -159,7 +160,7 @@ public class LogReadStreamImpl implements LogReadStream {
     }
 
     private void resetParser() {
-        parser = RecordParser.newFixed(HEADER_SIZE, this::handleRec);
+        parser = RecordParser.newFixed(FramingOps.HEADER_SIZE, this::handleRec);
     }
 
     private void handle0(long pos, BsonObject bsonObject) {
@@ -191,8 +192,8 @@ public class LogReadStreamImpl implements LogReadStream {
 
     /**
      * This method interacts with the parser to grab
-     * 1) Header
-     * 2) Body
+     * 1) Header - checksum plus the size elements from the body
+     * 2) Remainder of body and magic number
      * Until the first int of the header is 0
      * @param buff
      */
@@ -200,7 +201,7 @@ public class LogReadStreamImpl implements LogReadStream {
 
         if (recordSize == HEADER_SENTINAL) {
             // Got a header so
-            // check for padding (alt magic number)
+            // check for padding (alt checksum)
             int possPadding = buff.getInt(0);
             if (possPadding == 0) {
                 // Padding at end of file
@@ -208,34 +209,32 @@ public class LogReadStreamImpl implements LogReadStream {
                 // parser is reset to look for 'header size' again
                 parser.fixedSizeMode(Integer.BYTES);
             } else {
-                // Assuming magic number found
                 // Looks like a valid header so store the header ready to put the whole buffer back
                 // together again when the body comes back in.
                 headerBuffer = buff;
-                recordSize = buff.getIntLE(FramingOps.CHECKSUM_SIZE);  // the size is directly after the checksum
-                parser.fixedSizeMode(recordSize);
+                recordSize = buff.getIntLE(FramingOps.CHECKSUM_SIZE);
+                // the size includes the size part of the header so we need ignore that and include the magic at the end
+                parser.fixedSizeMode(recordSize - Integer.BYTES  + FramingOps.MAGIC_SIZE);
             }
         } else {
-            // Got a body so
+            // Got a body and magic number
             // join the header and the rest of the body back up
-            // do all the header checks and send the body to be processed
+            // unframe and send the body to be processed
             if (recordSize != 0) {
                 final ByteBuf headerAndSize = headerBuffer.getByteBuf();
                 final ByteBuf bodyRemaining = buff.getByteBuf();
                 // “Thus strangely are our souls constructed, and by slight ligaments are we bound to prosperity and ruin.”
-                final ByteBuf full = Unpooled.wrappedBuffer(headerAndSize, bodyRemaining);
-
+                final Buffer full = Buffer.buffer(Unpooled.wrappedBuffer(headerAndSize, bodyRemaining));
                 try {
-                    final Buffer body = FramingOps.unframe(Buffer.buffer(full));
+                    final Buffer body = FramingOps.unframe(full);
                     handleBody(body);
-                    // set up for the next header
-                    parser.fixedSizeMode(FramingOps.HEADER_SIZE);
-                    recordSize = HEADER_SENTINAL;
-                    headerBuffer = null; // gc hint
-                } catch (Exception badDiskRead) {
-                    logger.error("Corrupt log file", badDiskRead);
-                    close();
+                } catch (MewException badRead) {
+                    logger.error("Bad read from stream", badRead, badRead.getErrorCode());
                 }
+                // set up for the next header
+                parser.fixedSizeMode(FramingOps.HEADER_SIZE);
+                recordSize = HEADER_SENTINAL;
+                headerBuffer = null; // gc hint
             }
         }
     }

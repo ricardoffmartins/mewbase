@@ -43,93 +43,93 @@ public class StreamTest extends LogTestBase {
 
     @Test
     public void test_stream_single_file_equal_to_max_file_size(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * numObjects ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
                 0, numObjects * objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) + FramingOps.FRAME_SIZE + Integer.BYTES;;
+        int fileSize = objLen * (numObjects - 1) ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
                 1, objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_with_empty_space(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) + (objLen / 2) + FramingOps.FRAME_SIZE + Integer.BYTES; ;
+        int fileSize = objLen * (numObjects - 1) + (objLen / 2)  ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
                 1, objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_both_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 2 + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * numObjects / 2 ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                1, fileSize - (FramingOps.FRAME_SIZE + Integer.BYTES) , objLen);
+                1, fileSize  , objLen);
     }
 
     @Test
     public void test_stream_five_files_with_empty_space(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects / 5) + (objLen / 2) + FramingOps.FRAME_SIZE + Integer.BYTES;;
+        int fileSize = objLen * (numObjects / 5) + (objLen / 2) ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
                 4, objLen * (numObjects / 5), objLen);
     }
 
     @Test
     public void test_stream_five_files_fill_both_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 5 + FramingOps.FRAME_SIZE + Integer.BYTES;;
+        int fileSize = objLen * numObjects / 5 ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                4, fileSize - (FramingOps.FRAME_SIZE + Integer.BYTES), objLen);
+                4, fileSize , objLen);
     }
 
     @Test
     public void test_stream_single_file_less_than_max_file_size_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects + 10) + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * (numObjects + 10) ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 0, numObjects * objLen, objLen);
     }
 
     @Test
     public void test_stream_single_file_equal_to_max_file_size_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * numObjects ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 0, numObjects * objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * (numObjects - 1) ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 1, objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_with_empty_space_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) + (objLen / 2) + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * (numObjects - 1) + (objLen / 2) ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 1, objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_both_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 2 + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * numObjects / 2 ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                1, fileSize - (FramingOps.FRAME_SIZE + Integer.BYTES), objLen);
+                1, fileSize, objLen);
     }
 
     @Test
     public void test_stream_five_files_with_empty_space_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects / 5) + (objLen / 2) + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * (numObjects / 5) + (objLen / 2) ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 4, objLen * (numObjects / 5), objLen);
     }
 
     @Test
     public void test_stream_five_files_fill_both_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 5 + FramingOps.FRAME_SIZE + Integer.BYTES;
+        int fileSize = objLen * numObjects / 5 ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                4, fileSize - (FramingOps.FRAME_SIZE + Integer.BYTES), objLen);
+                4, fileSize , objLen);
     }
 
     protected void test_stream(TestContext testContext, int numObjects, int maxLogChunkSize, int readBuffersize,
@@ -440,7 +440,7 @@ public class StreamTest extends LogTestBase {
             pos += objLength;
             filePos += objLength;
             int remainingSpace = maxLogChunkSize - filePos;
-            if (remainingSpace < objLength + FramingOps.FRAME_SIZE + Integer.BYTES) {
+            if (remainingSpace < objLength ) {
                 pos += remainingSpace;
                 filePos = 0;
             }

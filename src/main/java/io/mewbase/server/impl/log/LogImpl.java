@@ -162,9 +162,7 @@ public class LogImpl implements Log {
 
         int remainingSpace = options.getMaxLogChunkSize() - filePos;
 
-        // Reading logic will try to get a new header and the payload size so we need to account
-        // for the record (inc header) plus a new header plus the first int of the payload (size)
-        final int spaceRequired = record.length() + FramingOps.FRAME_SIZE;
+        final int spaceRequired = record.length();
         if (spaceRequired > remainingSpace) {
             if (remainingSpace > 0) {
                 // Write into the remaining space so all log chunk files are same size
@@ -524,7 +522,7 @@ public class LogImpl implements Log {
 
         Arrays.sort(files, (f1, f2) -> f1.compareTo(f2));
         // All files before the head file must be right size
-        // FchecTODO test this
+        // TODO test this
         for (int i = 0; i < files.length; i++) {
             if (i < fileNumber && options.getMaxLogChunkSize() != files[i].length()) {
                 throw new MewException("File unexpected size: " + files[i] + " i: " + i + " fileNumber "
