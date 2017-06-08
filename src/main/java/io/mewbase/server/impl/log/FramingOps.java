@@ -41,13 +41,13 @@ public class FramingOps {
     public static final int CHECKSUM_ERROR = 1;
     public static final int MAGIC_BYTES_ERROR = 2;
 
-    private static final Checksum checksumOp = new CRC32();
-    
+    private final Checksum checksumOp = new CRC32();
+
     /**
      * Wrap the stateful checksum op in a threadsafe pure function.
      * For our purposes we force the checksum to never be 0
      */
-    static synchronized int getNonZeroChecksum(byte[]  bytes) {
+     private int getNonZeroChecksum(byte[]  bytes) {
         checksumOp.reset();
         checksumOp.update(bytes, 0 , bytes.length);
         final int value = (int)checksumOp.getValue();
@@ -61,7 +61,7 @@ public class FramingOps {
      * @param in : Vertx Buffer of arbitrary bytes
      * @return Buffer with checksum in the Frame and magic number
      */
-    public static Buffer frame(Buffer in)  {
+    public Buffer frame(Buffer in)  {
             final ByteBuf header = Unpooled.buffer(CHECKSUM_SIZE);
             header.writeInt(getNonZeroChecksum(in.getBytes()));
             // zero copy compound buffer
@@ -75,7 +75,7 @@ public class FramingOps {
      * @param in : Vertx Buffer with a header as described above.
      * @return : A buffer without the  header
      */
-    public static Buffer unframe(Buffer in) {
+    public Buffer unframe(Buffer in) {
 
         final int storedChecksum = in.getInt(0);
         final int bsonSize = in.getIntLE(CHECKSUM_SIZE);

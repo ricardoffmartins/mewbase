@@ -39,6 +39,8 @@ public class LogReadStreamImpl implements LogReadStream {
     private final Context context;
     private final int readBufferSize;
     private final Queue<BufferedRecord> buffered = new LinkedList<>();
+    private final FramingOps framing = new FramingOps();
+
     private BiConsumer<Long, BsonObject> handler;
     private Consumer<Throwable> exceptionHandler;
 
@@ -226,7 +228,7 @@ public class LogReadStreamImpl implements LogReadStream {
                 // “Thus strangely are our souls constructed, and by slight ligaments are we bound to prosperity and ruin.”
                 final Buffer full = Buffer.buffer(Unpooled.wrappedBuffer(headerAndSize, bodyRemaining));
                 try {
-                    final Buffer body = FramingOps.unframe(full);
+                    final Buffer body = framing.unframe(full);
                     handleBody(body);
                 } catch (MewException badRead) {
                     logger.error("Bad read from stream", badRead, badRead.getErrorCode());

@@ -21,24 +21,25 @@ public class FramingOpsTest extends LogTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(FramingOpsTest.class);
 
-
     @Test
     public void testReversable() throws Exception {
+        final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
-        Buffer withFrame = FramingOps.frame(original);
-        Buffer result = FramingOps.unframe(withFrame);
+        Buffer withFrame = framing.frame(original);
+        Buffer result = framing.unframe(withFrame);
         assertEquals(original, result);
     }
 
 
     @Test
     public void testBadChecksum() throws Exception {
+        final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
-        Buffer withBadChecksum = FramingOps.frame(original).setByte( 2, (byte) 43);
+        Buffer withBadChecksum = framing.frame(original).setByte( 2, (byte) 43);
         try {
-            Buffer result = FramingOps.unframe(withBadChecksum);
+            Buffer result = framing.unframe(withBadChecksum);
             fail("Good read from bad checksum");
         } catch (MewException mewException) {
             assertTrue( mewException.getErrorCode() == FramingOps.CHECKSUM_ERROR );
@@ -47,11 +48,12 @@ public class FramingOpsTest extends LogTestBase {
 
     @Test
     public void testCorruptMessageSize() throws Exception {
+        final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
-        Buffer withCorruptMessageSize = FramingOps.frame(original).setByte(4,  (byte)0);
+        Buffer withCorruptMessageSize = framing.frame(original).setByte(4,  (byte)0);
         try {
-            Buffer result = FramingOps.unframe(withCorruptMessageSize);
+            Buffer result = framing.unframe(withCorruptMessageSize);
             fail("Good read from corrupt message");
         } catch (MewException mewException) {
             assertTrue( mewException.getErrorCode() == FramingOps.CHECKSUM_ERROR );
@@ -60,11 +62,12 @@ public class FramingOpsTest extends LogTestBase {
 
     @Test
     public void testCorruptMessage() throws Exception {
+        final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
-        Buffer withCorruptMessage = FramingOps.frame(original).setByte(12,  (byte)42);
+        Buffer withCorruptMessage = framing.frame(original).setByte(12,  (byte)42);
         try {
-            Buffer result = FramingOps.unframe(withCorruptMessage);
+            Buffer result = framing.unframe(withCorruptMessage);
             fail("Good read from corrupt message");
         } catch (MewException mewException) {
             assertTrue(mewException.getErrorCode() == FramingOps.CHECKSUM_ERROR );
@@ -73,13 +76,14 @@ public class FramingOpsTest extends LogTestBase {
 
     @Test
     public void testBadMagic() throws Exception {
+        final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
         final int offsetIntoMagic = FramingOps.CHECKSUM_SIZE + original.length() + 7;
-        Buffer framed = FramingOps.frame(original).copy();
+        Buffer framed = framing.frame(original).copy();
         Buffer withCorruptMagic = framed.setByte(offsetIntoMagic,  (byte)6);
         try {
-            Buffer result = FramingOps.unframe(withCorruptMagic);
+            Buffer result = framing.unframe(withCorruptMagic);
             fail("Good read from corrupt message");
         } catch (MewException mewException) {
             assertTrue(mewException.getErrorCode() == FramingOps.MAGIC_BYTES_ERROR );

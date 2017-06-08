@@ -47,6 +47,7 @@ public class LogImpl implements Log {
     private final String channel;
     private final ServerOptions options;
     private final Set<LogReadStreamImpl> fileLogStreams = new ConcurrentHashSet<>();
+    private final FramingOps framing = new FramingOps();
 
     private BasicFile currWriteFile;
     private BasicFile nextWriteFile;
@@ -151,7 +152,7 @@ public class LogImpl implements Log {
     @Override
     public synchronized CompletableFuture<Long> append(BsonObject obj) {
         // encode the BsonObject and add a header.
-        Buffer record = FramingOps.frame(obj.encode());
+        Buffer record = framing.frame(obj.encode());
         // Buffer record = obj.encode();
         int len = record.length();
         if (record.length() > options.getMaxRecordSize()) {
@@ -239,18 +240,32 @@ public class LogImpl implements Log {
         }
         CompletableFuture<Void> ret;
         if (currWriteFile != null) {
+            logger.trace("closing current write file for channel " + channel);
             ret = currWriteFile.close();
+            ret = ret.thenCompose( v ->  {logger.trace("Closed current write file for channel " + channel);
+                return CompletableFuture.completedFuture(null);
+            } );
         } else {
             ret = CompletableFuture.completedFuture(null);
         }
         if (nextWriteFile != null) {
+            logger.trace("closing next write file for channel " + channel);
             ret = ret.thenCompose(v -> nextWriteFile.close());
+            ret = ret.thenCompose( v ->  {logger.trace("Closed next write file for channel " + channel);
+                return CompletableFuture.completedFuture(null);
+            } );
         }
         if (nextFileCF != null) {
+            logger.trace("closing next fileCF for channel " + channel);
             CompletableFuture<Void> ncf = nextFileCF;
             ret = ret.thenCompose(v -> ncf);
+            ret = ret.thenCompose(v -> nextWriteFile.close());
+            ret = ret.thenCompose( v ->  {logger.trace("Closed next fileCF for channel " + channel);
+                return CompletableFuture.completedFuture(null);
+            } );
         }
         ret = ret.thenRun(() -> saveInfo(true));
+        logger.trace("composed shutdown calls for channel " + channel);
         return ret;
     }
 
