@@ -3,6 +3,7 @@ package io.mewbase.log;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.impl.log.FramingOps;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,6 +26,7 @@ public class AppendTest extends LogTestBase {
     private final static Logger logger = LoggerFactory.getLogger(AppendTest.class);
 
     @Test
+    //@Repeat(value =10000)
     public void testAppend() throws Exception {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         int length = obj.encode().length() + FramingOps.FRAME_SIZE;
