@@ -12,13 +12,13 @@ import java.util.stream.Stream;
  * {
  *     car : {
  *         wheel : [
- *
+ *             bolt : [
  *
  *
  *     }
  * }
  *
- * $.car.wheel[3].bolt[2]
+ * .car.wheel[3].bolt[2]
  *
  */
 

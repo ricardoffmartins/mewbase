@@ -66,7 +66,7 @@ public class BsonPathTest {
 
     @Test
     public void testSet() {
-        final String pathStr = "house";
+        final String pathStr = ".house";
         BsonObject bs = BsonPath.set(bsonObject, new Path(pathStr),123);
         assertEquals( Integer.valueOf(123), bs.getInteger(pathStr) );
 
