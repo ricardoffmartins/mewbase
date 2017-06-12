@@ -39,7 +39,7 @@ public class LogImpl implements Log {
     private final static Logger logger = LoggerFactory.getLogger(LogImpl.class);
 
     private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
-    private static final String LOG_INFO_FILE_TAIL = "-log-info.dat";
+    // private static final String LOG_INFO_FILE_TAIL = "-log-info.dat";
 
     private final Vertx vertx;
     private final FileAccess faf;
@@ -49,9 +49,9 @@ public class LogImpl implements Log {
 
     private BasicFile currWriteFile;
     private BasicFile nextWriteFile;
-    private int fileNumber; // Number of log file containing current head
-    private int filePos;    // Position of head in head file
-    private long headPos;   // Overall position of head in log
+    private int fileNumber = 0; // Number of log file containing current head
+    private int filePos = 0;    // Position of head in head file
+    private long headPos = 0;   // Overall position of head in log
     private AtomicLong lastWrittenPos = new AtomicLong();  // Position of beginning of last safely written record
     private CompletableFuture<Void> nextFileCF;
     private long writeSequence;
@@ -89,7 +89,7 @@ public class LogImpl implements Log {
         if (startRes != null) {
             return startRes;
         }
-        loadInfo();
+        //loadInfo();
         checkAndLoadFiles();
         File currFile = getFile(fileNumber);
         CompletableFuture<Void> cfCreate = null;
@@ -97,7 +97,7 @@ public class LogImpl implements Log {
             if (fileNumber == 0 && filePos == 0) {
                 // This is OK, new log
                 logger.trace("Creating new log info file for channel {}", channel);
-                saveInfo(true);
+                // saveInfo(true);
                 // Create a new first file
                 cfCreate = createAndFillFile(getFileName(0));
             } else {
@@ -115,7 +115,7 @@ public class LogImpl implements Log {
         startRes = cf.thenAccept(bf -> {
             currWriteFile = bf;
             logger.trace("Opened file log " + this);
-        }).thenCompose(v -> saveInfoAsync(false)).thenRun(this::scheduleFlush);
+        }).thenRun(this::scheduleFlush);
 
         return startRes;
     }
@@ -127,7 +127,7 @@ public class LogImpl implements Log {
                 throw new IllegalStateException("No currWriteFile");
             }
             logger.trace("Flushing log file");
-            currWriteFile.flush().thenCompose(v -> saveInfoAsync(false)).thenRun(this::scheduleFlush);
+            currWriteFile.flush().thenRun(this::scheduleFlush);
         }
     }
 
@@ -204,7 +204,7 @@ public class LogImpl implements Log {
     }
 
     protected synchronized void sendToSubsOrdered(long seq, long pos, BsonObject obj) {
-        // Writes can complete in a different order to which they were submitted, we we need to reorder to ensure
+        // Writes can complete in a different order to which they were submitted, we need to reorder to ensure
         // records are delivered in the correct order
         if (seq == expectedSeq) {
             sendToSubs(pos, obj);
@@ -246,7 +246,7 @@ public class LogImpl implements Log {
             CompletableFuture<Void> ncf = nextFileCF;
             ret = ret.thenCompose(v -> ncf);
         }
-        ret = ret.thenRun(() -> saveInfo(true));
+        // ret = ret.thenRun(() -> saveInfo(true));
         return ret;
     }
 
@@ -316,107 +316,107 @@ public class LogImpl implements Log {
         return currWriteFile.append(record, writePos).thenApply(v -> overallWritePos);
     }
 
-    private synchronized void saveInfo(boolean shutdown) {
-        logger.trace("Saving file info with shutdown: " + shutdown);
-        BsonObject info = new BsonObject();
-        info.put("fileNumber", fileNumber);
-        info.put("headPos", headPos);
-        info.put("fileHeadPos", filePos);
-        info.put("lastWrittenPos", lastWrittenPos.get());
-        info.put("shutdown", shutdown);
-        saveFileInfo(info);
-    }
+//    private synchronized void saveInfo(boolean shutdown) {
+//        logger.trace("Saving file info with shutdown: " + shutdown);
+//        BsonObject info = new BsonObject();
+//        info.put("fileNumber", fileNumber);
+//        info.put("headPos", headPos);
+//        info.put("fileHeadPos", filePos);
+//        info.put("lastWrittenPos", lastWrittenPos.get());
+//        info.put("shutdown", shutdown);
+//        saveFileInfo(info);
+//    }
 
-    private CompletableFuture<Void> saveInfoAsync(boolean shutdown) {
-        AsyncResCF<Void> ar = new AsyncResCF<>();
-        vertx.executeBlocking(fut -> {
-            saveInfo(shutdown);
-            fut.complete();
-        }, ar);
-        return ar;
-    }
+//    private CompletableFuture<Void> saveInfoAsync(boolean shutdown) {
+//        AsyncResCF<Void> ar = new AsyncResCF<>();
+//        vertx.executeBlocking(fut -> {
+//            saveInfo(shutdown);
+//            fut.complete();
+//        }, ar);
+//        return ar;
+//    }
 
-    private void loadInfo() {
-        BsonObject info = loadFileInfo();
-        logger.trace("loaded fileinfo: " + info);
-        if (info != null) {
-            try {
-                Integer fNumber = info.getInteger("fileNumber");
-                if (fNumber == null) {
-                    throw new MewException("Invalid log info file, no fileNumber");
-                }
-                if (fNumber < 0) {
-                    throw new MewException("Invalid log info file, negative fileNumber");
-                }
-                this.fileNumber = fNumber;
-                Integer hPos = info.getInteger("headPos");
-                if (hPos == null) {
-                    throw new MewException("Invalid log info file, no headPos");
-                }
-                if (hPos < 0) {
-                    throw new MewException("Invalid log info file, negative headPos");
-                }
-                this.headPos = hPos;
-                Integer lwPos = info.getInteger("lastWrittenPos");
-                if (lwPos == null) {
-                    throw new MewException("Invalid log info file, no lastWrittenPos");
-                }
-                if (lwPos < 0) {
-                    throw new MewException("Invalid log info file, negative lastWrittenPos");
-                }
-                this.lastWrittenPos.set(lwPos);
-                Integer fhPos = info.getInteger("fileHeadPos");
-                if (fhPos == null) {
-                    throw new MewException("Invalid log info file, no fileHeadPos");
-                }
-                if (fhPos < 0) {
-                    throw new MewException("Invalid log info file, negative fileHeadPos");
-                }
-                this.filePos = fhPos;
-                Boolean shutdown = info.getBoolean("shutdown");
-                if (shutdown == null) {
-                    throw new MewException("Invalid log info file, no shutdown");
-                }
-                if (!shutdown) {
-                    // TODO
-                    // Bail out for now, need to deal with this gracefully
-                    throw new MewException("Log was not shutdown cleanly, could be corrupt!");
-                }
-            } catch (ClassCastException e) {
-                throw new MewException("Invalid info file for channel " + channel, e);
-            }
-        }
-    }
+//    private void loadInfo() {
+//        BsonObject info = loadFileInfo();
+//        logger.trace("loaded fileinfo: " + info);
+//        if (info != null) {
+//            try {
+//                Integer fNumber = info.getInteger("fileNumber");
+//                if (fNumber == null) {
+//                    throw new MewException("Invalid log info file, no fileNumber");
+//                }
+//                if (fNumber < 0) {
+//                    throw new MewException("Invalid log info file, negative fileNumber");
+//                }
+//                this.fileNumber = fNumber;
+//                Integer hPos = info.getInteger("headPos");
+//                if (hPos == null) {
+//                    throw new MewException("Invalid log info file, no headPos");
+//                }
+//                if (hPos < 0) {
+//                    throw new MewException("Invalid log info file, negative headPos");
+//                }
+//                this.headPos = hPos;
+//                Integer lwPos = info.getInteger("lastWrittenPos");
+//                if (lwPos == null) {
+//                    throw new MewException("Invalid log info file, no lastWrittenPos");
+//                }
+//                if (lwPos < 0) {
+//                    throw new MewException("Invalid log info file, negative lastWrittenPos");
+//                }
+//                this.lastWrittenPos.set(lwPos);
+//                Integer fhPos = info.getInteger("fileHeadPos");
+//                if (fhPos == null) {
+//                    throw new MewException("Invalid log info file, no fileHeadPos");
+//                }
+//                if (fhPos < 0) {
+//                    throw new MewException("Invalid log info file, negative fileHeadPos");
+//                }
+//                this.filePos = fhPos;
+//                Boolean shutdown = info.getBoolean("shutdown");
+//                if (shutdown == null) {
+//                    throw new MewException("Invalid log info file, no shutdown");
+//                }
+//                if (!shutdown) {
+//                    // TODO
+//                    // Bail out for now, need to deal with this gracefully
+//                    throw new MewException("Log was not shutdown cleanly, could be corrupt!");
+//                }
+//            } catch (ClassCastException e) {
+//                throw new MewException("Invalid info file for channel " + channel, e);
+//            }
+//        }
+//    }
 
-    private BsonObject loadFileInfo() {
-        File f = new File(options.getLogsDir(), getLogInfoFileName());
-        if (!f.exists()) {
-            return null;
-        } else {
-            try {
-                byte[] bytes = Files.readAllBytes(f.toPath());
-                Buffer buff = Buffer.buffer(bytes);
-                return new BsonObject(buff);
-            } catch (IOException e) {
-                throw new MewException(e);
-            }
-        }
-    }
+//    private BsonObject loadFileInfo() {
+//        File f = new File(options.getLogsDir(), getLogInfoFileName());
+//        if (!f.exists()) {
+//            return null;
+//        } else {
+//            try {
+//                byte[] bytes = Files.readAllBytes(f.toPath());
+//                Buffer buff = Buffer.buffer(bytes);
+//                return new BsonObject(buff);
+//            } catch (IOException e) {
+//                throw new MewException(e);
+//            }
+//        }
+//    }
 
-    private void saveFileInfo(BsonObject info) {
-        Buffer buff = info.encode();
-        File f = new File(options.getLogsDir(), getLogInfoFileName());
-        try {
-            if (!f.exists()) {
-                if (!f.createNewFile()) {
-                    throw new MewException("Failed to create file " + f);
-                }
-            }
-            Files.write(f.toPath(), buff.getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
-        } catch (IOException e) {
-            throw new MewException(e);
-        }
-    }
+//    private void saveFileInfo(BsonObject info) {
+//        Buffer buff = info.encode();
+//        File f = new File(options.getLogsDir(), getLogInfoFileName());
+//        try {
+//            if (!f.exists()) {
+//                if (!f.createNewFile()) {
+//                    throw new MewException("Failed to create file " + f);
+//                }
+//            }
+//            Files.write(f.toPath(), buff.getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
+//        } catch (IOException e) {
+//            throw new MewException(e);
+//        }
+//    }
 
     private File getFile(int fileNumber) {
         return new File(options.getLogsDir(), getFileName(fileNumber));
@@ -496,9 +496,9 @@ public class LogImpl implements Log {
         File[] files = logDir.listFiles(file -> {
             String name = file.getName();
             int lpos = name.lastIndexOf("-");
-            if (name.endsWith(LOG_INFO_FILE_TAIL)) {
-                return false;
-            }
+//            if (name.endsWith(LOG_INFO_FILE_TAIL)) {
+//                return false;
+//            }
             if (lpos == -1) {
                 logger.warn("Unexpected file in log dir: " + file);
                 return false;
@@ -541,9 +541,9 @@ public class LogImpl implements Log {
         return channel + "-" + String.format("%012d", i) + ".log";
     }
 
-    private String getLogInfoFileName() {
-        return channel + LOG_INFO_FILE_TAIL;
-    }
+//   // private String getLogInfoFileName() {
+//        return channel + LOG_INFO_FILE_TAIL;
+//    }
 
     static final class FileCoord {
         final long pos;
