@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * TODO:
  * <p>
- * 1. Corruption detection, incl CRC checks
  * 2. Version header
  * <p>
  * Created by tim on 07/10/16.
@@ -39,7 +38,6 @@ public class LogImpl implements Log {
     private final static Logger logger = LoggerFactory.getLogger(LogImpl.class);
 
     private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
-    // private static final String LOG_INFO_FILE_TAIL = "-log-info.dat";
 
     private final Vertx vertx;
     private final FileAccess faf;
@@ -246,7 +244,7 @@ public class LogImpl implements Log {
             CompletableFuture<Void> ncf = nextFileCF;
             ret = ret.thenCompose(v -> ncf);
         }
-        // ret = ret.thenRun(() -> saveInfo(true));
+        // ret = ret.thenRun(() -> saveInfo(true))
         return ret;
     }
 
@@ -496,9 +494,6 @@ public class LogImpl implements Log {
         File[] files = logDir.listFiles(file -> {
             String name = file.getName();
             int lpos = name.lastIndexOf("-");
-//            if (name.endsWith(LOG_INFO_FILE_TAIL)) {
-//                return false;
-//            }
             if (lpos == -1) {
                 logger.warn("Unexpected file in log dir: " + file);
                 return false;
@@ -541,9 +536,6 @@ public class LogImpl implements Log {
         return channel + "-" + String.format("%012d", i) + ".log";
     }
 
-//   // private String getLogInfoFileName() {
-//        return channel + LOG_INFO_FILE_TAIL;
-//    }
 
     static final class FileCoord {
         final long pos;
