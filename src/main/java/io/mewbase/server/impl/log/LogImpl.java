@@ -38,6 +38,7 @@ public class LogImpl implements Log {
     private final String channel;
     private final ServerOptions options;
     private final Set<LogReadStreamImpl> fileLogStreams = new ConcurrentHashSet<>();
+    private final FramingOps framing = new FramingOps();
 
     private BasicFile currWriteFile;
     private BasicFile nextWriteFile;
@@ -81,15 +82,14 @@ public class LogImpl implements Log {
         if (startRes != null) {
             return startRes;
         }
-        //loadInfo();
+
         checkAndLoadFiles();
         File currFile = getFile(fileNumber);
         CompletableFuture<Void> cfCreate = null;
         if (!currFile.exists()) {
-            if (fileNumber == 0 && filePos == 0) {
+            if (fileNumber == 0) {
                 // This is OK, new log
                 logger.trace("Creating new log info file for channel {}", channel);
-                // saveInfo(true);
                 // Create a new first file
                 cfCreate = createAndFillFile(getFileName(0));
             } else {
@@ -141,8 +141,8 @@ public class LogImpl implements Log {
 
     @Override
     public synchronized CompletableFuture<Long> append(BsonObject obj) {
-
-        Buffer record = obj.encode();
+        // encode the BsonObject and add a frame
+        Buffer record = framing.frame(obj.encode());
         int len = record.length();
         if (record.length() > options.getMaxRecordSize()) {
             throw new MewException("Record too long " + len + " max " + options.getMaxRecordSize());
@@ -151,13 +151,17 @@ public class LogImpl implements Log {
         CompletableFuture<Long> cf;
 
         int remainingSpace = options.getMaxLogChunkSize() - filePos;
-        if (record.length() > remainingSpace) {
+
+        final int spaceRequired = record.length();
+        if (spaceRequired > remainingSpace) {
             if (remainingSpace > 0) {
                 // Write into the remaining space so all log chunk files are same size
+                // TODO - Check that the file size may already be constant becuase the
+                // TODO - the file is filled with 0s on creation
                 Buffer buffer = Buffer.buffer(new byte[remainingSpace]);
                 append0(buffer.length(), buffer);
             }
-            // Move to next file
+            // Move to next file or start first file
             if (nextWriteFile != null) {
                 logger.trace("Moving to next log file");
                 currWriteFile = nextWriteFile;
@@ -228,6 +232,9 @@ public class LogImpl implements Log {
         CompletableFuture<Void> ret;
         if (currWriteFile != null) {
             ret = currWriteFile.close();
+            ret = ret.thenCompose( v ->  {logger.trace("Closed current log file for channel " + channel);
+                return CompletableFuture.completedFuture(null);
+            } );
         } else {
             ret = CompletableFuture.completedFuture(null);
         }
@@ -291,112 +298,11 @@ public class LogImpl implements Log {
     }
 
     private CompletableFuture<Long> append0(int len, Buffer record) {
-        int writePos = filePos;
+        int  writePos = filePos;
         filePos += len;
-        return currWriteFile.append(record, writePos).thenApply(v -> filePos);
+        return currWriteFile.append(record, writePos).thenApply(v -> (long)filePos);
     }
 
-//    private synchronized void saveInfo(boolean shutdown) {
-//        logger.trace("Saving file info with shutdown: " + shutdown);
-//        BsonObject info = new BsonObject();
-//        info.put("fileNumber", fileNumber);
-//        info.put("headPos", headPos);
-//        info.put("fileHeadPos", filePos);
-//        info.put("lastWrittenPos", lastWrittenPos.get());
-//        info.put("shutdown", shutdown);
-//        saveFileInfo(info);
-//    }
-
-//    private CompletableFuture<Void> saveInfoAsync(boolean shutdown) {
-//        AsyncResCF<Void> ar = new AsyncResCF<>();
-//        vertx.executeBlocking(fut -> {
-//            saveInfo(shutdown);
-//            fut.complete();
-//        }, ar);
-//        return ar;
-//    }
-
-//    private void loadInfo() {
-//        BsonObject info = loadFileInfo();
-//        logger.trace("loaded fileinfo: " + info);
-//        if (info != null) {
-//            try {
-//                Integer fNumber = info.getInteger("fileNumber");
-//                if (fNumber == null) {
-//                    throw new MewException("Invalid log info file, no fileNumber");
-//                }
-//                if (fNumber < 0) {
-//                    throw new MewException("Invalid log info file, negative fileNumber");
-//                }
-//                this.fileNumber = fNumber;
-//                Integer hPos = info.getInteger("headPos");
-//                if (hPos == null) {
-//                    throw new MewException("Invalid log info file, no headPos");
-//                }
-//                if (hPos < 0) {
-//                    throw new MewException("Invalid log info file, negative headPos");
-//                }
-//                this.headPos = hPos;
-//                Integer lwPos = info.getInteger("lastWrittenPos");
-//                if (lwPos == null) {
-//                    throw new MewException("Invalid log info file, no lastWrittenPos");
-//                }
-//                if (lwPos < 0) {
-//                    throw new MewException("Invalid log info file, negative lastWrittenPos");
-//                }
-//                this.lastWrittenPos.set(lwPos);
-//                Integer fhPos = info.getInteger("fileHeadPos");
-//                if (fhPos == null) {
-//                    throw new MewException("Invalid log info file, no fileHeadPos");
-//                }
-//                if (fhPos < 0) {
-//                    throw new MewException("Invalid log info file, negative fileHeadPos");
-//                }
-//                this.filePos = fhPos;
-//                Boolean shutdown = info.getBoolean("shutdown");
-//                if (shutdown == null) {
-//                    throw new MewException("Invalid log info file, no shutdown");
-//                }
-//                if (!shutdown) {
-//                    // TODO
-//                    // Bail out for now, need to deal with this gracefully
-//                    throw new MewException("Log was not shutdown cleanly, could be corrupt!");
-//                }
-//            } catch (ClassCastException e) {
-//                throw new MewException("Invalid info file for channel " + channel, e);
-//            }
-//        }
-//    }
-
-//    private BsonObject loadFileInfo() {
-//        File f = new File(options.getLogsDir(), getLogInfoFileName());
-//        if (!f.exists()) {
-//            return null;
-//        } else {
-//            try {
-//                byte[] bytes = Files.readAllBytes(f.toPath());
-//                Buffer buff = Buffer.buffer(bytes);
-//                return new BsonObject(buff);
-//            } catch (IOException e) {
-//                throw new MewException(e);
-//            }
-//        }
-//    }
-
-//    private void saveFileInfo(BsonObject info) {
-//        Buffer buff = info.encode();
-//        File f = new File(options.getLogsDir(), getLogInfoFileName());
-//        try {
-//            if (!f.exists()) {
-//                if (!f.createNewFile()) {
-//                    throw new MewException("Failed to create file " + f);
-//                }
-//            }
-//            Files.write(f.toPath(), buff.getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
-//        } catch (IOException e) {
-//            throw new MewException(e);
-//        }
-//    }
 
     private File getFile(int fileNumber) {
         return new File(options.getLogsDir(), getFileName(fileNumber));

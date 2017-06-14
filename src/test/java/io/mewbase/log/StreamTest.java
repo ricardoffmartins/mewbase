@@ -4,6 +4,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
+import io.mewbase.server.impl.log.FramingOps;
 import io.mewbase.server.impl.log.LogImpl;
 import io.mewbase.server.impl.log.LogReadStreamImpl;
 import io.vertx.ext.unit.Async;
@@ -30,7 +31,7 @@ public class StreamTest extends LogTestBase {
     private final static Logger logger = LoggerFactory.getLogger(StreamTest.class);
 
     private BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-    private int objLen = obj.encode().length();
+    private int objLen = obj.encode().length() + FramingOps.FRAME_SIZE;
     private int numObjects = 100;
 
     @Test
@@ -42,93 +43,93 @@ public class StreamTest extends LogTestBase {
 
     @Test
     public void test_stream_single_file_equal_to_max_file_size(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects;
+        int fileSize = objLen * numObjects ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
                 0, numObjects * objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1);
+        int fileSize = objLen * (numObjects - 1) ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
                 1, objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_with_empty_space(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) + (objLen / 2);
+        int fileSize = objLen * (numObjects - 1) + (objLen / 2)  ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
                 1, objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_both_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 2;
+        int fileSize = objLen * numObjects / 2 ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                1, fileSize, objLen);
+                1, fileSize  , objLen);
     }
 
     @Test
     public void test_stream_five_files_with_empty_space(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects / 5) + (objLen / 2);
+        int fileSize = objLen * (numObjects / 5) + (objLen / 2) ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
                 4, objLen * (numObjects / 5), objLen);
     }
 
     @Test
     public void test_stream_five_files_fill_both_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 5;
+        int fileSize = objLen * numObjects / 5 ;
         test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                4, fileSize, objLen);
+                4, fileSize , objLen);
     }
 
     @Test
     public void test_stream_single_file_less_than_max_file_size_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects + 10);
+        int fileSize = objLen * (numObjects + 10) ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 0, numObjects * objLen, objLen);
     }
 
     @Test
     public void test_stream_single_file_equal_to_max_file_size_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects;
+        int fileSize = objLen * numObjects ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 0, numObjects * objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1);
+        int fileSize = objLen * (numObjects - 1) ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 1, objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_with_empty_space_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) + (objLen / 2);
+        int fileSize = objLen * (numObjects - 1) + (objLen / 2) ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 1, objLen, objLen);
     }
 
     @Test
     public void test_stream_two_files_fill_both_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 2;
+        int fileSize = objLen * numObjects / 2 ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 1, fileSize, objLen);
     }
 
     @Test
     public void test_stream_five_files_with_empty_space_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects / 5) + (objLen / 2);
+        int fileSize = objLen * (numObjects / 5) + (objLen / 2) ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
                 4, objLen * (numObjects / 5), objLen);
     }
 
     @Test
     public void test_stream_five_files_fill_both_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 5;
+        int fileSize = objLen * numObjects / 5 ;
         test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                4, fileSize, objLen);
+                4, fileSize , objLen);
     }
 
     protected void test_stream(TestContext testContext, int numObjects, int maxLogChunkSize, int readBuffersize,
@@ -439,7 +440,7 @@ public class StreamTest extends LogTestBase {
             pos += objLength;
             filePos += objLength;
             int remainingSpace = maxLogChunkSize - filePos;
-            if (remainingSpace < objLength) {
+            if (remainingSpace < objLength ) {
                 pos += remainingSpace;
                 filePos = 0;
             }
@@ -452,7 +453,7 @@ public class StreamTest extends LogTestBase {
     //@Repeat(value = 10000)
     public void test_stream_multiple(TestContext testContext) throws Exception {
 
-        int fileSize = objLen * numObjects / 5 + objLen / 2;
+        int fileSize = objLen * (numObjects / 5) + objLen / 2 + (FramingOps.FRAME_SIZE + Integer.BYTES);
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
                 setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
         startLog();
@@ -463,23 +464,26 @@ public class StreamTest extends LogTestBase {
         LogReadStreamImpl rs1 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
         LogReadStreamImpl rs2 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
 
-        CountDownLatch latch = new CountDownLatch(2);
 
-        handleRecords(rs1, testContext, latch, fileSize);
-        handleRecords(rs2, testContext, latch, fileSize);
+        CountDownLatch latch = new CountDownLatch(2);
+        AtomicInteger counter1 = new AtomicInteger();
+        AtomicInteger counter2 = new AtomicInteger();
+
+        handleRecords(rs1, counter1, testContext, latch, fileSize);
+        handleRecords(rs2, counter2, testContext, latch, fileSize);
 
         latch.await();
     }
 
-    private void handleRecords(LogReadStreamImpl rs, TestContext testContext, CountDownLatch latch, int fileSize) {
-        AtomicInteger cnt = new AtomicInteger();
+    private void handleRecords(LogReadStreamImpl rs, AtomicInteger counter, TestContext testContext, CountDownLatch latch, int fileSize) {
+
         rs.handler((pos, record) -> {
             testContext.assertEquals("bar", record.getString("foo"));
-            int currCount = cnt.get();
-            testContext.assertEquals(currCount, record.getInteger("num"));
-            long expectedPos = calcPos(currCount, fileSize, objLen);
+            // int currCount = counter.get();
+            testContext.assertEquals(counter.get(), record.getInteger("num"));
+            long expectedPos = calcPos(counter.get(), fileSize, objLen);
             testContext.assertEquals(expectedPos, (long)pos);
-            if (cnt.incrementAndGet() == numObjects) {
+            if (counter.incrementAndGet() == numObjects) {
                 rs.close();
                 latch.countDown();
             }
