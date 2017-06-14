@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>
  * 1. Corruption detection, incl CRC checks
  * 2. Version header
- * 3. Compression
  * <p>
  * Created by tim on 07/10/16.
  */
@@ -151,9 +150,8 @@ public class LogImpl implements Log {
 
     @Override
     public synchronized CompletableFuture<Long> append(BsonObject obj) {
-        // encode the BsonObject and add a header.
+        // encode the BsonObject and add a frame
         Buffer record = framing.frame(obj.encode());
-        // Buffer record = obj.encode();
         int len = record.length();
         if (record.length() > options.getMaxRecordSize()) {
             throw new MewException("Record too long " + len + " max " + options.getMaxRecordSize());
@@ -240,32 +238,21 @@ public class LogImpl implements Log {
         }
         CompletableFuture<Void> ret;
         if (currWriteFile != null) {
-            logger.trace("closing current write file for channel " + channel);
             ret = currWriteFile.close();
-            ret = ret.thenCompose( v ->  {logger.trace("Closed current write file for channel " + channel);
+            ret = ret.thenCompose( v ->  {logger.trace("Closed current log file for channel " + channel);
                 return CompletableFuture.completedFuture(null);
             } );
         } else {
             ret = CompletableFuture.completedFuture(null);
         }
         if (nextWriteFile != null) {
-            logger.trace("closing next write file for channel " + channel);
             ret = ret.thenCompose(v -> nextWriteFile.close());
-            ret = ret.thenCompose( v ->  {logger.trace("Closed next write file for channel " + channel);
-                return CompletableFuture.completedFuture(null);
-            } );
         }
         if (nextFileCF != null) {
-            logger.trace("closing next fileCF for channel " + channel);
             CompletableFuture<Void> ncf = nextFileCF;
             ret = ret.thenCompose(v -> ncf);
-            ret = ret.thenCompose(v -> nextWriteFile.close());
-            ret = ret.thenCompose( v ->  {logger.trace("Closed next fileCF for channel " + channel);
-                return CompletableFuture.completedFuture(null);
-            } );
         }
         ret = ret.thenRun(() -> saveInfo(true));
-        logger.trace("composed shutdown calls for channel " + channel);
         return ret;
     }
 

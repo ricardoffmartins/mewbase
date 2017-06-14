@@ -88,22 +88,8 @@ public class ServerImpl implements Server {
 
     @Override
     public synchronized CompletableFuture<Void> stop() {
-        CompletableFuture<Void> cf = restServiceAdaptor.stop()
-                .thenCompose( v ->  {logger.trace("Stopped service adaptor");
-                                        return CompletableFuture.completedFuture(null);
-                } )
-                .thenCompose(v -> stopTransports())
-                .thenCompose( v ->  {logger.trace("Stopped transports");
-                    return CompletableFuture.completedFuture(null);
-                } )
-                .thenCompose(v -> stopBinders())
-                .thenCompose( v ->  {logger.trace("Stopped binders");
-                    return CompletableFuture.completedFuture(null);
-                } )
-                .thenCompose(v -> stopLogs())
-                .thenCompose( v ->  {logger.trace("Stopped logs");
-                    return CompletableFuture.completedFuture(null);
-                } );
+        CompletableFuture<Void> cf = restServiceAdaptor.stop().thenCompose(v -> stopTransports())
+                .thenCompose(v -> stopBinders()).thenCompose(v -> stopLogs());
         if (ownVertx) {
             cf = cf.thenCompose(v -> {
                 AsyncResCF<Void> cfCloseVertx = new AsyncResCF<>();
@@ -371,7 +357,6 @@ public class ServerImpl implements Server {
 
     private CompletableFuture<Void> stopLogs() {
         CompletableFuture[] arr = new CompletableFuture[logs.size()];
-        logger.trace("stopping " + logs.size() +  " logs ");
         int i = 0;
         for (Log log : logs.values()) {
             arr[i++] = log.close();

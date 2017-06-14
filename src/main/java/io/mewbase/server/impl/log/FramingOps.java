@@ -5,6 +5,8 @@ import io.mewbase.client.MewException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.zip.Adler32;
 import java.util.Arrays;
@@ -25,6 +27,10 @@ import java.util.zip.Checksum;
  */
 public class FramingOps {
 
+
+    private final static Logger logger = LoggerFactory.getLogger(FramingOps.class);
+
+
     private static final byte[] MAGIC_BYTES = {
             (byte)0xE6,(byte)0x1A,(byte)0xCD,(byte)0x2F,(byte)0x49,(byte)0xA9,(byte)0x42,(byte)0x8A,
             (byte)0x05,(byte)0x79,(byte)0x70,(byte)0xE8,(byte)0x86,(byte)0xA4,(byte)0xB8,(byte)0x9C
@@ -37,14 +43,11 @@ public class FramingOps {
     public static final int HEADER_SIZE = CHECKSUM_SIZE + Integer.BYTES;
     public static final int FRAME_SIZE = CHECKSUM_SIZE + MAGIC_SIZE;
 
-    // Error Codes for MewException
-    public static final int CHECKSUM_ERROR = 1;
-    public static final int MAGIC_BYTES_ERROR = 2;
 
     private final Checksum checksumOp = new CRC32();
 
     /**
-     * Wrap the stateful checksum op in a threadsafe pure function.
+     * Wrap the stateful checksum op in pure function.
      * For our purposes we force the checksum to never be 0
      */
      private int getNonZeroChecksum(byte[]  bytes) {
@@ -62,12 +65,9 @@ public class FramingOps {
      * @return Buffer with checksum in the Frame and magic number
      */
     public Buffer frame(Buffer in)  {
-            final ByteBuf header = Unpooled.buffer(CHECKSUM_SIZE);
-            header.writeInt(getNonZeroChecksum(in.getBytes()));
-            // zero copy compound buffer
-            final ByteBuf footer = Unpooled.wrappedBuffer(MAGIC_BYTES);
-            final ByteBuf framedEvent = Unpooled.wrappedBuffer(3, header, in.getByteBuf(), footer);
-            return Buffer.buffer(framedEvent);
+            Buffer buff = Buffer.buffer( CHECKSUM_SIZE + in.length() + MAGIC_BYTES.length);
+            final int checksum = getNonZeroChecksum(in.getBytes());
+            return buff.appendInt(checksum).appendBuffer(in).appendBytes(MAGIC_BYTES);
     }
 
     /**
@@ -81,18 +81,18 @@ public class FramingOps {
         final int bsonSize = in.getIntLE(CHECKSUM_SIZE);
         // size is part of the body
         final int bodyEndPos = CHECKSUM_SIZE+bsonSize;
-        final byte[] bsonBody = in.getBytes(CHECKSUM_SIZE,bodyEndPos);
+        final byte[] bsonBody = in.getBytes(CHECKSUM_SIZE, bodyEndPos);
 
-        // Ensure the body including the size header was not corrupt
+        // check the body including the size header was not corrupt
         final int bodyChecksum = getNonZeroChecksum(bsonBody);
         if (bodyChecksum != storedChecksum) {
-            throw new MewException("Checksum error - probable message corruption",CHECKSUM_ERROR);
+            logger.error("Checksum error - probable log record corruption");
         }
 
-        // Ensure the magic bytes appear in the correct place at the end of the frame
+        // check the magic bytes appear in the correct place at the end of the frame
         final byte[] storedMagic = in.getBytes(bodyEndPos, bodyEndPos+MAGIC_SIZE);
         if (!Arrays.equals(storedMagic, MAGIC_BYTES)) {
-            throw new MewException("Magic bytes error - probable file corruption",MAGIC_BYTES_ERROR);
+            logger.error("Magic bytes error - probable log file corruption");
         }
 
         return Buffer.buffer(bsonBody);

@@ -5,12 +5,19 @@ import io.mewbase.client.MewException;
 import io.mewbase.server.impl.log.FramingOps;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 
 
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 /**
@@ -19,7 +26,41 @@ import static org.junit.Assert.*;
 @RunWith(VertxUnitRunner.class)
 public class FramingOpsTest extends LogTestBase {
 
-    private final static Logger logger = LoggerFactory.getLogger(FramingOpsTest.class);
+    // Patching this in to catch the log output
+    class TestAppender extends AppenderSkeleton {
+        private final List<LoggingEvent> log = new ArrayList<LoggingEvent>();
+
+        @Override
+        public boolean requiresLayout() {
+            return false;
+        }
+
+        @Override
+        protected void append(final LoggingEvent loggingEvent) {
+            log.add(loggingEvent);
+        }
+
+        @Override
+        public void close() {
+        }
+
+        public List<LoggingEvent> getLog() {
+            return new ArrayList<LoggingEvent>(log);
+        }
+    }
+
+
+    private TestAppender patchTestAppender() {
+        final TestAppender appender = new TestAppender();
+        final Logger logger = Logger.getRootLogger();
+        logger.addAppender(appender);
+        return appender;
+    }
+
+    private void removeTestAppender(TestAppender appender) {
+        final Logger logger = Logger.getRootLogger();
+        logger.removeAppender(appender);
+    }
 
     @Test
     public void testReversable() throws Exception {
@@ -34,60 +75,79 @@ public class FramingOpsTest extends LogTestBase {
 
     @Test
     public void testBadChecksum() throws Exception {
+
+        final TestAppender appender = patchTestAppender();
+
         final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
         Buffer withBadChecksum = framing.frame(original).setByte( 2, (byte) 43);
-        try {
-            Buffer result = framing.unframe(withBadChecksum);
-            fail("Good read from bad checksum");
-        } catch (MewException mewException) {
-            assertTrue( mewException.getErrorCode() == FramingOps.CHECKSUM_ERROR );
-        }
+
+        // read with bad checksum
+        Buffer result = framing.unframe(withBadChecksum);
+
+        final LoggingEvent logEntry = appender.getLog().get(0);
+        assertThat(logEntry.getLevel(), is(Level.ERROR));
+        assertTrue(logEntry.getMessage().toString().contains("Checksum"));
+        removeTestAppender(appender);
     }
+
 
     @Test
     public void testCorruptMessageSize() throws Exception {
+
+        final TestAppender appender = patchTestAppender();
+
         final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
         Buffer withCorruptMessageSize = framing.frame(original).setByte(4,  (byte)0);
-        try {
-            Buffer result = framing.unframe(withCorruptMessageSize);
-            fail("Good read from corrupt message");
-        } catch (MewException mewException) {
-            assertTrue( mewException.getErrorCode() == FramingOps.CHECKSUM_ERROR );
-        }
+
+        Buffer result = framing.unframe(withCorruptMessageSize);
+
+        final LoggingEvent logEntry = appender.getLog().get(0);
+        assertThat(logEntry.getLevel(), is(Level.ERROR));
+        assertTrue(logEntry.getMessage().toString().contains("Checksum"));
+        removeTestAppender(appender);
     }
 
     @Test
     public void testCorruptMessage() throws Exception {
+
+        final TestAppender appender = patchTestAppender();
+
         final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
         Buffer withCorruptMessage = framing.frame(original).setByte(12,  (byte)42);
-        try {
-            Buffer result = framing.unframe(withCorruptMessage);
-            fail("Good read from corrupt message");
-        } catch (MewException mewException) {
-            assertTrue(mewException.getErrorCode() == FramingOps.CHECKSUM_ERROR );
-        }
+
+        Buffer result = framing.unframe(withCorruptMessage);
+
+        final LoggingEvent logEntry = appender.getLog().get(0);
+        assertThat(logEntry.getLevel(), is(Level.ERROR));
+        assertTrue(logEntry.getMessage().toString().contains("Checksum"));
+        removeTestAppender(appender);
     }
 
     @Test
     public void testBadMagic() throws Exception {
+
+        final TestAppender appender = patchTestAppender();
+
         final FramingOps framing = new FramingOps();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 23456);
         Buffer original = obj.encode();
         final int offsetIntoMagic = FramingOps.CHECKSUM_SIZE + original.length() + 7;
         Buffer framed = framing.frame(original).copy();
         Buffer withCorruptMagic = framed.setByte(offsetIntoMagic,  (byte)6);
-        try {
-            Buffer result = framing.unframe(withCorruptMagic);
-            fail("Good read from corrupt message");
-        } catch (MewException mewException) {
-            assertTrue(mewException.getErrorCode() == FramingOps.MAGIC_BYTES_ERROR );
-        }
+
+        Buffer result = framing.unframe(withCorruptMagic);
+
+        final LoggingEvent logEntry = appender.getLog().get(0);
+        assertThat(logEntry.getLevel(), is(Level.ERROR));
+        assertTrue(logEntry.getMessage().toString().contains("Magic"));
+        removeTestAppender(appender);
+
     }
 
 

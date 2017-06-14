@@ -251,10 +251,8 @@ public class ClientImpl implements Client, ClientFrameHandler {
         if (pingTimerID != -1) {
             vertx.cancelTimer(pingTimerID);
         }
-        logger.trace("closing network client");
         netClient.close();
         if (ownVertx) {
-            logger.trace("closing vertex client resources");
             AsyncResCF<Void> cf = new AsyncResCF<>();
             vertx.close(cf);
             return cf;
