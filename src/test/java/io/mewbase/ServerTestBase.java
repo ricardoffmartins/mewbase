@@ -79,11 +79,15 @@ public class ServerTestBase extends MewbaseTestBase {
     }
 
     protected void stopServerAndClient() throws Exception {
-        if (client != null) {
-            client.close().get();
-        }
-        if (server != null) {
-            server.stop().get();
+        if (client != null && server != null) {
+            client.close().thenCompose( f -> server.stop()).get();
+        } else {
+            if (client != null) {
+                client.close().get();
+            }
+            if (server != null) {
+                server.stop().get();
+            }
         }
     }
 

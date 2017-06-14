@@ -1,10 +1,12 @@
 package io.mewbase.server.impl.log;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.client.MewException;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.impl.BasicFile;
-import io.mewbase.server.impl.Protocol;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -18,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import static io.mewbase.server.impl.log.FramingOps.HEADER_SIZE;
 
 /**
  * Public methods always accessed from same event loop
@@ -35,6 +39,8 @@ public class LogReadStreamImpl implements LogReadStream {
     private final Context context;
     private final int readBufferSize;
     private final Queue<BufferedRecord> buffered = new LinkedList<>();
+    private final FramingOps framing = new FramingOps();
+
     private BiConsumer<Long, BsonObject> handler;
     private Consumer<Throwable> exceptionHandler;
 
@@ -49,7 +55,10 @@ public class LogReadStreamImpl implements LogReadStream {
     private BasicFile streamFile;
     private int fileSize;
     private RecordParser parser;
-    private int recordSize = -1;
+
+    private final static int HEADER_SENTINAL = -1;
+    private int recordSize = HEADER_SENTINAL;
+    private Buffer headerBuffer = null;
 
     public LogReadStreamImpl(LogImpl fileLog, SubDescriptor subDescriptor, int readBufferSize,
                              int fileSize) {
@@ -153,7 +162,7 @@ public class LogReadStreamImpl implements LogReadStream {
     }
 
     private void resetParser() {
-        parser = RecordParser.newFixed(4, this::handleRec);
+        parser = RecordParser.newFixed(FramingOps.HEADER_SIZE, this::handleRec);
     }
 
     private void handle0(long pos, BsonObject bsonObject) {
@@ -183,33 +192,62 @@ public class LogReadStreamImpl implements LogReadStream {
         });
     }
 
+    /**
+     * This method interacts with the parser to grab
+     * 1) Header - checksum plus the size elements from the body
+     * 2) Remainder of body and magic number
+     * Until the first int of the header is 0
+     * @param buff
+     */
     private void handleRec(Buffer buff) {
-        if (recordSize == -1) {
-            int intle = buff.getIntLE(0);
-            if (intle == 0) {
+
+        if (recordSize == HEADER_SENTINAL) {
+            // Got a header so
+            // check for padding (alt checksum)
+            int possPadding = buff.getInt(0);
+            if (possPadding == 0) {
                 // Padding at end of file
+                // so just keep looking for ints until we get to end of file at which point the
+                // parser is reset to look for 'header size' again
+                parser.fixedSizeMode(Integer.BYTES);
             } else {
-                recordSize = intle - 4;
-                parser.fixedSizeMode(recordSize);
+                // Looks like a valid header so store the header ready to put the whole buffer back
+                // together again when the body comes back in.
+                headerBuffer = buff;
+                recordSize = buff.getIntLE(FramingOps.CHECKSUM_SIZE);
+                // the size includes the size part of the header so we need ignore that and include the magic at the end
+                parser.fixedSizeMode(recordSize - Integer.BYTES  + FramingOps.MAGIC_SIZE);
             }
         } else {
+            // Got a body and magic number
+            // join the header and the rest of the body back up
+            // unframe and send the body to be processed
             if (recordSize != 0) {
-                handleFrame(buff);
-                parser.fixedSizeMode(4);
-                recordSize = -1;
+                final ByteBuf headerAndSize = headerBuffer.getByteBuf();
+                final ByteBuf bodyRemaining = buff.getByteBuf();
+                // “Thus strangely are our souls constructed, and by slight ligaments are we bound to prosperity and ruin.”
+                final Buffer full = Buffer.buffer(Unpooled.wrappedBuffer(headerAndSize, bodyRemaining));
+                try {
+                    final Buffer body = framing.unframe(full);
+                    handleBody(body);
+                } catch (MewException badRead) {
+                    logger.error("Bad read from stream", badRead, badRead.getErrorCode());
+                }
+                // set up for the next header
+                parser.fixedSizeMode(FramingOps.HEADER_SIZE);
+                recordSize = HEADER_SENTINAL;
+                headerBuffer = null; // gc hint
             }
         }
     }
 
-    private synchronized void handleFrame(Buffer buffer) {
+    private synchronized void handleBody(Buffer buffer) {
         if (closed) {
             return;
         }
-        // TODO bit clunky - need to add size back in so it can be decoded, improve this!
-        int bl = buffer.length() + 4;
-        Buffer buff2 = Buffer.buffer(bl);
-        buff2.appendIntLE(bl).appendBuffer(buffer);
-        BsonObject bson = new BsonObject(buff2);
+        // DONE - TODO bit clunky - need to add size back in so it can be decoded, improve this!
+        // at the cost of some complexity in handleRec method
+        BsonObject bson = new BsonObject(buffer);
         if (ignoreFirst) {
             ignoreFirst = false;
         } else {
@@ -240,7 +278,7 @@ public class LogReadStreamImpl implements LogReadStream {
                 }
             }
         }
-        fileStreamPos += bl;
+        fileStreamPos += FramingOps.FRAME_SIZE + buffer.length();
     }
 
     private void handleException(Throwable t) {

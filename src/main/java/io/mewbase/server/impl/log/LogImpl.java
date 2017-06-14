@@ -46,6 +46,7 @@ public class LogImpl implements Log {
     private final String channel;
     private final ServerOptions options;
     private final Set<LogReadStreamImpl> fileLogStreams = new ConcurrentHashSet<>();
+    private final FramingOps framing = new FramingOps();
 
     private BasicFile currWriteFile;
     private BasicFile nextWriteFile;
@@ -149,8 +150,8 @@ public class LogImpl implements Log {
 
     @Override
     public synchronized CompletableFuture<Long> append(BsonObject obj) {
-
-        Buffer record = obj.encode();
+        // encode the BsonObject and add a frame
+        Buffer record = framing.frame(obj.encode());
         int len = record.length();
         if (record.length() > options.getMaxRecordSize()) {
             throw new MewException("Record too long " + len + " max " + options.getMaxRecordSize());
@@ -159,7 +160,9 @@ public class LogImpl implements Log {
         CompletableFuture<Long> cf;
 
         int remainingSpace = options.getMaxLogChunkSize() - filePos;
-        if (record.length() > remainingSpace) {
+
+        final int spaceRequired = record.length();
+        if (spaceRequired > remainingSpace) {
             if (remainingSpace > 0) {
                 // Write into the remaining space so all log chunk files are same size
                 Buffer buffer = Buffer.buffer(new byte[remainingSpace]);
@@ -236,6 +239,9 @@ public class LogImpl implements Log {
         CompletableFuture<Void> ret;
         if (currWriteFile != null) {
             ret = currWriteFile.close();
+            ret = ret.thenCompose( v ->  {logger.trace("Closed current log file for channel " + channel);
+                return CompletableFuture.completedFuture(null);
+            } );
         } else {
             ret = CompletableFuture.completedFuture(null);
         }
