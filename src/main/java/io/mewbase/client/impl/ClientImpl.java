@@ -81,11 +81,11 @@ public class ClientImpl implements Client, ClientFrameHandler {
         frame.put(Protocol.SUBSCRIBE_CHANNEL, descriptor.getChannel());
 
         // @see wire_protocol.md
-        if (descriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS &&
+        if (descriptor.getStartEventNum() != SubDescriptor.DEFAULT_START_NUM &&
             descriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
             throw new IllegalArgumentException("Cannot set both start position and start timestamp");
         }
-        frame.put(Protocol.SUBSCRIBE_STARTPOS, descriptor.getStartPos());
+        frame.put(Protocol.SUBSCRIBE_STARTPOS, descriptor.getStartEventNum());
         frame.put(Protocol.SUBSCRIBE_STARTTIMESTAMP, descriptor.getStartTimestamp());
 
         frame.put(Protocol.SUBSCRIBE_DURABLEID, descriptor.getDurableID());

@@ -151,7 +151,7 @@ public class StreamTest extends LogTestBase {
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
         int offset = numAppendObjects - numReadObjects;
-        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(startPos));
+        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(startPos));
         rs.handler((pos, record) -> {
             testContext.assertEquals("bar", record.getString("foo"));
             testContext.assertEquals(cnt.get() + offset, record.getInteger("num"));
@@ -188,7 +188,7 @@ public class StreamTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
         AtomicBoolean paused = new AtomicBoolean();
@@ -233,7 +233,7 @@ public class StreamTest extends LogTestBase {
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         try {
-            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-2));
+            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-2));
             fail("Should throw exception");
         } catch (IllegalArgumentException e) {
             // OK
@@ -250,7 +250,7 @@ public class StreamTest extends LogTestBase {
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         try {
-            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(((LogImpl)log).getLastWrittenPos() + 1));
+            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(((LogImpl)log).getLastWrittenPos() + 1));
             fail("Should throw exception");
         } catch (IllegalArgumentException e) {
             // OK
@@ -267,7 +267,7 @@ public class StreamTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(((LogImpl)log).getLastWrittenPos()));
+        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(((LogImpl)log).getLastWrittenPos()));
 
         Async async1 = testContext.async();
         Async async2 = testContext.async();
@@ -303,7 +303,7 @@ public class StreamTest extends LogTestBase {
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-1));
 
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
@@ -333,7 +333,7 @@ public class StreamTest extends LogTestBase {
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-1));
 
         Async async1 = testContext.async();
         Async async2 = testContext.async();
@@ -382,7 +382,7 @@ public class StreamTest extends LogTestBase {
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-1));
 
         testContext.assertFalse(rs.isRetro());
 
@@ -460,8 +460,8 @@ public class StreamTest extends LogTestBase {
 
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        LogReadStreamImpl rs1 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
-        LogReadStreamImpl rs2 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
+        LogReadStreamImpl rs1 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
+        LogReadStreamImpl rs2 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
 
         CountDownLatch latch = new CountDownLatch(2);
 

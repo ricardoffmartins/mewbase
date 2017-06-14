@@ -149,7 +149,7 @@ public class ChannelsTest extends ServerTestBase {
         }
         SubDescriptor descriptor = new SubDescriptor();
         descriptor.setChannel(TEST_CHANNEL_1);
-        descriptor.setStartPos(0);
+        descriptor.setStartEventNum(0);
 
         Async async = context.async();
         AtomicLong lastPos = new AtomicLong(-1);

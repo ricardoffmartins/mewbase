@@ -4,7 +4,6 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.impl.BasicFile;
-import io.mewbase.server.impl.Protocol;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -74,8 +73,8 @@ public class LogReadStreamImpl implements LogReadStream {
     @Override
     public synchronized void start() {
         checkContext();
-        if (subDescriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS) {
-            goRetro(false, subDescriptor.getStartPos());
+        if (subDescriptor.getStartEventNum() != SubDescriptor.DEFAULT_START_NUM) {
+            goRetro(false, subDescriptor.getStartEventNum());
         } if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
             final long runStreamFromStart = 0;
             goRetro(false, runStreamFromStart);

@@ -16,21 +16,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * TODO:
- * <p>
- * 2. Version header
- * <p>
+
+ /**
  * Created by tim on 07/10/16.
  */
 public class LogImpl implements Log {
@@ -49,7 +43,7 @@ public class LogImpl implements Log {
     private BasicFile nextWriteFile;
     private int fileNumber = 0; // Number of log file containing current head
     private int filePos = 0;    // Position of head in head file
-    private long headPos = 0;   // Overall position of head in log
+    //private long headPos = 0;   // Overall position of head in log
     private AtomicLong lastWrittenPos = new AtomicLong();  // Position of beginning of last safely written record
     private CompletableFuture<Void> nextFileCF;
     private long writeSequence;
@@ -135,10 +129,10 @@ public class LogImpl implements Log {
 
     @Override
     public synchronized LogReadStream subscribe(SubDescriptor subDescriptor) {
-        if (subDescriptor.getStartPos() < -1) {
+        if (subDescriptor.getStartEventNum() < -1) {
             throw new IllegalArgumentException("startPos must be >= -1");
         }
-        if (subDescriptor.getStartPos() > getLastWrittenPos()) {
+        if (subDescriptor.getStartEventNum() > getLastWrittenPos()) {
             throw new IllegalArgumentException("startPos cannot be past head");
         }
         return new LogReadStreamImpl(this, subDescriptor,
@@ -253,16 +247,6 @@ public class LogImpl implements Log {
         return fileNumber;
     }
 
-    @Override
-    public synchronized long getHeadPos() {
-        return headPos;
-    }
-
-    @Override
-    public synchronized int getFilePos() {
-        return filePos;
-    }
-
     void removeSubHolder(LogReadStreamImpl stream) {
         fileLogStreams.remove(stream);
     }
@@ -308,10 +292,8 @@ public class LogImpl implements Log {
 
     private CompletableFuture<Long> append0(int len, Buffer record) {
         int writePos = filePos;
-        long overallWritePos = headPos;
         filePos += len;
-        headPos += len;
-        return currWriteFile.append(record, writePos).thenApply(v -> overallWritePos);
+        return currWriteFile.append(record, writePos).thenApply(v -> filePos);
     }
 
 //    private synchronized void saveInfo(boolean shutdown) {
@@ -447,7 +429,6 @@ public class LogImpl implements Log {
                 logger.error(t.getMessage(), t);
                 return null;
             });
-
         }
     }
 
