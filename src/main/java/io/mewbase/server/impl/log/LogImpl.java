@@ -13,7 +13,6 @@ import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.parsetools.RecordParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +23,8 @@ import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static io.mewbase.server.impl.log.FileOps.*;
 
 
 /**
@@ -88,14 +89,14 @@ public class LogImpl implements Log {
         }
 
         checkAndLoadFiles();
-        File currFile = getFile(fileNumber);
+        File currFile = getFile(options.getLogsDir(),channel,fileNumber);
         CompletableFuture<Void> cfCreate = null;
         if (!currFile.exists()) {
             if (fileNumber == 0) {
                 // This is OK, new log
                 logger.trace("Creating new log info file for channel {}", channel);
                 // Create a new first file
-                cfCreate = createAndFillFile(getFileName(0));
+                cfCreate = createAndFillFile(getFileName(channel,0));
             } else {
                 throw new MewException("Info file for channel {} doesn't match data file(s)");
             }
@@ -286,9 +287,20 @@ public class LogImpl implements Log {
 
     public long getLastWrittenSeq() { return lastWrittenSeq.get(); }
 
+    /**
+     * Given a record number get the file coordinates for this record from the logs
+     */
+    FileOps.FileCoord getCoordOfRecord(long recordNumber) {
+       return FileOps.getCoordOfRecord(options.getLogsDir(),channel,recordNumber);
+    }
+
+
+    FileOps.FileCoord getCoordPriorToTimestamp(long timeStamp) {
+        return FileOps.getCoordPriorToTimestamp(options.getLogsDir(),channel,timeStamp);
+    }
 
     CompletableFuture<BasicFile> openFile(int fileNumber) {
-        File file = new File(options.getLogsDir(), getFileName(fileNumber));
+        File file = new File(options.getLogsDir(), getFileName(channel,fileNumber));
         return faf.openBasicFile(file);
     }
 
@@ -317,17 +329,13 @@ public class LogImpl implements Log {
     }
 
 
-    private File getFile(int fileNumber) {
-        return new File(options.getLogsDir(), getFileName(fileNumber));
-    }
-
     private synchronized void checkCreateNextFile() {
         // We create a next file when the current file is half written
         if (nextFileCF == null && nextWriteFile == null && filePos > options.getMaxLogChunkSize() / 2) {
             nextFileCF = new CompletableFuture<>();
-            CompletableFuture<Void> cfNext = createAndFillFile(getFileName(fileNumber + 1));
+            CompletableFuture<Void> cfNext = createAndFillFile(getFileName(channel,fileNumber + 1));
             CompletableFuture<BasicFile> cfBf = cfNext.thenCompose(v -> {
-                File next = getFile(fileNumber + 1);
+                File next = getFile(options.getLogsDir(),channel,fileNumber + 1);
                 return faf.openBasicFile(next);
             });
             cfBf.handle((bf, t) -> {
@@ -385,101 +393,20 @@ public class LogImpl implements Log {
         logger.trace("Created log file {}", file);
     }
 
-    /*
-    List and check all the files in the log dir for the channel.
-    Recover the state that allows the writer to write the next record.
+    /**
+     * Check that the logs on the file system are in good shape and find the
+     * file coordinates to start writing from.
      */
     private void checkAndLoadFiles() {
-        Map<Integer, File> fileMap = new HashMap<>();
-        File logDir = new File(options.getLogsDir());
-        File[] files = logDir.listFiles(file -> {
-            String name = file.getName();
-            int lpos = name.lastIndexOf("-");
-            if (lpos == -1) {
-                logger.warn("Unexpected file in log dir: " + file);
-                return false;
-            } else {
-                String chName = name.substring(0, lpos);
-                int num = Integer.valueOf(name.substring(lpos + 1, name.length() - 4));
-                boolean matches = chName.equals(channel);
-                if (matches) {
-                    fileMap.put(num, file);
-                }
-                return matches;
-            }
-        });
-        if (files == null) {
-            throw new MewException("Failed to list files in dir " + logDir.toString());
-        }
-
-        Arrays.sort(files, Comparator.naturalOrder());
-
-        // All files before the head file must be right size
-        for (int i = 0; i < files.length -1; i++) {
-            if (options.getMaxLogChunkSize() != files[i].length()) {
-                throw new MewException("File unexpected size: " + files[i] + " i: " + i +
-                        " max log chunk size " + options.getMaxLogChunkSize() + " length " + files[i].length());
-            }
-        }
-
-        logger.trace("There are {} files in {} for channel {}", files.length, logDir, channel);
-
-        // Check file names are contiguous
-        for (int i = 0; i < fileMap.size(); i++) {
-            if (!fileMap.containsKey(i)) {
-                throw new MewException("Log files not in expected sequence, can't find " + getFileName(i));
-            }
-        }
-
+        fileNumber = checkAndGetLastLogFile(options,channel);
         // file store is in good order so set up the state variables by reading the current file.
-        fileNumber = files.length;
-
-        FileCoord coords = getCoordinatesFromFileNum(fileNumber);
-        lastWrittenSeq.set(coords.seq);
-        writeSequence = coords.seq;
-        expectedSeq = coords.seq;
+        FileOps.FileCoord coords = getCoordOfLastRecord(options.getLogsDir(),channel,fileNumber);
+        lastWrittenSeq.set(coords.recordNumber);
+        writeSequence = coords.recordNumber;
+        expectedSeq = coords.recordNumber;
         filePos = coords.filePos;
     }
 
-    private String getFileName(int i) {
-        return channel + "-" + String.format("%012d", i) + ".log";
-    }
-
-    public FileCoord getCoordinatesFromFileNum(int fileNumber) {
-        // If there is nothing in the log files start from nothing
-        File headFile = getFile(fileNumber);
-        if (!headFile.exists()) {
-            return new FileCoord(0L,0,0);
-        }
-
-        // TODO
-        // otherwise find the last place the file that the magic number exists
-        RecordParser parser = RecordParser.newFixed(HeaderOps.HEADER_SIZE, this::handleHeader);
-        return new FileCoord(0,0,0);
-    }
-
-    public FileCoord getCoordinatesFromRecordNum(long recordNumber) {
-        // TODO
-        return new FileCoord(0,0,0);
-    }
-
-    private void handleHeader(Buffer buffer) {
-
-    }
-
-
-
-    static final class FileCoord {
-        final long seq;         // the number of the record
-        final int fileNumber;   // the number of the file that contains the record
-        final int filePos;      // the position in the file of the recoord
-
-        public FileCoord(long seq, int fileNumber, int filePos) {
-            this.seq = seq;
-            this.fileNumber = fileNumber;
-            this.filePos = filePos;
-        }
-    }
 
 
     private static final class WriteHolder implements Comparable<WriteHolder> {

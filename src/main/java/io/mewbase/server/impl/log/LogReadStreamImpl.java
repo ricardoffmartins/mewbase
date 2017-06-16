@@ -178,7 +178,7 @@ public class LogReadStreamImpl implements LogReadStream {
         this.ignoreFirst = ignoreFirst;
         this.fileStreamRecordNum = recordNumber;
         // Open a file at the record number
-        LogImpl.FileCoord coord = fileLog.getCoordinatesFromRecordNum(recordNumber);
+        FileOps.FileCoord coord = fileLog.getCoordOfRecord(recordNumber);
         fileLog.openFile(coord.fileNumber).handle((bf, t) -> {
             if (t == null) {
                 streamFile = bf;
