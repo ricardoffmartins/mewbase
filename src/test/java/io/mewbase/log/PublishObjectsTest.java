@@ -1,10 +1,10 @@
 package io.mewbase.log;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.server.impl.Protocol;
 import io.mewbase.server.impl.log.FramingOps;
 import io.mewbase.server.impl.log.HeaderOps;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,27 +22,33 @@ import static org.junit.Assert.assertTrue;
  * Created by tim on 08/10/16.
  */
 @RunWith(VertxUnitRunner.class)
-public class AppendTest extends LogTestBase {
+public class PublishObjectsTest extends LogTestBase {
 
-    private final static Logger logger = LoggerFactory.getLogger(AppendTest.class);
+    private final static Logger logger = LoggerFactory.getLogger(PublishObjectsTest.class);
+
+    private final static int MAX_RECORD_SIZE = 100;
+    private final static int LOG_CHUNK_SIZE = 5 * 1024;
 
     @Test
     //@Repeat(value =10000)
-    public void testAppend() throws Exception {
-        BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        int length = obj.encode().length() + FramingOps.FRAME_SIZE;
-        int numObjects = 100;
-        int totalLength = length * numObjects + HeaderOps.HEADER_SIZE;
+    public void testPublish() throws Exception {
 
-        serverOptions = origServerOptions().setMaxLogChunkSize(length * (numObjects + 1)).setMaxRecordSize(length + 1);
+        BsonObject event = new BsonObject().put("foo", "bar").put("num", 0);
+        final int numRecords = 100;
+
+        final int expChunkLength = HeaderOps.HEADER_SIZE + numRecords * 27;
+
+        serverOptions = origServerOptions().
+                        setMaxLogChunkSize(LOG_CHUNK_SIZE).
+                        setMaxRecordSize(MAX_RECORD_SIZE);
         startLog();
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numRecords, i -> event.copy().put("num", i));
         assertExists(0);
-        assertLogChunkLength(0, totalLength);
-        assertObjects(0, (cnt, record) -> {
-            assertTrue(cnt < numObjects);
-            BsonObject expected = obj.copy().put("num", cnt);
-            assertTrue(expected.equals(record));
+        assertLogChunkLength(0, expChunkLength);
+        assertObjects(0, (cnt, object) -> {
+            assertTrue(cnt < numRecords);
+            BsonObject expected = event.copy().put("num", cnt);
+            assertTrue(expected.equals(object));
         });
     }
 
@@ -51,9 +57,12 @@ public class AppendTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         int length = obj.encode().length() + FramingOps.FRAME_SIZE;
         int numObjects = 100;
-        serverOptions = origServerOptions().setMaxLogChunkSize(length * (numObjects - 1)).setMaxRecordSize(length + 1);
+        serverOptions = origServerOptions().
+                setMaxLogChunkSize(length * (numObjects + 1)).
+                setMaxRecordSize(MAX_RECORD_SIZE);
+
         startLog();
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
         assertExists(0);
         assertLogChunkLength(0, serverOptions.getMaxLogChunkSize());
 
@@ -81,9 +90,12 @@ public class AppendTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         int length = obj.encode().length() + FramingOps.FRAME_SIZE;
         int numObjects = 100;
-        serverOptions = origServerOptions().setMaxLogChunkSize(length * (numObjects + 1)).setMaxRecordSize(length + 1);
+        serverOptions = origServerOptions().
+                setMaxLogChunkSize(length * (numObjects + 1)).
+                setMaxRecordSize(MAX_RECORD_SIZE);
+
         startLog();
-        appendObjectsConcurrently(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsConcurrently(numObjects, i -> obj.copy().put("num", i));
         assertExists(0);
         assertLogChunkLength(0, length * numObjects);
         assertObjects(0, (cnt, record) -> {
@@ -99,11 +111,16 @@ public class AppendTest extends LogTestBase {
         int length = obj.encode().length() + FramingOps.FRAME_SIZE;
         int numObjects = 100;
         int preallocSize = 10 * length;
-        serverOptions = origServerOptions().setMaxLogChunkSize(length * (numObjects + 1)).setMaxRecordSize(length + 1).setPreallocateSize(preallocSize);
+
+        serverOptions = origServerOptions().
+                setMaxLogChunkSize(length * (numObjects + 1)).
+                setMaxRecordSize(MAX_RECORD_SIZE).
+                setPreallocateSize(preallocSize);
+
         startLog();
         assertExists(0);
         assertLogChunkLength(0, preallocSize);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
         assertObjects(0, (cnt, record) -> {
             assertTrue(cnt < numObjects);
             BsonObject expected = obj.copy().put("num", cnt);
@@ -118,9 +135,14 @@ public class AppendTest extends LogTestBase {
         int length = obj.encode().length() + FramingOps.FRAME_SIZE;
         int numObjects = 100;
         int preallocSize = 10 * length;
-        serverOptions = origServerOptions().setMaxLogChunkSize(length * (numObjects + 1)).setMaxRecordSize(length + 1).setPreallocateSize(preallocSize);
+
+        serverOptions = origServerOptions().
+                setMaxLogChunkSize(length * (numObjects + 1)).
+                setMaxRecordSize(MAX_RECORD_SIZE).
+                setPreallocateSize(preallocSize);
+
         startLog();
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
         assertExists(1);
         assertLogChunkLength(1, preallocSize);
     }
@@ -130,7 +152,7 @@ public class AppendTest extends LogTestBase {
         File file = new File(logsDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
         assertTrue(file.exists());
         Buffer buff = readFileIntoBuffer(file);
-        int pos = 0;
+        int pos = HeaderOps.HEADER_SIZE;
         int count = 0;
         while (true) {
             final int objStart = FramingOps.CHECKSUM_SIZE + pos;
@@ -140,7 +162,8 @@ public class AppendTest extends LogTestBase {
             }
             Buffer objBuff = buff.slice(objStart, objStart + objLen);
             BsonObject record = new BsonObject(objBuff);
-            objectConsumer.accept(count, record);
+            BsonObject event = record.getBsonObject(Protocol.RECEV_EVENT);
+            objectConsumer.accept(count, event);
             count++;
             pos += FramingOps.FRAME_SIZE + objLen;
             if (pos >= file.length()) {

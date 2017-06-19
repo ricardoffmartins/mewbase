@@ -63,16 +63,6 @@ public class LogTestBase extends ServerTestBase {
     }
 
 
-    protected BsonObject readInfoFromFile(File infoFile) {
-        try {
-            byte[] bytes = Files.readAllBytes(infoFile.toPath());
-            Buffer buff = Buffer.buffer(bytes);
-            return new BsonObject(buff);
-        } catch (IOException e) {
-            throw new MewException(e);
-        }
-    }
-
     protected Buffer readFileIntoBuffer(File f) throws IOException {
         byte[] bytes = Files.readAllBytes(f.toPath());
         return Buffer.buffer(bytes);
@@ -132,17 +122,17 @@ public class LogTestBase extends ServerTestBase {
         assertEquals(expected, files.length);
     }
 
-    protected void appendObjectsSequentially(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
+    protected void publishObjectsSequentially(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
         for (int i = 0; i < num; i++) {
-            log.append(objectFunction.apply(i)).get();
+            ((ServerImpl)server).publishEvent(log, objectFunction.apply(i)).get();
         }
     }
 
-    protected void appendObjectsConcurrently(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
+    protected void publishObjectsConcurrently(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
         List<CompletableFuture<Long>> cfs = new ArrayList<>();
         for (int i = 0; i < num; i++) {
-            CompletableFuture<Long> pos = log.append(objectFunction.apply(i));
-            cfs.add(pos);
+            CompletableFuture<Long> eventNum = ((ServerImpl)server).publishEvent(log, objectFunction.apply(i));
+            cfs.add(eventNum);
         }
         CompletableFuture<Void> all = CompletableFuture.allOf(cfs.toArray(new CompletableFuture[num]));
         all.get();

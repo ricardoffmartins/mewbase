@@ -147,7 +147,7 @@ public class StreamTest extends LogTestBase {
         startLog();
 
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numAppendObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numAppendObjects, i -> obj.copy().put("num", i));
 
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
@@ -187,7 +187,7 @@ public class StreamTest extends LogTestBase {
                 setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
         Async async = testContext.async();
@@ -231,7 +231,7 @@ public class StreamTest extends LogTestBase {
                 setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         try {
             LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-2));
@@ -248,7 +248,7 @@ public class StreamTest extends LogTestBase {
                 setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         try {
             LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(((LogImpl)log).getLastWrittenSeq() + 1));
@@ -266,7 +266,7 @@ public class StreamTest extends LogTestBase {
                 setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(((LogImpl)log).getLastWrittenSeq()));
 
@@ -293,7 +293,7 @@ public class StreamTest extends LogTestBase {
 
         async1.await();
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
     }
 
     @Test
@@ -322,7 +322,7 @@ public class StreamTest extends LogTestBase {
         });
         rs.start();
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
     }
 
     @Test
@@ -366,13 +366,13 @@ public class StreamTest extends LogTestBase {
         });
         rs.start();
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         async1.await();
 
         // Now send some more messages - sub should be active again
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
     }
 
     @Test
@@ -417,13 +417,13 @@ public class StreamTest extends LogTestBase {
         });
         rs.start();
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         async1.await();
 
         // Now send some more messages - should stay active
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
 
     }
 
@@ -459,7 +459,7 @@ public class StreamTest extends LogTestBase {
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         LogReadStreamImpl rs1 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
         LogReadStreamImpl rs2 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
