@@ -2,6 +2,7 @@ package io.mewbase.log;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.impl.log.FramingOps;
+import io.mewbase.server.impl.log.HeaderOps;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -31,11 +32,13 @@ public class AppendTest extends LogTestBase {
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
         int length = obj.encode().length() + FramingOps.FRAME_SIZE;
         int numObjects = 100;
+        int totalLength = length * numObjects + HeaderOps.HEADER_SIZE;
+
         serverOptions = origServerOptions().setMaxLogChunkSize(length * (numObjects + 1)).setMaxRecordSize(length + 1);
         startLog();
         appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
         assertExists(0);
-        assertLogChunkLength(0, length * numObjects);
+        assertLogChunkLength(0, totalLength);
         assertObjects(0, (cnt, record) -> {
             assertTrue(cnt < numObjects);
             BsonObject expected = obj.copy().put("num", cnt);

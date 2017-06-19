@@ -69,7 +69,6 @@ public class InitialiseTest extends LogTestBase {
         // Create the files
         verifyInitialFiles(logsDir, TEST_CHANNEL_1);
         stopServerAndClient();
-        verifyInfoFile(TEST_CHANNEL_1, true);
         startLog();
         verifyInitialFiles(logsDir, TEST_CHANNEL_1);
     }
@@ -111,9 +110,6 @@ public class InitialiseTest extends LogTestBase {
         assertTrue(logFile.delete());
         assertFalse(logFile.exists());
 
-        // Now change info file to non zero fileHeadPos
-        saveInfo(0, 23, 23, 0, false);
-
         // Start should now fail
         try {
             startLog();
@@ -136,9 +132,6 @@ public class InitialiseTest extends LogTestBase {
         assertTrue(logFile.delete());
         assertFalse(logFile.exists());
 
-        // Now change info file to non zero fileHeadPos
-        saveInfo(1, 0, 0, 0, false);
-
         // Start should now fail
         try {
             startLog();
@@ -149,159 +142,6 @@ public class InitialiseTest extends LogTestBase {
         log = null;
     }
 
-    @Test
-    public void test_start_with_negative_file_number() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            saveInfo(-1, 0, 0, 0, false);
-        });
-    }
-
-    @Test
-    public void test_start_with_negative_file_head_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            saveInfo(0, -1, 0, 0, false);
-        });
-    }
-
-    @Test
-    public void test_start_with_negative_head_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            saveInfo(0, 0, -1, 0, false);
-        });
-    }
-
-    @Test
-    public void test_start_with_negative_last_written_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            saveInfo(0, 0, 0, -1, false);
-        });
-    }
-
-
-    @Test
-    public void test_start_with_missing_file_number() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("headPos", 0);
-            info.put("fileHeadPos", 0);
-            info.put("lastWrittenPos", 0);
-            info.put("shutdown", false);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_missing_file_head_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", 0);
-            info.put("headPos", 0);
-            info.put("lastWrittenPos", 0);
-            info.put("shutdown", false);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_missing_last_written_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", 0);
-            info.put("headPos", 0);
-            info.put("fileHeadPos", 0);
-            info.put("shutdown", false);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_missing_head_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", 0);
-            info.put("fileHeadPos", 0);
-            info.put("lastWrittenPos", 0);
-            info.put("shutdown", false);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_missing_shutdown() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", 0);
-            info.put("headPos", 0);
-            info.put("fileHeadPos", 0);
-            info.put("lastWrittenPos", 0);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_invalid_file_number() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", "XYZ");
-            info.put("headPos", 0);
-            info.put("lastWrittenPos", 0);
-            info.put("fileHeadPos", 0);
-            info.put("shutdown", false);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_invalid_file_head_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", 0);
-            info.put("headPos", 0);
-            info.put("lastWrittenPos", 0);
-            info.put("fileHeadPos", "XYZ");
-            info.put("shutdown", false);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_invalid_last_written_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", 0);
-            info.put("headPos", 0);
-            info.put("lastWrittenPos", "XYZ");
-            info.put("fileHeadPos", "XYZ");
-            info.put("shutdown", false);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_invalid_head_pos() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", 0);
-            info.put("headPos", "XYZ");
-            info.put("fileHeadPos", 0);
-            info.put("lastWrittenPos", 0);
-            info.put("shutdown", false);
-            saveFileInfo(info);
-        });
-    }
-
-    @Test
-    public void test_start_with_invalid_shutdown() throws Exception {
-        test_start_with_invalid_info_file(() -> {
-            BsonObject info = new BsonObject();
-            info.put("fileNumber", 0);
-            info.put("headPos", 0);
-            info.put("fileHeadPos", 0);
-            info.put("lastWrittenPos", 0);
-            info.put("shutdown", "XYZ");
-            saveFileInfo(info);
-        });
-    }
 
     @Test
     public void test_start_max_record_size_too_large() throws Exception {
@@ -359,7 +199,6 @@ public class InitialiseTest extends LogTestBase {
     }
 
     private void verifyInitialFiles(File logDir, String channel, boolean shutdown) throws Exception {
-        verifyInfoFile(channel, shutdown);
 
         File logFile = new File(logDir, channel + INITIAL_FILE_END);
         assertTrue(logFile.exists());
@@ -373,23 +212,6 @@ public class InitialiseTest extends LogTestBase {
 
     private void verifyInitialFiles(File logDir, String channel) throws Exception {
         verifyInitialFiles(logDir, channel, false);
-    }
-
-    private void verifyInfoFile(String channel, boolean shutdown) {
-        File infoFile = new File(logsDir, channel + "-log-info.dat");
-        assertTrue(infoFile.exists());
-        BsonObject info = readInfoFromFile(infoFile);
-        Integer fileNumber = info.getInteger("fileNumber");
-        assertNotNull(fileNumber);
-        assertEquals(0, (long)fileNumber);
-        Integer fileHeadPos = info.getInteger("fileHeadPos");
-        assertNotNull(fileHeadPos);
-        assertEquals(0, (long)fileHeadPos);
-        Integer headPos = info.getInteger("headPos");
-        assertNotNull(headPos);
-        assertEquals(0, (long)headPos);
-        Boolean bshutdown = info.getBoolean("shutdown");
-        assertEquals(shutdown, bshutdown);
     }
 
 

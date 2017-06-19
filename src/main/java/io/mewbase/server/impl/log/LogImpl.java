@@ -97,8 +97,6 @@ public class LogImpl implements Log {
                 logger.trace("Creating new log info file for channel {}", channel);
                 // Create a new first file
                 cfCreate = createAndFillFile(getFileName(channel,0));
-            } else {
-                throw new MewException("Info file for channel {} doesn't match data file(s)");
             }
         }
         final File cFile = currFile;
@@ -116,6 +114,7 @@ public class LogImpl implements Log {
 
         return startRes;
     }
+
 
     private synchronized void flush() {
         if (!closed) {
@@ -135,10 +134,10 @@ public class LogImpl implements Log {
     @Override
     public synchronized LogReadStream subscribe(SubDescriptor subDescriptor) {
         if (subDescriptor.getStartEventNum() < -1) {
-            throw new IllegalArgumentException("startPos must be >= -1");
+            throw new IllegalArgumentException("start event number must be >= -1");
         }
         if (subDescriptor.getStartEventNum() > getLastWrittenSeq()) {
-            throw new IllegalArgumentException("startPos cannot be past head");
+            throw new IllegalArgumentException("start event number cannot be greater than highest current record");
         }
         return new LogReadStreamImpl(this, subDescriptor,
                 options.getReadBufferSize(), options.getMaxLogChunkSize());

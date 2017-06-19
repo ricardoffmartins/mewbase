@@ -22,6 +22,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+
 /**
  * Public methods always accessed from same event loop
  * <p>
@@ -122,10 +123,10 @@ public class LogReadStreamImpl implements LogReadStream {
         }
     }
 
-    private void goRetro(boolean ignoreFirst, long pos) {
+    private void goRetro(boolean ignoreFirst, long recordNumber) {
         fileLog.removeSubHolder(this);
         retro = true;
-        openFileStream(pos, ignoreFirst);
+        openFileStream(recordNumber, ignoreFirst);
     }
 
     @Override
@@ -350,6 +351,7 @@ public class LogReadStreamImpl implements LogReadStream {
             this.bson = bson;
         }
     }
+
 
     // Sanity check - this should always be executed using the correct context
     private void checkContext() {
