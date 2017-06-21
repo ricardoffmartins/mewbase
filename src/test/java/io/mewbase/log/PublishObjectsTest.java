@@ -1,5 +1,6 @@
 package io.mewbase.log;
 
+
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.impl.Protocol;
 import io.mewbase.server.impl.log.FramingOps;
@@ -27,22 +28,27 @@ public class PublishObjectsTest extends LogTestBase {
     private final static Logger logger = LoggerFactory.getLogger(PublishObjectsTest.class);
 
     private final static int MAX_RECORD_SIZE = 100;
-    private final static int LOG_CHUNK_SIZE = 5 * 1024;
+    private final static int LOG_CHUNK_SIZE = 10 * 1024;
+    // framing and timestamp etc etc
+    private final static int RECORD_BYTE_COST  = 51; // Bytes
+
 
     @Test
     //@Repeat(value =10000)
     public void testPublish() throws Exception {
 
-        BsonObject event = new BsonObject().put("foo", "bar").put("num", 0);
         final int numRecords = 100;
-
-        final int expChunkLength = HeaderOps.HEADER_SIZE + numRecords * 27;
+        BsonObject event = new BsonObject().put("foo", "bar").put("num", 0);
+        final int recordSize =  event.encode().length() + RECORD_BYTE_COST;
+        final int expChunkLength = HeaderOps.HEADER_SIZE + (numRecords * recordSize) ;
 
         serverOptions = origServerOptions().
                         setMaxLogChunkSize(LOG_CHUNK_SIZE).
                         setMaxRecordSize(MAX_RECORD_SIZE);
+
         startLog();
         publishObjectsSequentially(numRecords, i -> event.copy().put("num", i));
+
         assertExists(0);
         assertLogChunkLength(0, expChunkLength);
         assertObjects(0, (cnt, object) -> {
@@ -53,99 +59,117 @@ public class PublishObjectsTest extends LogTestBase {
     }
 
     @Test
-    public void testAppendNextFile() throws Exception {
-        BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        int length = obj.encode().length() + FramingOps.FRAME_SIZE;
+    public void testPublishIntoNextFile() throws Exception {
+
         int numObjects = 100;
+        BsonObject event = new BsonObject().put("foo", "bar").put("num", 0);
+        final int recordSize = event.encode().length() + RECORD_BYTE_COST;
+        // make a record spill into the next file.
+        final int fileChunkSize = HeaderOps.HEADER_SIZE + ( (numObjects - 1) * recordSize );
+        // hence
+        final int expectedNextFileSize = HeaderOps.HEADER_SIZE + recordSize;
+
         serverOptions = origServerOptions().
-                setMaxLogChunkSize(length * (numObjects + 1)).
-                setMaxRecordSize(MAX_RECORD_SIZE);
+                        setMaxLogChunkSize(fileChunkSize).
+                        setMaxRecordSize(MAX_RECORD_SIZE);
 
         startLog();
-        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> event.copy().put("num", i));
+
         assertExists(0);
         assertLogChunkLength(0, serverOptions.getMaxLogChunkSize());
 
         AtomicInteger loadedCount = new AtomicInteger(0);
         assertObjects(0, (cnt, record) -> {
             assertTrue(cnt < numObjects - 1);
-            BsonObject expected = obj.copy().put("num", cnt);
+            BsonObject expected = event.copy().put("num", cnt);
             assertTrue(expected.equals(record));
             loadedCount.incrementAndGet();
         });
 
         assertExists(1);
-        assertLogChunkLength(1, length);
+        assertLogChunkLength(1, expectedNextFileSize);
         assertEquals(numObjects - 1, loadedCount.get());
 
         assertObjects(1, (cnt, record) -> {
             assertTrue(cnt < 1);
-            BsonObject expected = obj.copy().put("num", 99);
+            BsonObject expected = event.copy().put("num", 99);
             assertTrue(expected.equals(record));
         });
     }
 
     @Test
-    public void testAppendConcurrent() throws Exception {
-        BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        int length = obj.encode().length() + FramingOps.FRAME_SIZE;
-        int numObjects = 100;
+    public void testPublishConcurrent() throws Exception {
+
+        final int numRecords = 100;
+        BsonObject event = new BsonObject().put("foo", "bar").put("num", 0);
+        final int recordSize =  event.encode().length() + RECORD_BYTE_COST;
+        final int expChunkLength = HeaderOps.HEADER_SIZE + (numRecords * recordSize) ;
+
         serverOptions = origServerOptions().
-                setMaxLogChunkSize(length * (numObjects + 1)).
+                setMaxLogChunkSize(LOG_CHUNK_SIZE).
                 setMaxRecordSize(MAX_RECORD_SIZE);
 
         startLog();
-        publishObjectsConcurrently(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsConcurrently(numRecords, i -> event.copy().put("num", i));
+
         assertExists(0);
-        assertLogChunkLength(0, length * numObjects);
+        assertLogChunkLength(0, expChunkLength);
         assertObjects(0, (cnt, record) -> {
-            assertTrue(cnt < numObjects);
-            BsonObject expected = obj.copy().put("num", cnt);
+            assertTrue(cnt < numRecords);
+            BsonObject expected = event.copy().put("num", cnt);
             assertTrue(expected.equals(record));
         });
     }
 
     @Test
     public void testPrealloc() throws Exception {
-        BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        int length = obj.encode().length() + FramingOps.FRAME_SIZE;
-        int numObjects = 100;
-        int preallocSize = 10 * length;
+        final int numRecords = 100;
+        BsonObject event = new BsonObject().put("foo", "bar").put("num", 0);
+        final int recordSize =  event.encode().length() + RECORD_BYTE_COST;
+        final int expChunkLength = HeaderOps.HEADER_SIZE + (numRecords * recordSize) ;
+
+        int preallocSize = 10 * recordSize;
 
         serverOptions = origServerOptions().
-                setMaxLogChunkSize(length * (numObjects + 1)).
+                setMaxLogChunkSize(expChunkLength).
                 setMaxRecordSize(MAX_RECORD_SIZE).
                 setPreallocateSize(preallocSize);
 
         startLog();
         assertExists(0);
         assertLogChunkLength(0, preallocSize);
-        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+
+        publishObjectsSequentially(numRecords, i -> event.copy().put("num", i));
         assertObjects(0, (cnt, record) -> {
-            assertTrue(cnt < numObjects);
-            BsonObject expected = obj.copy().put("num", cnt);
+            assertTrue(cnt < numRecords);
+            BsonObject expected = event.copy().put("num", cnt);
             assertTrue(expected.equals(record));
         });
-        assertLogChunkLength(0, length * numObjects);
+        assertLogChunkLength(0, expChunkLength);
     }
 
     @Test
     public void testPreallocNextFile() throws Exception {
-        BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        int length = obj.encode().length() + FramingOps.FRAME_SIZE;
-        int numObjects = 100;
-        int preallocSize = 10 * length;
+
+        final int numRecords = 100;
+        BsonObject event = new BsonObject().put("foo", "bar").put("num", 0);
+        final int recordSize =  event.encode().length() + RECORD_BYTE_COST;
+        final int expChunkLength = HeaderOps.HEADER_SIZE + (numRecords * recordSize) ;
+
+        final int preallocSize =  10 * recordSize;
 
         serverOptions = origServerOptions().
-                setMaxLogChunkSize(length * (numObjects + 1)).
+                setMaxLogChunkSize(expChunkLength).
                 setMaxRecordSize(MAX_RECORD_SIZE).
                 setPreallocateSize(preallocSize);
 
         startLog();
-        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numRecords, i -> event.copy().put("num", i));
         assertExists(1);
         assertLogChunkLength(1, preallocSize);
     }
+
 
 
     protected void assertObjects(int fileNumber, BiConsumer<Integer, BsonObject> objectConsumer) throws Exception {

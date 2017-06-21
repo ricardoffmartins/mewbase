@@ -34,8 +34,6 @@ public class LogImpl implements Log {
 
     private final static Logger logger = LoggerFactory.getLogger(LogImpl.class);
 
-    private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
-
     private final Vertx vertx;
     private final FileAccess faf;
     private final String channel;
@@ -92,7 +90,7 @@ public class LogImpl implements Log {
         File currFile = getFile(options.getLogsDir(),channel,fileNumber);
         CompletableFuture<Void> cfCreate = null;
         if (!currFile.exists()) {
-            if (fileNumber == 0) {
+            if (fileNumber == 0 && filePos == 0) {
                 // This is OK, new log
                 logger.trace("Creating new log info file for channel {}", channel);
                 // Create a new first file
@@ -146,7 +144,7 @@ public class LogImpl implements Log {
     @Override
     public synchronized CompletableFuture<Long> append(BsonObject obj) {
         // Encode the BsonObject and add a frame
-        Buffer record = framing.frame(obj.encode());
+        Buffer record = framing.frame( obj.encode() );
 
         // Total length of the record to write to the file
         int len = record.length();
@@ -157,6 +155,8 @@ public class LogImpl implements Log {
         if (len > options.getMaxRecordSize()) {
             throw new MewException("Record too long " + len + " max " + options.getMaxRecordSize());
         }
+
+        final CompletableFuture<Long> cf;
 
         int remainingSpace = options.getMaxLogChunkSize() - filePos;
 
@@ -178,7 +178,7 @@ public class LogImpl implements Log {
                 logger.warn("Eager create of next file too slow, nextFileCF {}", nextFileCF);
                 checkCreateNextFile();
                 // Next file creation is in progress, just wait for it
-                CompletableFuture cf = new CompletableFuture<>();
+                cf = new CompletableFuture<>();
                 nextFileCF.thenAccept(v -> {
                     // When complete just call append again
                     CompletableFuture<Long> again = append(obj);
@@ -196,16 +196,13 @@ public class LogImpl implements Log {
         }
 
         // Everything is set up to write to file so check if this the first write and if so
-        long seq = writeSequence++;
-        CompletableFuture<Long> cf;
-
+        long seq = ++writeSequence;
         if (filePos == 0) {
             // First record for this file so add the header
             Buffer header = HeaderOps.makeHeader(seq,timestamp);
-            cf = append0(header.length(), header);
-            cf = cf.thenApply(offset  -> {
+            cf = append0(header.length(), header).thenApply(f  -> {
                 append0(len, record);
-                return offset;
+                return f;
             } );
        } else {
             cf = append0(len, record);
@@ -362,35 +359,12 @@ public class LogImpl implements Log {
         AsyncResCF<Void> cf = new AsyncResCF<>();
         File next = new File(options.getLogsDir(), fileName);
         vertx.executeBlocking(fut -> {
-            createAndFillFileBlocking(next, options.getPreallocateSize());
+            FileOps.createAndFillFileBlocking(next, options.getPreallocateSize());
             fut.complete(null);
         }, false, cf);
         return cf;
     }
 
-    private void createAndFillFileBlocking(File file, int size) {
-        logger.trace("Creating log file {} with size {}", file, size);
-        ByteBuffer buff = ByteBuffer.allocate(MAX_CREATE_BUFF_SIZE);
-        try (RandomAccessFile rf = new RandomAccessFile(file, "rw")) {
-            FileChannel ch = rf.getChannel();
-            int pos = 0;
-            // We fill the file in chunks in case it is v. big - we don't want to allocate a huge byte buffer
-            while (pos < size) {
-                int writeSize = Math.min(MAX_CREATE_BUFF_SIZE, size - pos);
-                buff.limit(writeSize);
-                buff.position(0);
-                ch.position(pos);
-                ch.write(buff);
-                pos += writeSize;
-            }
-            ch.force(true);
-            ch.position(0);
-            ch.close();
-        } catch (Exception e) {
-            throw new MewException("Failed to create log file", e);
-        }
-        logger.trace("Created log file {}", file);
-    }
 
     /**
      * Check that the logs on the file system are in good shape and find the

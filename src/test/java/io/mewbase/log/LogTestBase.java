@@ -109,6 +109,7 @@ public class LogTestBase extends ServerTestBase {
 
     protected void assertLogChunkLength(int fileNumber, int length) {
         File file = new File(logsDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
+        assertTrue(file.exists());
         assertEquals(length, file.length());
     }
 

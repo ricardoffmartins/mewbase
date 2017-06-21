@@ -11,7 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +34,8 @@ import java.util.Map;
 public class FileOps {
 
     private final static Logger logger = LoggerFactory.getLogger(FileOps.class);
+
+    private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
 
     /**
      * Get a FileSystem handle to a given log file
@@ -103,8 +107,40 @@ public class FileOps {
                 throw new MewException("Log files not in expected sequence, can't find " + getFileName(channel, i));
             }
         }
-        return files.length - 1;
+        // -1 is no files exists but 0 is no files and only one file
+        return Math.max(files.length - 1, 0);
     }
+
+    /**
+     * Create a new file and fill with zeros
+     * @param file
+     * @param size
+     */
+    public static void createAndFillFileBlocking(File file, int size) {
+        logger.trace("Creating log file {} with size {}", file, size);
+        ByteBuffer buff = ByteBuffer.allocate(MAX_CREATE_BUFF_SIZE);
+        try (RandomAccessFile rf = new RandomAccessFile(file, "rw")) {
+            FileChannel ch = rf.getChannel();
+            int pos = 0;
+            // We fill the file in chunks in case it is v. big - we don't want to allocate a huge byte buffer
+            while (pos < size) {
+                int writeSize = Math.min(MAX_CREATE_BUFF_SIZE, size - pos);
+                buff.limit(writeSize);
+                buff.position(0);
+                ch.position(pos);
+                ch.write(buff);
+                pos += writeSize;
+            }
+            ch.force(true);
+            ch.position(0);
+            ch.close();
+        } catch (Exception e) {
+            throw new MewException("Failed to create log file", e);
+        }
+        logger.trace("Created log file {}", file);
+    }
+
+
 
     /**
      * Get the coordinates of the last record in the given log file
