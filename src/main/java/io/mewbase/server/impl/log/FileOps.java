@@ -4,8 +4,6 @@ package io.mewbase.server.impl.log;
 import io.mewbase.client.MewException;
 import io.mewbase.server.ServerOptions;
 import io.netty.buffer.Unpooled;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.parsetools.RecordParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +26,10 @@ import java.util.Map;
 /**
  * FileOps provides helper methods over the log files and filesystem
  * Provides the ability to lookup FileCoords i.e. pointers into the Log files at the record level
- * It subsumes and refactors some of the common aspects of LogImpl and LogReadStream
+ * It subsumes and refactors some of the common aspects of LogImpl and LogReadStream with the
+ * 'primary' level of input being record numbers and the primary outputs being FileCoords.
+ *
+ * Subsequent refactorings should consider using Java 7/8 Paths etc.
 */
 
 public class FileOps {
@@ -107,7 +108,7 @@ public class FileOps {
                 throw new MewException("Log files not in expected sequence, can't find " + getFileName(channel, i));
             }
         }
-        // -1 is no files exists but 0 is no files and only one file
+        // -1 is no files exists but 0 is both no files and only one file
         return Math.max(files.length - 1, 0);
     }
 
@@ -160,7 +161,7 @@ public class FileOps {
         // set up a nop reply
         FileCoord coord = new FileCoord( fileNumber, 0, 0);
 
-        // SeekableByteChannel is AutoCloseable so we can try-with-resourc0s
+        // SeekableByteChannel is AutoCloseable so we can try-with-resources
         try (SeekableByteChannel sbc = Files.newByteChannel(filePath, StandardOpenOption.READ)) {
             // get the header
             ByteBuffer headerBuffer = ByteBuffer.allocate(HeaderOps.HEADER_SIZE);
@@ -176,7 +177,7 @@ public class FileOps {
             coord = new FileCoord( fileNumber, (recordNumber - 1), previousFileOffset);
 
             // now read records until there are no more - there must be at least one record
-            while ( getRecordInChannel(sbc) != 0) {
+            while ( skipRecordInChannel(sbc) != 0) {
                 coord = new FileCoord(coord.fileNumber,coord.recordNumber + 1, previousFileOffset);
                 previousFileOffset = (int)sbc.position();
             }
@@ -188,35 +189,113 @@ public class FileOps {
     }
 
 
-    public static FileCoord getCoordPriorToTimestamp(String logsDir, String channel, long timeStamp) {
-        return new FileCoord(0,0,0);
-    }
-
-
+    /**
+     * Find the Coordinates for a specific record given its record number
+     *
+     * If the record number is less than or equal to the start record then start from the
+     * start of the stream.
+     *
+     * If the record number is in the stream then return its coordinates.
+     *
+     * If the record number is larger than the largest record number in the stream then return
+     * the coords of the last record in the stream.
+     *
+     * @param logsDir : Where the logs for this channel are stored
+     * @param channel : The name of this channel
+     * @param recordNumber : The Record number tha is being searched for
+     * @return
+     */
     public static FileCoord getCoordOfRecord(String logsDir, String channel, long recordNumber) {
-        return new FileCoord(0,0,0);
+
+        FileCoord coord = new FileCoord(0,0, HeaderOps.HEADER_SIZE);
+        if (recordNumber > 0) {
+            int fileNum = 0;
+            boolean endOfFiles = false;
+            while (!endOfFiles) {
+                FileCoord nextCoord = findRecordInFile(logsDir,channel,fileNum,recordNumber);
+                if ( nextCoord.isValid() ) {
+                    coord = nextCoord;
+                    if (coord.recordNumber == recordNumber) return coord;
+                    ++fileNum;
+                } else {
+                    endOfFiles = true;
+                }
+            }
+        }
+        return coord;
     }
 
 
-    private static long getRecordInChannel(SeekableByteChannel sbc) throws IOException {
+    /**
+     * @param logsDir
+     * @param channel
+     * @param fileNumber
+     * @param recordNumber
+     * @return
+     */
+    private static FileCoord findRecordInFile(String logsDir, String channel, int fileNumber, long recordNumber) {
+        Path filePath = Paths.get(logsDir, getFileName(channel, fileNumber));
+
+        // No op coords marks end of stream
+        FileCoord coord = new FileCoord(0, 0, 0);
+
+        // we have come to the end of the log files
+        if (!Files.exists(filePath)) {
+            return coord;
+        }
+
+        // read this valid file
+        try (SeekableByteChannel sbc = Files.newByteChannel(filePath, StandardOpenOption.READ)) {
+            ByteBuffer headerBuffer = ByteBuffer.allocate(HeaderOps.HEADER_SIZE);
+            headerBuffer.clear();
+            sbc.read(headerBuffer);
+            headerBuffer.flip();
+            final long headerRecordNumber = headerBuffer.getLong();
+            // use when we load properly the coords
+            final long timestamp = headerBuffer.getLong();
+
+            // indexes and offsets.
+            int previousFileOffset = HeaderOps.HEADER_SIZE;
+            coord = new FileCoord( fileNumber, (headerRecordNumber - 1), previousFileOffset);
+
+            // now read records until there are no more or we hit the target recordNumber.
+            while ( skipRecordInChannel(sbc) != 0 ) {
+                coord = new FileCoord(coord.fileNumber,coord.recordNumber + 1, previousFileOffset);
+                previousFileOffset = (int)sbc.position();
+                if ( coord.recordNumber == recordNumber) return coord;
+            }
+        } catch (Exception exp) {
+            logger.error("Error finding record "+recordNumber+" in file "+filePath, exp);
+        }
+        return coord;
+    }
+
+
+    private static long skipRecordInChannel(SeekableByteChannel sbc) throws IOException {
         // mark the start of this record
         long recordStartPos = sbc.position();
 
         // read the record header
         ByteBuffer recordHeader = ByteBuffer.allocate(FramingOps.HEADER_SIZE);
         recordHeader.clear();
-        sbc.read(recordHeader);
-        recordHeader.flip();
-        // use the Netty zero copy to assert Little Endian integer for the record size encoding
-        long recordSize = Unpooled.wrappedBuffer(recordHeader).getIntLE(FramingOps.CHECKSUM_SIZE);
+        try {
+            sbc.read(recordHeader);
+            recordHeader.flip();
+            // use the Netty zero copy to assert Little Endian integer for the record size encoding
+            long recordSize = Unpooled.wrappedBuffer(recordHeader).getIntLE(FramingOps.CHECKSUM_SIZE);
 
-        if (recordSize == 0) {  return 0L; } // no more records in file
+            if (recordSize == 0) {
+                return 0L; // no more records in file just 00000's
+            }
 
-        // move the sbc read position to the next
-        long nextRecordPosition = recordStartPos + FramingOps.FRAME_SIZE + recordSize;
-        sbc.position(nextRecordPosition);
-        return nextRecordPosition;
+            // move the sbc read position to the next
+            long nextRecordPosition = recordStartPos + FramingOps.FRAME_SIZE + recordSize;
+            sbc.position(nextRecordPosition);
+        } catch (Exception exception) {
+            return 0L; // we ran out of file
         }
+        return sbc.position();
+    }
 
 
     
@@ -225,20 +304,13 @@ public class FileOps {
         final long recordNumber; // the number of the record
         final int filePos;       // the position in the file of the record
 
-        public FileCoord( int fileNumber, long recordNumber, int filePos) {
+        public FileCoord(int fileNumber, long recordNumber, int filePos) {
             this.fileNumber = fileNumber;
             this.recordNumber = recordNumber;
             this.filePos = filePos;
         }
 
-        /**
-         * Return a new file coord with the next record number and new file offset
-         * @return
-         */
-        public FileCoord advance(int filePos) {
-            return new FileCoord( this.fileNumber, this.recordNumber + 1, filePos);
-        }
+        public boolean isValid() {return filePos != 0;}
     }
-
 
 }

@@ -82,66 +82,6 @@ public class InitialiseTest extends LogTestBase {
         verifyInitialFiles(logsDir, TEST_CHANNEL_2);
     }
 
-    @Test
-    public void test_start_with_zeroed_info_file_but_no_log_file() throws Exception {
-        startLog();
-        verifyInitialFiles(logsDir, TEST_CHANNEL_1);
-        log.close().get();
-
-        File logFile = new File(logsDir, TEST_CHANNEL_1 + INITIAL_FILE_END);
-        assertTrue(logFile.exists());
-
-        assertTrue(logFile.delete());
-        assertFalse(logFile.exists());
-
-        // Start again should succeed as the info file contains just zeros
-        startLog();
-    }
-
-    @Test
-    public void test_start_with_non_zero_file_pos_but_no_log_file() throws Exception {
-        startLog();
-        verifyInitialFiles(logsDir, TEST_CHANNEL_1);
-        log.close().get();
-
-        File logFile = new File(logsDir, TEST_CHANNEL_1 + INITIAL_FILE_END);
-        assertTrue(logFile.exists());
-
-        assertTrue(logFile.delete());
-        assertFalse(logFile.exists());
-
-        // Start should now fail
-        try {
-            startLog();
-            fail("Should throw exception");
-        } catch (Exception e) {
-            // OK
-        }
-        log = null;
-    }
-
-    @Test
-    public void test_start_with_non_zero_file_number_but_no_log_file() throws Exception {
-        startLog();
-        verifyInitialFiles(logsDir, TEST_CHANNEL_1);
-        log.close().get();
-
-        File logFile = new File(logsDir, TEST_CHANNEL_1 + INITIAL_FILE_END);
-        assertTrue(logFile.exists());
-
-        assertTrue(logFile.delete());
-        assertFalse(logFile.exists());
-
-        // Start should now fail
-        try {
-            startLog();
-            fail("Should throw exception");
-        } catch (Exception e) {
-            // OK
-        }
-        log = null;
-    }
-
 
     @Test
     public void test_start_max_record_size_too_large() throws Exception {

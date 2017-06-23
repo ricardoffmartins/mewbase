@@ -116,10 +116,13 @@ public class PublishObjectsTest extends LogTestBase {
         assertExists(0);
         assertLogChunkLength(0, expChunkLength);
         assertObjects(0, (cnt, record) -> {
+            System.out.println(cnt);
             assertTrue(cnt < numRecords);
             BsonObject expected = event.copy().put("num", cnt);
+            System.out.println(expected + "->" + record);
             assertTrue(expected.equals(record));
         });
+        Thread.sleep(1000);
     }
 
     @Test
@@ -148,6 +151,7 @@ public class PublishObjectsTest extends LogTestBase {
         });
         assertLogChunkLength(0, expChunkLength);
     }
+
 
     @Test
     public void testPreallocNextFile() throws Exception {

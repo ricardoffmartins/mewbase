@@ -335,7 +335,7 @@ public class LogReadStreamImpl implements LogReadStream {
             logger.warn("Invalid file number {} head {}", fileNumber, headFileNumber);
             return;
         }
-        openFileStream((fileNumber + 1) * fileSize, false);
+        openFileStream(fileStreamRecordNum, false);
     }
 
     private void scheduleRead() {

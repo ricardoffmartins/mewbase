@@ -46,8 +46,8 @@ public class LogImpl implements Log {
     private int fileNumber = 0; // Number of log file containing current head
     private int filePos = 0;    // Position of head in head file
 
-    private AtomicLong lastWrittenSeq = new AtomicLong();  // Seq Number of last safely written record
-    private long writeSequence;
+    private AtomicLong nextWrittenSeq = new AtomicLong();  // The Seq number of the record to be written
+    private AtomicLong lastWrittenSeq = new AtomicLong();  // Seq Number of last record written.
     private long expectedSeq;
 
     private CompletableFuture<Void> nextFileCF;
@@ -149,12 +149,11 @@ public class LogImpl implements Log {
         // Total length of the record to write to the file
         int len = record.length();
 
-        //  The timestamp in the record
-        long timestamp = obj.getLong(Protocol.RECEV_TIMESTAMP);
-
         if (len > options.getMaxRecordSize()) {
             throw new MewException("Record too long " + len + " max " + options.getMaxRecordSize());
         }
+
+        long timestamp = obj.getLong(Protocol.RECEV_TIMESTAMP);
 
         final CompletableFuture<Long> cf;
 
@@ -195,8 +194,9 @@ public class LogImpl implements Log {
             }
         }
 
-        // Everything is set up to write to file so check if this the first write and if so
-        long seq = ++writeSequence;
+        // Everything is set up to write so write this record away under the current number and increment
+        // to move to the next record number to write
+        long seq = nextWrittenSeq.getAndIncrement();
         if (filePos == 0) {
             // First record for this file so add the header
             Buffer header = HeaderOps.makeHeader(seq,timestamp);
@@ -291,10 +291,6 @@ public class LogImpl implements Log {
     }
 
 
-    FileOps.FileCoord getCoordPriorToTimestamp(long timeStamp) {
-        return FileOps.getCoordPriorToTimestamp(options.getLogsDir(),channel,timeStamp);
-    }
-
     CompletableFuture<BasicFile> openFile(int fileNumber) {
         File file = new File(options.getLogsDir(), getFileName(channel,fileNumber));
         return faf.openBasicFile(file);
@@ -305,7 +301,7 @@ public class LogImpl implements Log {
     }
 
     private synchronized void sendToSubs(long seq, BsonObject bsonObject) {
-        expectedSeq++;
+        ++expectedSeq;
         lastWrittenSeq.set(seq);
         for (LogReadStreamImpl stream : fileLogStreams) {
             if (stream.matches(bsonObject)) {
@@ -375,7 +371,7 @@ public class LogImpl implements Log {
         // file store is in good order so set up the state variables by reading the current file.
         FileOps.FileCoord coords = getCoordOfLastRecord(options.getLogsDir(),channel,fileNumber);
         lastWrittenSeq.set(coords.recordNumber);
-        writeSequence = coords.recordNumber;
+        nextWrittenSeq.set(coords.recordNumber);
         expectedSeq = coords.recordNumber;
         filePos = coords.filePos;
     }
