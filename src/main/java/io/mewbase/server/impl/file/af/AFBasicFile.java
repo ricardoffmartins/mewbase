@@ -1,6 +1,5 @@
 package io.mewbase.server.impl.file.af;
 
-import com.sun.tools.doclets.formats.html.SourceToHTMLConverter;
 import io.mewbase.server.impl.BasicFile;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.AsyncResult;
