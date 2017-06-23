@@ -17,9 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -202,10 +199,10 @@ public class LogImpl implements Log {
             Buffer header = HeaderOps.makeHeader(seq,timestamp);
             cf = append0(header.length(), header).thenApply(f  -> {
                 append0(len, record);
-                return f;
+                return seq;
             } );
        } else {
-            cf = append0(len, record);
+            cf = append0(len, record).thenApply(f -> { return seq; });
        }
         // now send the event to all of the current subscribers ensuring that
         // the events dont 'jump the queue' if for example the log is currently playing
@@ -286,7 +283,7 @@ public class LogImpl implements Log {
     /**
      * Given a record number get the file coordinates for this record from the logs
      */
-    FileOps.FileCoord getCoordOfRecord(long recordNumber) {
+    FileCoord getCoordOfRecord(long recordNumber) {
        return FileOps.getCoordOfRecord(options.getLogsDir(),channel,recordNumber);
     }
 
@@ -369,7 +366,8 @@ public class LogImpl implements Log {
     private void checkAndLoadFiles() {
         fileNumber = checkAndGetLastLogFile(options,channel);
         // file store is in good order so set up the state variables by reading the current file.
-        FileOps.FileCoord coords = getCoordOfLastRecord(options.getLogsDir(),channel,fileNumber);
+        FileCoord coords = getCoordOfLastRecord(options.getLogsDir(),channel,fileNumber);
+
         lastWrittenSeq.set(coords.recordNumber);
         nextWrittenSeq.set(coords.recordNumber);
         expectedSeq = coords.recordNumber;

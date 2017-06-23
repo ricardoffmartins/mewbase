@@ -129,14 +129,17 @@ public class LogTestBase extends ServerTestBase {
         }
     }
 
-    protected void publishObjectsConcurrently(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
+    protected List<Long> publishObjectsConcurrently(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
         List<CompletableFuture<Long>> cfs = new ArrayList<>();
+        List<Long> futuresInCompletedOrder = new ArrayList<>();
         for (int i = 0; i < num; i++) {
             CompletableFuture<Long> eventNum = ((ServerImpl)server).publishEvent(log, objectFunction.apply(i));
+            eventNum.whenComplete( (l,e) -> futuresInCompletedOrder.add(l));
             cfs.add(eventNum);
         }
         CompletableFuture<Void> all = CompletableFuture.allOf(cfs.toArray(new CompletableFuture[num]));
         all.get();
+        return futuresInCompletedOrder;
     }
 
 

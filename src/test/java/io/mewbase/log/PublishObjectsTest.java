@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
@@ -111,15 +113,16 @@ public class PublishObjectsTest extends LogTestBase {
                 setMaxRecordSize(MAX_RECORD_SIZE);
 
         startLog();
-        publishObjectsConcurrently(numRecords, i -> event.copy().put("num", i));
-
+        List<Long> orderedResults = publishObjectsConcurrently(numRecords, i -> event.copy().put("num", i));
+        if (orderedResults.get(0) != 0L)  System.out.println(orderedResults);
         assertExists(0);
         assertLogChunkLength(0, expChunkLength);
-        assertObjects(0, (cnt, record) -> {
-            System.out.println(cnt);
-            assertTrue(cnt < numRecords);
-            BsonObject expected = event.copy().put("num", cnt);
-            System.out.println(expected + "->" + record);
+        //System.out.println(orderedResults);
+        Iterator<Long> itr = orderedResults.iterator();
+        assertObjects(0, (recordNum, record) -> {
+            assertTrue(recordNum < numRecords);
+            BsonObject expected = event.copy().put("num", recordNum);
+            //System.out.println(expected + "->" + record);
             assertTrue(expected.equals(record));
         });
         Thread.sleep(1000);

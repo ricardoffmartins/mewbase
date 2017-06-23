@@ -310,7 +310,7 @@ public class FileOps {
             this.filePos = filePos;
         }
 
-        public boolean isValid() {return filePos != 0;}
+        public boolean isValid() {return filePos > 0;}
     }
 
 }
