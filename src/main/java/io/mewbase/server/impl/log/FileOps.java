@@ -25,6 +25,7 @@ import java.util.Map;
 import static io.mewbase.server.impl.log.HeaderOps.readHeader;
 import static io.mewbase.server.impl.log.HeaderOps.HeaderDetails;
 
+
 /**
  * FileOps provides utility methods over the log files and filesystem.
  *
@@ -269,7 +270,7 @@ public class FileOps {
     /**
      * Skip a single record in this byte channel
      * @param sbc : The byte stream to read
-     * @return : THe new position in the stream if valid or 0 if we have hit the end of the channel.
+     * @return : The new position in the stream if valid or 0 if we have hit the end of the channel.
      * @throws IOException
      */
     private static long skipRecordInChannel(SeekableByteChannel sbc) throws IOException {
