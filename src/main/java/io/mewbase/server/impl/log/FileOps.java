@@ -3,7 +3,6 @@ package io.mewbase.server.impl.log;
 
 import io.mewbase.client.MewException;
 import io.mewbase.server.ServerOptions;
-import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +26,8 @@ import static io.mewbase.server.impl.log.HeaderOps.readHeader;
 import static io.mewbase.server.impl.log.HeaderOps.HeaderDetails;
 
 /**
- * FileOps provides utiliity methods over the log files and filesystem.
+ * FileOps provides utility methods over the log files and filesystem.
+ *
  * Provides the ability to lookup FileCoords i.e. pointers into the Log files at the record level
  * It subsumes and refactors some of the common aspects of LogImpl and LogReadStream with the
  * 'primary' level of input being record numbers and the primary outputs being FileCoords.
@@ -64,7 +64,7 @@ public class FileOps {
 
     /**
      * Check that the files for this channel are in good order and return the
-     * number of the most recently written (highest number)
+     * number of the most recently written (highest number) log file.
      * @param options
      * @param channel
      * @return
@@ -212,7 +212,7 @@ public class FileOps {
             boolean endOfFiles = false;
             while (!endOfFiles) {
                 FileCoord nextCoord = findRecordInFile(logsDir,channel,fileNum,recordNumber);
-                if ( nextCoord.isValid() ) {
+                if ( nextCoord.isValidRecordPosition() ) {
                     coord = nextCoord;
                     if (coord.recordNumber == recordNumber) return coord;
                     ++fileNum;
@@ -306,7 +306,7 @@ public class FileOps {
             this.filePos = filePos;
         }
 
-        public boolean isValid() {return filePos > 0;}
+        public boolean isValidRecordPosition() {return filePos > 0;}
     }
 
 }

@@ -26,7 +26,7 @@ public class HeaderOps {
     private final static Logger logger = LoggerFactory.getLogger(HeaderOps.class);
 
     // This is the version byte - bump this by one for each new log file format change
-    private static final byte VERSION_NUM = (byte)0x01;
+    private static final byte VERSION_NUM = (byte)0x00;
     // It get put on the front of this 64 bit buffer for alignment and as a magic number
     private static final byte[] VERSION_BYTES = {
             VERSION_NUM,(byte)0x5A,(byte)0xF0,(byte)0x87,(byte)0xC7,(byte)0x72,(byte)0xDF,(byte)0xD1,
