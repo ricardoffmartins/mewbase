@@ -122,7 +122,7 @@ public class PublishObjectsTest extends LogTestBase {
         assertObjects(0, (recordNum, record) -> {
             assertTrue(recordNum < numRecords);
             BsonObject expected = event.copy().put("num", recordNum);
-            //System.out.println(expected + "->" + record);
+            // System.out.println(expected + "->" + record);
             assertTrue(expected.equals(record));
         });
         Thread.sleep(1000);
