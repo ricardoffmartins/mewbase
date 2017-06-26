@@ -116,9 +116,8 @@ public class PublishObjectsTest extends LogTestBase {
         startLog();
         List<Long> orderedResults = publishObjectsConcurrently(numRecords, i -> event.copy().put("num", i));
 
-
         // TODO - ((LogImpl)log).flush() to fix bug evident in Travis
-        // flush the logs before asserting existence
+        // flush the logs before reading it back 'raw'
 
         assertExists(0);
         assertLogChunkLength(0, expChunkLength);
@@ -130,7 +129,7 @@ public class PublishObjectsTest extends LogTestBase {
             // System.out.println(expected + "->" + record);
             assertTrue(expected.equals(record));
         });
-        Thread.sleep(100);
+
     }
 
     @Test
