@@ -52,7 +52,7 @@ public class HeaderOps {
      * @param in : Vertx Buffer with a header as described above.
      * @return : The Details encoded in the header
      */
-    public HeaderDetails readHeader(Buffer in) {
+    public static HeaderDetails readHeader(Buffer in) {
 
         final long recordNumber = in.getLong(0);
         final long timestamp = in.getLong(Long.BYTES);
@@ -73,7 +73,7 @@ public class HeaderOps {
     }
 
 
-    public class HeaderDetails {
+    public static class HeaderDetails {
         private final byte version = VERSION_NUM;
         private final long recordNumber;
         private final long timestamp;

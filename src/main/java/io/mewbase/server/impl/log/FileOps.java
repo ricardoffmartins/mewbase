@@ -4,6 +4,7 @@ package io.mewbase.server.impl.log;
 import io.mewbase.client.MewException;
 import io.mewbase.server.ServerOptions;
 import io.netty.buffer.Unpooled;
+import io.vertx.core.buffer.Buffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,9 +23,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.mewbase.server.impl.log.HeaderOps.readHeader;
+
 
 /**
- * FileOps provides helper methods over the log files and filesystem
+ * FileOps provides utiliity methods over the log files and filesystem.
  * Provides the ability to lookup FileCoords i.e. pointers into the Log files at the record level
  * It subsumes and refactors some of the common aspects of LogImpl and LogReadStream with the
  * 'primary' level of input being record numbers and the primary outputs being FileCoords.
@@ -163,16 +166,12 @@ public class FileOps {
 
         // SeekableByteChannel is AutoCloseable so we can try-with-resources
         try (SeekableByteChannel sbc = Files.newByteChannel(filePath, StandardOpenOption.READ)) {
-            // get the header
-            ByteBuffer headerBuffer = ByteBuffer.allocate(HeaderOps.HEADER_SIZE);
-            headerBuffer.clear();
-            sbc.read(headerBuffer);
-            headerBuffer.flip();
-            final long recordNumber = headerBuffer.getLong();
-            //final long timestamp = headerBuffer.getLong(); use when we load properly the coords
 
-            // ignore the version we are going to roll this all together on initial load and keep the
-            // indexes and offsets.
+            ByteBuffer headerBuffer = ByteBuffer.allocate(HeaderOps.HEADER_SIZE);
+            sbc.read(headerBuffer);
+            HeaderOps.HeaderDetails hdrDetails = readHeader( Buffer.buffer(headerBuffer.array()) );
+            final long recordNumber = hdrDetails.getRecordNumber();
+
             int previousFileOffset = HeaderOps.HEADER_SIZE;
             coord = new FileCoord( fileNumber, (recordNumber - 1), previousFileOffset);
 
@@ -247,12 +246,9 @@ public class FileOps {
         // read this valid file
         try (SeekableByteChannel sbc = Files.newByteChannel(filePath, StandardOpenOption.READ)) {
             ByteBuffer headerBuffer = ByteBuffer.allocate(HeaderOps.HEADER_SIZE);
-            headerBuffer.clear();
             sbc.read(headerBuffer);
-            headerBuffer.flip();
-            final long headerRecordNumber = headerBuffer.getLong();
-            // use when we load properly the coords
-            final long timestamp = headerBuffer.getLong();
+            HeaderOps.HeaderDetails hdrDetails = readHeader( Buffer.buffer(headerBuffer.array()) );
+            final long headerRecordNumber = hdrDetails.getRecordNumber();
 
             // indexes and offsets.
             int previousFileOffset = HeaderOps.HEADER_SIZE;
