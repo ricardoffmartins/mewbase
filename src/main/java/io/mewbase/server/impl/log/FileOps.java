@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.mewbase.server.impl.log.HeaderOps.readHeader;
-
+import static io.mewbase.server.impl.log.HeaderOps.HeaderDetails;
 
 /**
  * FileOps provides utiliity methods over the log files and filesystem.
@@ -169,7 +169,7 @@ public class FileOps {
 
             ByteBuffer headerBuffer = ByteBuffer.allocate(HeaderOps.HEADER_SIZE);
             sbc.read(headerBuffer);
-            HeaderOps.HeaderDetails hdrDetails = readHeader( Buffer.buffer(headerBuffer.array()) );
+            HeaderDetails hdrDetails = readHeader( Buffer.buffer(headerBuffer.array()) );
             final long recordNumber = hdrDetails.getRecordNumber();
 
             int previousFileOffset = HeaderOps.HEADER_SIZE;
@@ -247,7 +247,7 @@ public class FileOps {
         try (SeekableByteChannel sbc = Files.newByteChannel(filePath, StandardOpenOption.READ)) {
             ByteBuffer headerBuffer = ByteBuffer.allocate(HeaderOps.HEADER_SIZE);
             sbc.read(headerBuffer);
-            HeaderOps.HeaderDetails hdrDetails = readHeader( Buffer.buffer(headerBuffer.array()) );
+            HeaderDetails hdrDetails = readHeader( Buffer.buffer(headerBuffer.array()) );
             final long headerRecordNumber = hdrDetails.getRecordNumber();
 
             // indexes and offsets.
@@ -266,30 +266,30 @@ public class FileOps {
         return coord;
     }
 
-
+    /**
+     * Skip a single record in this byte channel
+     * @param sbc : The byte stream to read
+     * @return : THe new position in the stream if valid or 0 if we have hit the end of the channel.
+     * @throws IOException
+     */
     private static long skipRecordInChannel(SeekableByteChannel sbc) throws IOException {
-        // mark the start of this record
+
         long recordStartPos = sbc.position();
 
-        // read the record header
-        ByteBuffer recordHeader = ByteBuffer.allocate(FramingOps.HEADER_SIZE);
-        recordHeader.clear();
-        try {
-            sbc.read(recordHeader);
-            recordHeader.flip();
-            // use the Netty zero copy to assert Little Endian integer for the record size encoding
-            long recordSize = Unpooled.wrappedBuffer(recordHeader).getIntLE(FramingOps.CHECKSUM_SIZE);
+        // check that there is enough of the file left to read a valid header
+        long bytesLeftInStream = sbc.size() - recordStartPos;
 
-            if (recordSize == 0) {
-                return 0L; // no more records in file just 00000's
-            }
+        if ( bytesLeftInStream < FramingOps.HEADER_SIZE) { return 0L; }
 
-            // move the sbc read position to the next
-            long nextRecordPosition = recordStartPos + FramingOps.FRAME_SIZE + recordSize;
-            sbc.position(nextRecordPosition);
-        } catch (Exception exception) {
-            return 0L; // we ran out of file
-        }
+        ByteBuffer headerBuffer = ByteBuffer.allocate(FramingOps.HEADER_SIZE);
+        sbc.read(headerBuffer);
+        long recordSize = Buffer.buffer(headerBuffer.array()).getIntLE(FramingOps.CHECKSUM_SIZE);
+
+        if (recordSize == 0) {  return 0L; } // no more records in file just 00000's
+
+        // move the sbc read position to the start of the next record (or end possibly EOF)
+        long nextRecordPosition = recordStartPos + FramingOps.FRAME_SIZE + recordSize;
+        sbc.position(nextRecordPosition);
         return sbc.position();
     }
 
