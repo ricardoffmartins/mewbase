@@ -5,6 +5,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.server.impl.Protocol;
 import io.mewbase.server.impl.log.FramingOps;
 import io.mewbase.server.impl.log.HeaderOps;
+import io.mewbase.server.impl.log.LogImpl;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
@@ -114,10 +115,14 @@ public class PublishObjectsTest extends LogTestBase {
 
         startLog();
         List<Long> orderedResults = publishObjectsConcurrently(numRecords, i -> event.copy().put("num", i));
-        if (orderedResults.get(0) != 0L)  System.out.println(orderedResults);
+
+
+        // TODO - ((LogImpl)log).flush() to fix bug evident in Travis
+        // flush the logs before asserting existence
+
         assertExists(0);
         assertLogChunkLength(0, expChunkLength);
-        //System.out.println(orderedResults);
+
         Iterator<Long> itr = orderedResults.iterator();
         assertObjects(0, (recordNum, record) -> {
             assertTrue(recordNum < numRecords);
@@ -125,7 +130,7 @@ public class PublishObjectsTest extends LogTestBase {
             // System.out.println(expected + "->" + record);
             assertTrue(expected.equals(record));
         });
-        Thread.sleep(1000);
+        Thread.sleep(100);
     }
 
     @Test
