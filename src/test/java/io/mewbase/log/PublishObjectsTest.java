@@ -111,13 +111,16 @@ public class PublishObjectsTest extends LogTestBase {
 
         serverOptions = origServerOptions().
                 setMaxLogChunkSize(LOG_CHUNK_SIZE).
-                setMaxRecordSize(MAX_RECORD_SIZE);
+                setMaxRecordSize(MAX_RECORD_SIZE).
+                // ensure the logs get flushed every 10 ms because we are going to
+                // do 'raw' file reads back off the disk
+                setLogFlushInterval(10); // ms
 
         startLog();
         List<Long> orderedResults = publishObjectsConcurrently(numRecords, i -> event.copy().put("num", i));
 
-        // TODO - ((LogImpl)log).flush() to fix bug evident in Travis
-        // flush the logs before reading it back 'raw'
+        // Wait until the logs are flushed to avoid incomlpete read below
+        Thread.sleep(11);
 
         assertExists(0);
         assertLogChunkLength(0, expChunkLength);
@@ -126,7 +129,6 @@ public class PublishObjectsTest extends LogTestBase {
         assertObjects(0, (recordNum, record) -> {
             assertTrue(recordNum < numRecords);
             BsonObject expected = event.copy().put("num", recordNum);
-            // System.out.println(expected + "->" + record);
             assertTrue(expected.equals(record));
         });
 
