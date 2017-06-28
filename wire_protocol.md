@@ -111,17 +111,17 @@ Fields
 
 * `channel` - mandatory - string. The name of the channel to subscribe from, e.g. `com.acme.basket`
 * `rID` - mandatory, integer. Unique id of request - used for correlating responses.
-* `startPos` - optional - int64. The position in the channel to start subscribing from
+* `startEventNum` - optional - int64. The event number start subscribing from
 * `startTimestamp` - optional - int64. The earliest timestamp of events in the stream to start from subscribing from.
 * `durableID` - optional - string. Unique id for a durable subscription. If provided then the server will look-up and
 resume an existing subscription for that name, otherwise a new durable subscription for that name will be created.
 * `filterName` - optional - string named filter to apply to Events in the subscription so that Event not matching the filter will not
 be delivered. (e.g. FQCN "io.mewbase.subscription.filter.DiscardCakes" )
  
-if `startPos` or `startTimestamp` are omitted then only events starting from when the subscription was created will
+if `startEventNum` or `startTimestamp` are omitted then only events starting from when the subscription was created will
 be received. 
 
-Set either the`startPos` or the `startTimestamp`, setting both with result in a client and server error
+Set either the`startEventNum` or the `startTimestamp`, setting both with result in a client and server error
  
 ### SUBRESPONSE
 
@@ -161,7 +161,7 @@ Fields:
  
 * `subID` - mandatory, int32. ID of the client subscription.
 * `timestamp` - mandatory, int64. Timestamp when the event was persisted.
-* `pos` - mandatory, int64. Position in the channel of the event
+* `eventNumber` - mandatory, int64. The unique sequnce numnber for this event
 * `event` - mandatory, BSONObject. The event itself.
  
 ### ACKEV

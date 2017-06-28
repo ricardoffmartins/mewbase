@@ -1,7 +1,6 @@
 package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.ClientOptions;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
 import io.mewbase.server.Log;
@@ -9,7 +8,6 @@ import io.mewbase.server.LogReadStream;
 import io.mewbase.server.filter.FilterFactory;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
-import io.vertx.core.net.ClientOptionsBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +49,7 @@ public abstract class SubscriptionBase {
                         if (lastAcked == null) {
                             throw new IllegalStateException("No last acked field");
                         } else {
-                            subDescriptor.setStartPos(lastAcked);
+                            subDescriptor.setStartEventNum(lastAcked);
                             // We don't want to redeliver the last acked event
                             ignoreFirst = true;
                         }

@@ -5,6 +5,7 @@ import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
 import io.mewbase.server.impl.log.FramingOps;
+import io.mewbase.server.impl.log.HeaderOps;
 import io.mewbase.server.impl.log.LogImpl;
 import io.mewbase.server.impl.log.LogReadStreamImpl;
 import io.vertx.ext.unit.Async;
@@ -30,106 +31,117 @@ public class StreamTest extends LogTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(StreamTest.class);
 
-    private BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-    private int objLen = obj.encode().length() + FramingOps.FRAME_SIZE;
+    private final static int RECORD_BYTE_COST = 31; // Bytes
+
+    private BsonObject event = new BsonObject().put("foo", "bar").put("num", 0);
+    private int recordLen = FramingOps.FRAME_SIZE + event.encode().length() + RECORD_BYTE_COST;
     private int numObjects = 100;
 
     @Test
     public void test_stream_single_file_less_than_max_file_size(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects + 10);
-        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                0, numObjects * objLen, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects + 10);
+        int expectedFileLength = HeaderOps.HEADER_SIZE + (recordLen * numObjects);
+        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, recordLen,
+                0, expectedFileLength, recordLen);
     }
 
     @Test
     public void test_stream_single_file_equal_to_max_file_size(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects ;
-        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                0, numObjects * objLen, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects ;
+        int expectedFileLength = HeaderOps.HEADER_SIZE + (recordLen * numObjects);
+        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, recordLen,
+                0, expectedFileLength, recordLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) ;
-        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                1, objLen, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects - 1) ;
+        int expectedFileLength = HeaderOps.HEADER_SIZE + recordLen;
+        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, recordLen,
+                1, expectedFileLength, recordLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_with_empty_space(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) + (objLen / 2)  ;
-        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                1, objLen, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects - 1) + (recordLen / 2)  ;
+        int expectedFileLength = HeaderOps.HEADER_SIZE + recordLen;
+        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, recordLen,
+                1, expectedFileLength, recordLen);
     }
 
     @Test
     public void test_stream_two_files_fill_both_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 2 ;
-        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                1, fileSize  , objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects / 2 ;
+        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, recordLen,
+                1, fileSize  , recordLen);
     }
 
     @Test
     public void test_stream_five_files_with_empty_space(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects / 5) + (objLen / 2) ;
-        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                4, objLen * (numObjects / 5), objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects / 5) + (recordLen / 2) ;
+        int expectedFileLength = 1584;  // should have a relationship to above
+        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, recordLen,
+                4, expectedFileLength, recordLen);
     }
 
     @Test
-    public void test_stream_five_files_fill_both_exactly(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 5 ;
-        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, objLen,
-                4, fileSize , objLen);
+    public void test_stream_five_files_fill_all_exactly(TestContext testContext) throws Exception {
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects / 5 ;
+        test_stream(testContext, numObjects, fileSize, ServerOptions.DEFAULT_READ_BUFFER_SIZE, recordLen,
+                4, fileSize , recordLen);
     }
 
     @Test
     public void test_stream_single_file_less_than_max_file_size_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects + 10) ;
-        test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                0, numObjects * objLen, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects + 10) ;
+        int expectedFileLength = HeaderOps.HEADER_SIZE + recordLen * numObjects;
+        test_stream(testContext, numObjects, fileSize, recordLen - 1, recordLen,
+                0, expectedFileLength, recordLen);
     }
 
     @Test
     public void test_stream_single_file_equal_to_max_file_size_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects ;
-        test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                0, numObjects * objLen, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects ;
+        test_stream(testContext, numObjects, fileSize, recordLen - 1, recordLen,
+                0, fileSize, recordLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) ;
-        test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                1, objLen, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects - 1) ;
+        int expectedFileLength = HeaderOps.HEADER_SIZE + recordLen;
+        test_stream(testContext, numObjects, fileSize, recordLen - 1, recordLen,
+                1, expectedFileLength, recordLen);
     }
 
     @Test
     public void test_stream_two_files_fill_first_with_empty_space_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects - 1) + (objLen / 2) ;
-        test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                1, objLen, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects - 1) + (recordLen / 2) ;
+        int expectedFileLength = HeaderOps.HEADER_SIZE + recordLen;
+        test_stream(testContext, numObjects, fileSize, recordLen - 1, recordLen,
+                1, expectedFileLength, recordLen);
     }
 
     @Test
     public void test_stream_two_files_fill_both_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 2 ;
-        test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                1, fileSize, objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects / 2 ;
+        test_stream(testContext, numObjects, fileSize, recordLen - 1, recordLen,
+                1, fileSize, recordLen);
     }
 
     @Test
     public void test_stream_five_files_with_empty_space_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * (numObjects / 5) + (objLen / 2) ;
-        test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                4, objLen * (numObjects / 5), objLen);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects / 5) + (recordLen / 2) ;
+        int expectedFileLength = HeaderOps.HEADER_SIZE + recordLen * (numObjects / 5);
+        test_stream(testContext, numObjects, fileSize, recordLen - 1, recordLen,
+                4, expectedFileLength, recordLen);
     }
 
     @Test
-    public void test_stream_five_files_fill_both_exactly_small_rb(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 5 ;
-        test_stream(testContext, numObjects, fileSize, objLen - 1, objLen,
-                4, fileSize , objLen);
+    public void test_stream_five_files_fill_all_exactly_small_rb(TestContext testContext) throws Exception {
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects / 5 ;
+        test_stream(testContext, numObjects, fileSize, recordLen - 1, recordLen,
+                4, fileSize , recordLen);
     }
 
     protected void test_stream(TestContext testContext, int numObjects, int maxLogChunkSize, int readBuffersize,
@@ -140,24 +152,31 @@ public class StreamTest extends LogTestBase {
 
     protected void test_stream(TestContext testContext, int numAppendObjects, int numReadObjects, int maxLogChunkSize, int readBuffersize,
                                int maxRecordSize, int expectedEndFile, int expectedEndFileLength, int objLen,
-                               long startPos)
+                               long startEventNum)
             throws Exception {
-        serverOptions = origServerOptions().setMaxLogChunkSize(maxLogChunkSize).
-                setReadBufferSize(readBuffersize).setMaxRecordSize(maxRecordSize);
+        serverOptions = origServerOptions().
+                        setMaxLogChunkSize(maxLogChunkSize).
+                        setReadBufferSize(readBuffersize).
+                        setMaxRecordSize(maxRecordSize);
         startLog();
 
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numAppendObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numAppendObjects, i -> obj.copy().put("num", i));
 
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
         int offset = numAppendObjects - numReadObjects;
-        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(startPos));
-        rs.handler((pos, record) -> {
-            testContext.assertEquals("bar", record.getString("foo"));
-            testContext.assertEquals(cnt.get() + offset, record.getInteger("num"));
-            long expectedPos = calcPos(cnt.get() + offset, maxLogChunkSize, objLen);
-            testContext.assertEquals(expectedPos, (long)pos);
+
+        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(startEventNum));
+        rs.handler((recordNum, record) -> {
+            // event is good
+            BsonObject event = record.getBsonObject("event");
+            testContext.assertEquals("bar", event.getString("foo"));
+            // is record number agreed
+            long expectedRecordNum = cnt.get() + offset;
+            testContext.assertEquals(expectedRecordNum, (long)event.getInteger("num"));
+            testContext.assertEquals(expectedRecordNum, recordNum);
+
             if (cnt.incrementAndGet() == numReadObjects) {
                 rs.close();
                 testContext.assertEquals(expectedEndFile, log.getFileNumber());
@@ -182,23 +201,28 @@ public class StreamTest extends LogTestBase {
     @Test
     //@Repeat(value = 1000)
     public void test_pause_resume_in_retro(TestContext testContext) throws Exception {
-        int fileSize = objLen * 20;
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * 20;
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(recordLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
         AtomicBoolean paused = new AtomicBoolean();
-        rs.handler((pos, record) -> {
+        rs.handler((recordNum, record) -> {
+            // should not deliver when paused
             testContext.assertFalse(paused.get());
-            testContext.assertEquals("bar", record.getString("foo"));
-            testContext.assertEquals(cnt.get(), record.getInteger("num"));
-            long expectedPos = calcPos(cnt.get(), fileSize, objLen);
-            testContext.assertEquals(expectedPos, (long)pos);
+
+            // event is good
+            BsonObject event = record.getBsonObject("event");
+            testContext.assertEquals("bar", event.getString("foo"));
+            // is record number agreed
+            testContext.assertEquals(cnt.get(), event.getInteger("num"));
+            testContext.assertEquals((long)cnt.get(), recordNum);
+
             if (cnt.incrementAndGet() == numObjects) {
                 rs.close();
                 async.complete();
@@ -218,23 +242,24 @@ public class StreamTest extends LogTestBase {
 
     @Test
     public void test_stream_from_non_zero_position(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects / 5 + objLen / 2;
-        long startPos = calcPos(50, fileSize, objLen);
-        test_stream(testContext, 100, 50, fileSize, objLen - 1, objLen,
-                4, objLen * numObjects / 5, objLen, startPos);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects / 5 + recordLen / 2;
+        int startEvent = 50;
+        int expectedFileLength = HeaderOps.HEADER_SIZE + recordLen * numObjects / 5;
+                test_stream(testContext, 100, 50, fileSize, recordLen - 1, recordLen,
+                4, expectedFileLength , recordLen, startEvent);
     }
 
     @Test
     public void test_stream_from_negative_position(TestContext testContext) throws Exception {
-        int fileSize = objLen * 20;
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * 20;
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(recordLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         try {
-            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-2));
+            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-2));
             fail("Should throw exception");
         } catch (IllegalArgumentException e) {
             // OK
@@ -243,15 +268,15 @@ public class StreamTest extends LogTestBase {
 
     @Test
     public void test_stream_from_past_head(TestContext testContext) throws Exception {
-        int fileSize = objLen * 20;
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * 20;
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(recordLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         try {
-            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(((LogImpl)log).getLastWrittenPos() + 1));
+            LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(((LogImpl)log).getLastWrittenSeq() + 1));
             fail("Should throw exception");
         } catch (IllegalArgumentException e) {
             // OK
@@ -261,27 +286,37 @@ public class StreamTest extends LogTestBase {
     @Test
     //@Repeat(value = 10000)
     public void test_stream_from_last_written(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects + 10;
-        serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects + 10;
+        serverOptions = origServerOptions().
+                        setMaxLogChunkSize(fileSize).
+                        setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).
+                        setMaxRecordSize(recordLen);
+
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(((LogImpl)log).getLastWrittenPos()));
+        long lastWritten = ((LogImpl)log).getLastWrittenSeq();
+        LogReadStream rs = log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(lastWritten));
 
         Async async1 = testContext.async();
         Async async2 = testContext.async();
         AtomicInteger cnt = new AtomicInteger(numObjects - 1);
-        rs.handler((pos, record) -> {
-            testContext.assertEquals("bar", record.getString("foo"));
+        rs.handler((recordNum, record) -> {
+            // event is good
+            BsonObject event = record.getBsonObject("event");
+            testContext.assertEquals("bar", event.getString("foo"));
+            // is record number agreed
+            testContext.assertEquals(cnt.get(), event.getInteger("num"));
+            testContext.assertEquals((long)cnt.get(), recordNum);
+            testContext.assertEquals("bar", event.getString("foo"));
+
             int currCount = cnt.get();
             if (currCount == numObjects - 1) {
                 async1.complete();
             }
-            testContext.assertEquals(currCount, record.getInteger("num"));
-            long expectedPos = calcPos(currCount, fileSize, objLen);
-            testContext.assertEquals(expectedPos, (long)pos);
+
             if (cnt.incrementAndGet() == numObjects * 2) {
                 rs.close();
                 async2.complete();
@@ -293,27 +328,29 @@ public class StreamTest extends LogTestBase {
 
         async1.await();
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
     }
 
     @Test
     public void test_stream_active_from_zero(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects + 10;
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects + 10;
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(recordLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-1));
 
         Async async = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
-        rs.handler((pos, record) -> {
-            testContext.assertEquals("bar", record.getString("foo"));
-            int currCount = cnt.get();
-            testContext.assertEquals(currCount, record.getInteger("num"));
-            long expectedPos = calcPos(currCount, fileSize, objLen);
-            testContext.assertEquals(expectedPos, (long)pos);
+        rs.handler((recordNum, record) -> {
+            // event is good
+            BsonObject event = record.getBsonObject("event");
+            testContext.assertEquals("bar", event.getString("foo"));
+            // is record number agreed
+            testContext.assertEquals(cnt.get(), event.getInteger("num"));
+            testContext.assertEquals((long)cnt.get(), recordNum);
+
             testContext.assertFalse(rs.isRetro());
             if (cnt.incrementAndGet() == numObjects) {
                 rs.close();
@@ -322,26 +359,33 @@ public class StreamTest extends LogTestBase {
         });
         rs.start();
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
     }
 
     @Test
     //@Repeat(value=10000)
     public void test_pause_resume_active_retro_active(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects + 10;
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects + 10;
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(recordLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-1));
 
         Async async1 = testContext.async();
         Async async2 = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
         testContext.assertFalse(rs.isRetro());
-        rs.handler((pos, record) -> {
-            testContext.assertEquals("bar", record.getString("foo"));
+        rs.handler((recordNum, record) -> {
+            // event is good
+            BsonObject event = record.getBsonObject("event");
+            testContext.assertEquals("bar", event.getString("foo"));
+            // is record number agreed
+            testContext.assertEquals(cnt.get(), event.getInteger("num"));
+            testContext.assertEquals((long)cnt.get(), recordNum);
+
+
             int currCount = cnt.get();
             if (currCount == numObjects / 2 - 1) {
                 // When received half the messages pause then resume after a few ms,
@@ -353,9 +397,7 @@ public class StreamTest extends LogTestBase {
                     testContext.assertTrue(rs.isRetro());
                 });
             }
-            testContext.assertEquals(currCount, record.getInteger("num"));
-            long expectedPos = calcPos(currCount, fileSize, objLen);
-            testContext.assertEquals(expectedPos, (long)pos);
+
             if (cnt.incrementAndGet() == numObjects) {
                 async1.complete();
             }
@@ -366,37 +408,40 @@ public class StreamTest extends LogTestBase {
         });
         rs.start();
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         async1.await();
 
         // Now send some more messages - sub should be active again
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
     }
 
     @Test
     public void test_pause_resume_active_active(TestContext testContext) throws Exception {
-        int fileSize = objLen * numObjects + 10;
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * numObjects + 10;
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(recordLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(-1));
+        LogReadStreamImpl rs = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(-1));
 
         testContext.assertFalse(rs.isRetro());
 
         Async async1 = testContext.async();
         Async async2 = testContext.async();
         AtomicInteger cnt = new AtomicInteger();
-        rs.handler((pos, record) -> {
-            testContext.assertEquals("bar", record.getString("foo"));
+        rs.handler((recordNum, record) -> {
+            BsonObject event = record.getBsonObject("event");
+            // event is good ??
+            testContext.assertEquals("bar", event.getString("foo"));
+            // All agreed on the object number
             int currCount = cnt.get();
+            testContext.assertEquals((long)currCount, recordNum);
+            testContext.assertEquals(currCount, event.getInteger("num"));
 
-            testContext.assertEquals(currCount, record.getInteger("num"));
-            long expectedPos = calcPos(currCount, fileSize, objLen);
-            testContext.assertEquals(expectedPos, (long)pos);
+
             testContext.assertFalse(rs.isRetro());
             if (cnt.incrementAndGet() == numObjects) {
                 // Pause then resume. Don't publish any more messages when paused so consumer stays
@@ -417,72 +462,56 @@ public class StreamTest extends LogTestBase {
         });
         rs.start();
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
         async1.await();
 
         // Now send some more messages - should stay active
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i + numObjects));
 
     }
 
 
-    /*
-    Calculate the append position of the nth object to be appended to the log, n starts at zero
-     */
-    protected long calcPos(int nth, int maxLogChunkSize, int objLength) {
 
-        int pos = 0;
-        int filePos = 0;
-
-        for (int i = 0; i < nth; i++) {
-            pos += objLength;
-            filePos += objLength;
-            int remainingSpace = maxLogChunkSize - filePos;
-            if (remainingSpace < objLength ) {
-                pos += remainingSpace;
-                filePos = 0;
-            }
-        }
-
-        return pos;
-    }
 
     @Test
     //@Repeat(value = 10000)
     public void test_stream_multiple(TestContext testContext) throws Exception {
 
-        int fileSize = objLen * (numObjects / 5) + objLen / 2 + (FramingOps.FRAME_SIZE + Integer.BYTES);
+        int fileSize = HeaderOps.HEADER_SIZE + recordLen * (numObjects / 5) + recordLen / 2 + (FramingOps.FRAME_SIZE + Integer.BYTES);
         serverOptions = origServerOptions().setMaxLogChunkSize(fileSize).
-                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(objLen);
+                setReadBufferSize(ServerOptions.DEFAULT_READ_BUFFER_SIZE).setMaxRecordSize(recordLen);
         startLog();
         BsonObject obj = new BsonObject().put("foo", "bar").put("num", 0);
 
-        appendObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
+        publishObjectsSequentially(numObjects, i -> obj.copy().put("num", i));
 
-        LogReadStreamImpl rs1 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
-        LogReadStreamImpl rs2 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartPos(0));
+        LogReadStreamImpl rs1 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
+        LogReadStreamImpl rs2 = (LogReadStreamImpl)log.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1).setStartEventNum(0));
 
 
         CountDownLatch latch = new CountDownLatch(2);
         AtomicInteger counter1 = new AtomicInteger();
         AtomicInteger counter2 = new AtomicInteger();
 
-        handleRecords(rs1, counter1, testContext, latch, fileSize);
-        handleRecords(rs2, counter2, testContext, latch, fileSize);
+        handleRecords(rs1, counter1, testContext, latch);
+        handleRecords(rs2, counter2, testContext, latch);
 
         latch.await();
     }
 
-    private void handleRecords(LogReadStreamImpl rs, AtomicInteger counter, TestContext testContext, CountDownLatch latch, int fileSize) {
 
-        rs.handler((pos, record) -> {
-            testContext.assertEquals("bar", record.getString("foo"));
-            // int currCount = counter.get();
-            testContext.assertEquals(counter.get(), record.getInteger("num"));
-            long expectedPos = calcPos(counter.get(), fileSize, objLen);
-            testContext.assertEquals(expectedPos, (long)pos);
+    private void handleRecords(LogReadStreamImpl rs, AtomicInteger counter, TestContext testContext, CountDownLatch latch) {
+
+        rs.handler((recordNum, record) -> {
+            // event is good
+            BsonObject event = record.getBsonObject("event");
+            testContext.assertEquals("bar", event.getString("foo"));
+            // is record number agreed
+            testContext.assertEquals(counter.get(), event.getInteger("num"));
+            testContext.assertEquals((long)counter.get(), recordNum);
+
             if (counter.incrementAndGet() == numObjects) {
                 rs.close();
                 latch.countDown();

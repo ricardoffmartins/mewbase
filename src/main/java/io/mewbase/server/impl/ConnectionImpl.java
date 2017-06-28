@@ -167,12 +167,12 @@ public class ConnectionImpl implements ServerFrameHandler {
             String filterName = frame.getString(Protocol.SUBSCRIBE_FILTER_NAME);
 
             SubDescriptor subDescriptor = new SubDescriptor()
-                    .setStartPos(startSeq == null ? SubDescriptor.DEFAULT_START_POS : startSeq)
+                    .setStartEventNum(startSeq == null ? SubDescriptor.DEFAULT_START_NUM : startSeq)
                     .setStartTimestamp(startTimestamp)
                     .setFilterName(filterName)
                     .setDurableID(durableID).setChannel(channel);
 
-            if (subDescriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS &&
+            if (subDescriptor.getStartEventNum() != SubDescriptor.DEFAULT_START_NUM &&
                 subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
                 logAndClose("Cannot set both non default startPosition and timestamp in Subscription");
                 return;

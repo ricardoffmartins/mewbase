@@ -5,6 +5,7 @@ import io.mewbase.client.MewException;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.LogReadStream;
 import io.mewbase.server.impl.BasicFile;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.vertx.core.Context;
@@ -21,7 +22,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import static io.mewbase.server.impl.log.FramingOps.HEADER_SIZE;
 
 /**
  * Public methods always accessed from same event loop
@@ -46,11 +46,12 @@ public class LogReadStreamImpl implements LogReadStream {
 
     private boolean paused;
     private boolean closed;
-    private long deliveredPos = -1;
+    private long deliveredSeq = -1;
     private boolean retro;
-    private long fileStreamPos;
+    private long fileStreamRecordNum;
     private boolean ignoreFirst;
     private int fileNumber;
+
     private int fileReadPos;
     private BasicFile streamFile;
     private int fileSize;
@@ -83,8 +84,8 @@ public class LogReadStreamImpl implements LogReadStream {
     @Override
     public synchronized void start() {
         checkContext();
-        if (subDescriptor.getStartPos() != SubDescriptor.DEFAULT_START_POS) {
-            goRetro(false, subDescriptor.getStartPos());
+        if (subDescriptor.getStartEventNum() != SubDescriptor.DEFAULT_START_NUM) {
+            goRetro(false, subDescriptor.getStartEventNum());
         } if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
             final long runStreamFromStart = 0;
             goRetro(false, runStreamFromStart);
@@ -116,16 +117,16 @@ public class LogReadStreamImpl implements LogReadStream {
                 }
             }
         }
-        if (!retro && fileLog.getLastWrittenPos() > deliveredPos) {
+        if (!retro && fileLog.getLastWrittenSeq() > deliveredSeq) {
             // Missed message(s)
-            goRetro(true, deliveredPos);
+            goRetro(true, deliveredSeq);
         }
     }
 
-    private void goRetro(boolean ignoreFirst, long pos) {
+    private void goRetro(boolean ignoreFirst, long recordNumber) {
         fileLog.removeSubHolder(this);
         retro = true;
-        openFileStream(pos, ignoreFirst);
+        openFileStream(recordNumber, ignoreFirst);
     }
 
     @Override
@@ -153,7 +154,7 @@ public class LogReadStreamImpl implements LogReadStream {
         if (paused) {
             return;
         }
-        if (pos <= deliveredPos) {
+        if (pos <= deliveredSeq) {
             // This can happen if the stream is retro and a message is persisted, delivered from file, then
             // the stream re-added then the message delivered live, so we can just ignore it
             return;
@@ -165,20 +166,20 @@ public class LogReadStreamImpl implements LogReadStream {
         parser = RecordParser.newFixed(FramingOps.HEADER_SIZE, this::handleRec);
     }
 
-    private void handle0(long pos, BsonObject bsonObject) {
+    private void handle0(long recordNumber, BsonObject bsonObject) {
         if (handler != null) {
-            handler.accept(pos, bsonObject);
-            deliveredPos = pos;
+            handler.accept(recordNumber, bsonObject);
+            deliveredSeq = recordNumber;
         } else {
             throw new IllegalStateException("No handler");
         }
     }
 
-    private void openFileStream(long pos, boolean ignoreFirst) {
+    private void openFileStream(long recordNumber, boolean ignoreFirst) {
         this.ignoreFirst = ignoreFirst;
-        this.fileStreamPos = pos;
-        // Open a file
-        LogImpl.FileCoord coord = fileLog.getCoord(pos);
+        this.fileStreamRecordNum = recordNumber;
+        // Open a file at the record number
+        FileOps.FileCoord coord = fileLog.getCoordOfRecord(recordNumber);
         fileLog.openFile(coord.fileNumber).handle((bf, t) -> {
             if (t == null) {
                 streamFile = bf;
@@ -192,8 +193,9 @@ public class LogReadStreamImpl implements LogReadStream {
         });
     }
 
+
     /**
-     * This method interacts with the parser to grab
+     * This method interacts with the parser to grab for each record
      * 1) Header - checksum plus the size elements from the body
      * 2) Remainder of body and magic number
      * Until the first int of the header is 0
@@ -241,33 +243,34 @@ public class LogReadStreamImpl implements LogReadStream {
         }
     }
 
+
     private synchronized void handleBody(Buffer buffer) {
         if (closed) {
             return;
         }
-        // DONE - TODO bit clunky - need to add size back in so it can be decoded, improve this!
-        // at the cost of some complexity in handleRec method
+
         BsonObject bson = new BsonObject(buffer);
+
         if (ignoreFirst) {
             ignoreFirst = false;
         } else {
-            long lwep = fileLog.getLastWrittenEndPos();
-            if (fileStreamPos <= lwep) {
+            long lastWrittenRecordNumber = fileLog.getLastWrittenSeq();
+            if (fileStreamRecordNum <= lastWrittenRecordNumber) {
                 if (paused) {
-                    buffered.add(new BufferedRecord(fileStreamPos, bson));
+                    buffered.add(new BufferedRecord(fileStreamRecordNum, bson));
                 } else {
-                    handle0(fileStreamPos, bson);
+                    handle0(fileStreamRecordNum, bson);
                     // The handler could have closed it
                     if (closed) {
                         return;
                     }
                 }
             }
-            if (fileStreamPos == lwep) {
+            if (fileStreamRecordNum == lastWrittenRecordNumber) {
                 // Need to lock to prevent messages sneaking in before we read the stream
                 synchronized (fileLog) {
-                    lwep = fileLog.getLastWrittenEndPos();
-                    if (fileStreamPos == lwep) {
+                    fileStreamRecordNum = fileLog.getLastWrittenSeq();
+                    if (fileStreamRecordNum == lastWrittenRecordNumber) {
                         // We've got to the head
                         retro = false;
                         streamFile.close();
@@ -278,7 +281,7 @@ public class LogReadStreamImpl implements LogReadStream {
                 }
             }
         }
-        fileStreamPos += FramingOps.FRAME_SIZE + buffer.length();
+        ++fileStreamRecordNum;
     }
 
     private void handleException(Throwable t) {
@@ -332,7 +335,7 @@ public class LogReadStreamImpl implements LogReadStream {
             logger.warn("Invalid file number {} head {}", fileNumber, headFileNumber);
             return;
         }
-        openFileStream((fileNumber + 1) * fileSize, false);
+        openFileStream(fileStreamRecordNum, false);
     }
 
     private void scheduleRead() {
@@ -348,6 +351,7 @@ public class LogReadStreamImpl implements LogReadStream {
             this.bson = bson;
         }
     }
+
 
     // Sanity check - this should always be executed using the correct context
     private void checkContext() {

@@ -8,6 +8,7 @@ import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
 import io.mewbase.server.impl.BasicFile;
 import io.mewbase.server.impl.FileAccess;
+import io.mewbase.server.impl.Protocol;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -16,30 +17,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static io.mewbase.server.impl.log.FileOps.*;
+
+
 /**
- * TODO:
- * <p>
- * 1. Corruption detection, incl CRC checks
- * 2. Version header
- * <p>
  * Created by tim on 07/10/16.
  */
 public class LogImpl implements Log {
 
     private final static Logger logger = LoggerFactory.getLogger(LogImpl.class);
-
-    private static final int MAX_CREATE_BUFF_SIZE = 10 * 1024 * 1024;
-    private static final String LOG_INFO_FILE_TAIL = "-log-info.dat";
 
     private final Vertx vertx;
     private final FileAccess faf;
@@ -50,17 +40,19 @@ public class LogImpl implements Log {
 
     private BasicFile currWriteFile;
     private BasicFile nextWriteFile;
-    private int fileNumber; // Number of log file containing current head
-    private int filePos;    // Position of head in head file
-    private long headPos;   // Overall position of head in log
-    private AtomicLong lastWrittenPos = new AtomicLong();  // Position of beginning of last safely written record
-    private CompletableFuture<Void> nextFileCF;
-    private long writeSequence;
+    private int fileNumber = 0; // Number of log file containing current head
+    private int filePos = 0;    // Position of head in head file
+
+    private AtomicLong nextWrittenSeq = new AtomicLong();  // The Seq number of the record to be written
+    private AtomicLong lastWrittenSeq = new AtomicLong();  // Seq Number of last record written.
     private long expectedSeq;
+
+    private CompletableFuture<Void> nextFileCF;
     private final PriorityQueue<WriteHolder> pq = new PriorityQueue<>();
     private CompletableFuture<Void> startRes;
     private long flushTimerID = -1;
     private boolean closed;
+
 
     public LogImpl(Vertx vertx, FileAccess faf, ServerOptions options, String channel) {
         this.vertx = vertx;
@@ -90,19 +82,16 @@ public class LogImpl implements Log {
         if (startRes != null) {
             return startRes;
         }
-        loadInfo();
+
         checkAndLoadFiles();
-        File currFile = getFile(fileNumber);
+        File currFile = getFile(options.getLogsDir(),channel,fileNumber);
         CompletableFuture<Void> cfCreate = null;
         if (!currFile.exists()) {
             if (fileNumber == 0 && filePos == 0) {
                 // This is OK, new log
                 logger.trace("Creating new log info file for channel {}", channel);
-                saveInfo(true);
                 // Create a new first file
-                cfCreate = createAndFillFile(getFileName(0));
-            } else {
-                throw new MewException("Info file for channel {} doesn't match data file(s)");
+                cfCreate = createAndFillFile(getFileName(channel,0));
             }
         }
         final File cFile = currFile;
@@ -116,10 +105,11 @@ public class LogImpl implements Log {
         startRes = cf.thenAccept(bf -> {
             currWriteFile = bf;
             logger.trace("Opened file log " + this);
-        }).thenCompose(v -> saveInfoAsync(false)).thenRun(this::scheduleFlush);
+        }).thenRun(this::scheduleFlush);
 
         return startRes;
     }
+
 
     private synchronized void flush() {
         if (!closed) {
@@ -128,7 +118,7 @@ public class LogImpl implements Log {
                 throw new IllegalStateException("No currWriteFile");
             }
             logger.trace("Flushing log file");
-            currWriteFile.flush().thenCompose(v -> saveInfoAsync(false)).thenRun(this::scheduleFlush);
+            currWriteFile.flush().thenRun(this::scheduleFlush);
         }
     }
 
@@ -138,11 +128,11 @@ public class LogImpl implements Log {
 
     @Override
     public synchronized LogReadStream subscribe(SubDescriptor subDescriptor) {
-        if (subDescriptor.getStartPos() < -1) {
-            throw new IllegalArgumentException("startPos must be >= -1");
+        if (subDescriptor.getStartEventNum() < -1) {
+            throw new IllegalArgumentException("start event number must be >= -1");
         }
-        if (subDescriptor.getStartPos() > getLastWrittenPos()) {
-            throw new IllegalArgumentException("startPos cannot be past head");
+        if (subDescriptor.getStartEventNum() > getLastWrittenSeq()) {
+            throw new IllegalArgumentException("start event number cannot be greater than highest current record");
         }
         return new LogReadStreamImpl(this, subDescriptor,
                 options.getReadBufferSize(), options.getMaxLogChunkSize());
@@ -150,14 +140,19 @@ public class LogImpl implements Log {
 
     @Override
     public synchronized CompletableFuture<Long> append(BsonObject obj) {
-        // encode the BsonObject and add a frame
-        Buffer record = framing.frame(obj.encode());
+        // Encode the BsonObject and add a frame
+        Buffer record = framing.frame( obj.encode() );
+
+        // Total length of the record to write to the file
         int len = record.length();
-        if (record.length() > options.getMaxRecordSize()) {
+
+        if (len > options.getMaxRecordSize()) {
             throw new MewException("Record too long " + len + " max " + options.getMaxRecordSize());
         }
 
-        CompletableFuture<Long> cf;
+        long timestamp = obj.getLong(Protocol.RECEV_TIMESTAMP);
+
+        final CompletableFuture<Long> cf;
 
         int remainingSpace = options.getMaxLogChunkSize() - filePos;
 
@@ -168,7 +163,7 @@ public class LogImpl implements Log {
                 Buffer buffer = Buffer.buffer(new byte[remainingSpace]);
                 append0(buffer.length(), buffer);
             }
-            // Move to next file
+            // Move to next file or start first file
             if (nextWriteFile != null) {
                 logger.trace("Moving to next log file");
                 currWriteFile = nextWriteFile;
@@ -196,30 +191,44 @@ public class LogImpl implements Log {
             }
         }
 
-        long seq = writeSequence++;
-        cf = append0(len, record);
+        // Everything is set up to write so write this record away under the current number and increment
+        // to move to the next record number to write
+        long seq = nextWrittenSeq.getAndIncrement();
+        if (filePos == 0) {
+            // First record for this file so add the header
+            Buffer header = HeaderOps.makeHeader(seq,timestamp);
+            cf = append0(header.length(), header).thenApply(f  -> {
+                append0(len, record);
+                return seq;
+            } );
+       } else {
+            cf = append0(len, record).thenApply(f -> { return seq; });
+       }
+        // now send the event to all of the current subscribers ensuring that
+        // the events dont 'jump the queue' if for example the log is currently playing
+        // back historic event (retro mode)
         cf.thenApply(pos -> {
-            sendToSubsOrdered(seq, pos, obj);
-            return pos;
+            sendToSubsOrdered(seq, obj);
+            return seq;
         });
         checkCreateNextFile();
         return cf;
     }
 
-    protected synchronized void sendToSubsOrdered(long seq, long pos, BsonObject obj) {
-        // Writes can complete in a different order to which they were submitted, we we need to reorder to ensure
+    protected synchronized void sendToSubsOrdered(long seq, BsonObject obj) {
+        // Writes can complete in a different order to which they were submitted, we need to reorder to ensure
         // records are delivered in the correct order
         if (seq == expectedSeq) {
-            sendToSubs(pos, obj);
+            sendToSubs(seq, obj);
         } else {
             // Out of order
-            pq.add(new WriteHolder(seq, pos, obj));
+            pq.add(new WriteHolder(seq, obj));
         }
         while (true) {
             WriteHolder head = pq.peek();
             if (head != null && head.seq == expectedSeq) {
                 pq.poll();
-                sendToSubs(head.pos, head.obj);
+                sendToSubs(head.seq, head.obj);
             } else {
                 break;
             }
@@ -252,23 +261,13 @@ public class LogImpl implements Log {
             CompletableFuture<Void> ncf = nextFileCF;
             ret = ret.thenCompose(v -> ncf);
         }
-        ret = ret.thenRun(() -> saveInfo(true));
+
         return ret;
     }
 
     @Override
     public synchronized int getFileNumber() {
         return fileNumber;
-    }
-
-    @Override
-    public synchronized long getHeadPos() {
-        return headPos;
-    }
-
-    @Override
-    public synchronized int getFilePos() {
-        return filePos;
     }
 
     void removeSubHolder(LogReadStreamImpl stream) {
@@ -279,20 +278,18 @@ public class LogImpl implements Log {
         fileLogStreams.add(stream);
     }
 
-    public long getLastWrittenPos() {
-        return lastWrittenPos.get();
+    public long getLastWrittenSeq() { return lastWrittenSeq.get(); }
+
+    /**
+     * Given a record number get the file coordinates for this record from the logs
+     */
+    FileCoord getCoordOfRecord(long recordNumber) {
+       return FileOps.getCoordOfRecord(options.getLogsDir(),channel,recordNumber);
     }
 
-    long getLastWrittenEndPos() {
-        return lastWrittenPos.get();
-    }
-
-    FileCoord getCoord(long pos) {
-        return new FileCoord(pos, options.getMaxLogChunkSize());
-    }
 
     CompletableFuture<BasicFile> openFile(int fileNumber) {
-        File file = new File(options.getLogsDir(), getFileName(fileNumber));
+        File file = new File(options.getLogsDir(), getFileName(channel,fileNumber));
         return faf.openBasicFile(file);
     }
 
@@ -300,13 +297,13 @@ public class LogImpl implements Log {
         faf.scheduleOp(runner);
     }
 
-    private synchronized void sendToSubs(long pos, BsonObject bsonObject) {
-        expectedSeq++;
-        lastWrittenPos.set(pos);
+    private synchronized void sendToSubs(long seq, BsonObject bsonObject) {
+        ++expectedSeq;
+        lastWrittenSeq.set(seq);
         for (LogReadStreamImpl stream : fileLogStreams) {
             if (stream.matches(bsonObject)) {
                 try {
-                    stream.handle(pos, bsonObject);
+                    stream.handle(seq, bsonObject);
                 } catch (Throwable t) {
                     logger.error("Failed to send to subs", t);
                 }
@@ -315,126 +312,19 @@ public class LogImpl implements Log {
     }
 
     private CompletableFuture<Long> append0(int len, Buffer record) {
-        int writePos = filePos;
-        long overallWritePos = headPos;
+        int  writePos = filePos;
         filePos += len;
-        headPos += len;
-        return currWriteFile.append(record, writePos).thenApply(v -> overallWritePos);
+        return currWriteFile.append(record, writePos).thenApply(v -> (long)filePos);
     }
 
-    private synchronized void saveInfo(boolean shutdown) {
-        logger.trace("Saving file info with shutdown: " + shutdown);
-        BsonObject info = new BsonObject();
-        info.put("fileNumber", fileNumber);
-        info.put("headPos", headPos);
-        info.put("fileHeadPos", filePos);
-        info.put("lastWrittenPos", lastWrittenPos.get());
-        info.put("shutdown", shutdown);
-        saveFileInfo(info);
-    }
-
-    private CompletableFuture<Void> saveInfoAsync(boolean shutdown) {
-        AsyncResCF<Void> ar = new AsyncResCF<>();
-        vertx.executeBlocking(fut -> {
-            saveInfo(shutdown);
-            fut.complete();
-        }, ar);
-        return ar;
-    }
-
-    private void loadInfo() {
-        BsonObject info = loadFileInfo();
-        logger.trace("loaded fileinfo: " + info);
-        if (info != null) {
-            try {
-                Integer fNumber = info.getInteger("fileNumber");
-                if (fNumber == null) {
-                    throw new MewException("Invalid log info file, no fileNumber");
-                }
-                if (fNumber < 0) {
-                    throw new MewException("Invalid log info file, negative fileNumber");
-                }
-                this.fileNumber = fNumber;
-                Integer hPos = info.getInteger("headPos");
-                if (hPos == null) {
-                    throw new MewException("Invalid log info file, no headPos");
-                }
-                if (hPos < 0) {
-                    throw new MewException("Invalid log info file, negative headPos");
-                }
-                this.headPos = hPos;
-                Integer lwPos = info.getInteger("lastWrittenPos");
-                if (lwPos == null) {
-                    throw new MewException("Invalid log info file, no lastWrittenPos");
-                }
-                if (lwPos < 0) {
-                    throw new MewException("Invalid log info file, negative lastWrittenPos");
-                }
-                this.lastWrittenPos.set(lwPos);
-                Integer fhPos = info.getInteger("fileHeadPos");
-                if (fhPos == null) {
-                    throw new MewException("Invalid log info file, no fileHeadPos");
-                }
-                if (fhPos < 0) {
-                    throw new MewException("Invalid log info file, negative fileHeadPos");
-                }
-                this.filePos = fhPos;
-                Boolean shutdown = info.getBoolean("shutdown");
-                if (shutdown == null) {
-                    throw new MewException("Invalid log info file, no shutdown");
-                }
-                if (!shutdown) {
-                    // TODO
-                    // Bail out for now, need to deal with this gracefully
-                    throw new MewException("Log was not shutdown cleanly, could be corrupt!");
-                }
-            } catch (ClassCastException e) {
-                throw new MewException("Invalid info file for channel " + channel, e);
-            }
-        }
-    }
-
-    private BsonObject loadFileInfo() {
-        File f = new File(options.getLogsDir(), getLogInfoFileName());
-        if (!f.exists()) {
-            return null;
-        } else {
-            try {
-                byte[] bytes = Files.readAllBytes(f.toPath());
-                Buffer buff = Buffer.buffer(bytes);
-                return new BsonObject(buff);
-            } catch (IOException e) {
-                throw new MewException(e);
-            }
-        }
-    }
-
-    private void saveFileInfo(BsonObject info) {
-        Buffer buff = info.encode();
-        File f = new File(options.getLogsDir(), getLogInfoFileName());
-        try {
-            if (!f.exists()) {
-                if (!f.createNewFile()) {
-                    throw new MewException("Failed to create file " + f);
-                }
-            }
-            Files.write(f.toPath(), buff.getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
-        } catch (IOException e) {
-            throw new MewException(e);
-        }
-    }
-
-    private File getFile(int fileNumber) {
-        return new File(options.getLogsDir(), getFileName(fileNumber));
-    }
 
     private synchronized void checkCreateNextFile() {
         // We create a next file when the current file is half written
         if (nextFileCF == null && nextWriteFile == null && filePos > options.getMaxLogChunkSize() / 2) {
             nextFileCF = new CompletableFuture<>();
-            CompletableFuture<Void> cfNext = createAndFillFile(getFileName(fileNumber + 1));
+            CompletableFuture<Void> cfNext = createAndFillFile(getFileName(channel,fileNumber + 1));
             CompletableFuture<BasicFile> cfBf = cfNext.thenCompose(v -> {
-                File next = getFile(fileNumber + 1);
+                File next = getFile(options.getLogsDir(),channel,fileNumber + 1);
                 return faf.openBasicFile(next);
             });
             cfBf.handle((bf, t) -> {
@@ -455,7 +345,6 @@ public class LogImpl implements Log {
                 logger.error(t.getMessage(), t);
                 return null;
             });
-
         }
     }
 
@@ -463,117 +352,36 @@ public class LogImpl implements Log {
         AsyncResCF<Void> cf = new AsyncResCF<>();
         File next = new File(options.getLogsDir(), fileName);
         vertx.executeBlocking(fut -> {
-            createAndFillFileBlocking(next, options.getPreallocateSize());
+            FileOps.createAndFillFileBlocking(next, options.getPreallocateSize());
             fut.complete(null);
         }, false, cf);
         return cf;
     }
 
-    private void createAndFillFileBlocking(File file, int size) {
-        logger.trace("Creating log file {} with size {}", file, size);
-        ByteBuffer buff = ByteBuffer.allocate(MAX_CREATE_BUFF_SIZE);
-        try (RandomAccessFile rf = new RandomAccessFile(file, "rw")) {
-            FileChannel ch = rf.getChannel();
-            int pos = 0;
-            // We fill the file in chunks in case it is v. big - we don't want to allocate a huge byte buffer
-            while (pos < size) {
-                int writeSize = Math.min(MAX_CREATE_BUFF_SIZE, size - pos);
-                buff.limit(writeSize);
-                buff.position(0);
-                ch.position(pos);
-                ch.write(buff);
-                pos += writeSize;
-            }
-            ch.force(true);
-            ch.position(0);
-            ch.close();
-        } catch (Exception e) {
-            throw new MewException("Failed to create log file", e);
-        }
-        logger.trace("Created log file {}", file);
-    }
 
-    /*
-    List and check all the files in the log dir for the channel
+    /**
+     * Check that the logs on the file system are in good shape and find the
+     * file coordinates to start writing from.
      */
     private void checkAndLoadFiles() {
-        Map<Integer, File> fileMap = new HashMap<>();
-        File logDir = new File(options.getLogsDir());
-        File[] files = logDir.listFiles(file -> {
-            String name = file.getName();
-            int lpos = name.lastIndexOf("-");
-            if (name.endsWith(LOG_INFO_FILE_TAIL)) {
-                return false;
-            }
-            if (lpos == -1) {
-                logger.warn("Unexpected file in log dir: " + file);
-                return false;
-            } else {
-                String chName = name.substring(0, lpos);
-                int num = Integer.valueOf(name.substring(lpos + 1, name.length() - 4));
-                boolean matches = chName.equals(channel);
-                if (matches) {
-                    fileMap.put(num, file);
-                }
-                return matches;
-            }
-        });
-        if (files == null) {
-            throw new MewException("Failed to list files in dir " + logDir.toString());
-        }
+        fileNumber = checkAndGetLastLogFile(options,channel);
+        // file store is in good order so set up the state variables by reading the current file.
+        FileCoord coords = getCoordOfLastRecord(options.getLogsDir(),channel,fileNumber);
 
-        Arrays.sort(files, (f1, f2) -> f1.compareTo(f2));
-        // All files before the head file must be right size
-        // TODO test this
-        for (int i = 0; i < files.length; i++) {
-            if (i < fileNumber && options.getMaxLogChunkSize() != files[i].length()) {
-                throw new MewException("File unexpected size: " + files[i] + " i: " + i + " fileNumber "
-                        + fileNumber + " max log chunk size " + options.getMaxLogChunkSize() + " length " + files[i].length());
-            }
-        }
-
-        logger.trace("There are {} files in {} for channel {}", files.length, logDir, channel);
-
-        for (int i = 0; i < fileMap.size(); i++) {
-            // Check file names are contiguous
-            String fname = getFileName(i);
-            if (!fileMap.containsKey(i)) {
-                throw new MewException("Log files not in expected sequence, can't find " + fname);
-            }
-        }
+        lastWrittenSeq.set(coords.recordNumber);
+        nextWrittenSeq.set(coords.recordNumber);
+        expectedSeq = coords.recordNumber;
+        filePos = coords.filePos;
     }
 
-    private String getFileName(int i) {
-        return channel + "-" + String.format("%012d", i) + ".log";
-    }
 
-    private String getLogInfoFileName() {
-        return channel + LOG_INFO_FILE_TAIL;
-    }
-
-    static final class FileCoord {
-        final long pos;
-        final int fileMaxSize;
-        final int fileNumber;
-        final int filePos;
-
-        public FileCoord(long pos, int fileMaxSize) {
-            this.pos = pos;
-            this.fileMaxSize = fileMaxSize;
-            this.fileNumber = (int)(pos / fileMaxSize);
-            this.filePos = (int)(pos % fileMaxSize);
-        }
-    }
 
     private static final class WriteHolder implements Comparable<WriteHolder> {
         final long seq;
-
-        final long pos;
         final BsonObject obj;
 
-        public WriteHolder(long seq, long pos, BsonObject obj) {
+        public WriteHolder(long seq, BsonObject obj) {
             this.seq = seq;
-            this.pos = pos;
             this.obj = obj;
         }
 

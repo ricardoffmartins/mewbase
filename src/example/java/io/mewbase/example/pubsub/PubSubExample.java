@@ -38,12 +38,16 @@ public class PubSubExample {
         // Subscribe to a channel
         SubDescriptor descriptor = new SubDescriptor().setChannel("orders");
         client.subscribe(descriptor, del -> {
-            System.
-                    out.println("Received event: " + del.event().getString("foo"));
+            System.out.println("Received event: " + del.event().getString("foo"));
+            System.out.println("Position " + del.channelPos());
         });
 
         // Publish to the channel
-        client.publish("orders", new BsonObject().put("foo", "bar"));
+        for (int  i = 0;  i < 10; ++i) {
+            client.publish("orders", new BsonObject().put("foo", "bar").put("num",i));
+        }
+        // wait for the
+        Thread.sleep(1000);
 
         client.close().get();
         server.stop().get();
