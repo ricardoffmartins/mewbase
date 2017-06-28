@@ -4,6 +4,7 @@ import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.*;
 import io.mewbase.common.SubDescriptor;
+import io.mewbase.server.filter.FilterFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -215,6 +216,50 @@ public class ChannelsTest extends ServerTestBase {
             context.assertEquals(count, (long)event.getInteger("num") - preEvents);
             context.assertTrue(re.timeStamp() >= preTime);
             if (count == postEvents - 1) {
+                async.complete();
+            }
+        };
+        Subscription sub = client.subscribe(descriptor, handler).get();
+    }
+
+
+    @Test
+    //@Repeat(value = 10000)
+    public void testSubscribeWithFilter(TestContext context) throws Exception {
+
+        Producer prod = client.createProducer(TEST_CHANNEL_1);
+        final int events = 10;
+        for (int i = 0; i < events; i++) {
+            BsonObject event = new BsonObject().put("foo", "bar").put("num", i);
+            CompletableFuture<Void> cf = prod.publish(event);
+            // wait for the 'ack' on the last event to ensure that it has be timestamped
+            if (i == events - 1) {
+                cf.get();
+            }
+        }
+
+        final String filterName = "com.mewbase.filter.Not7";
+        FilterFactory.addFilter(filterName, event -> {
+            int val = event.getInteger("num");
+            return val != 7;
+        });
+
+
+        SubDescriptor descriptor = new SubDescriptor();
+        descriptor.setChannel(TEST_CHANNEL_1);
+        descriptor.setFilterName(filterName);
+
+        Async async = context.async();
+
+        AtomicInteger receivedCount = new AtomicInteger();
+        Consumer<ClientDelivery> handler = re -> {
+            context.assertEquals(TEST_CHANNEL_1, re.channel());
+            BsonObject event = re.event();
+            long count = receivedCount.getAndIncrement();
+            // if the number is 7 the filter was not applied
+            context.assertTrue((long)event.getInteger("num") != 7);
+
+            if (count == events - 2) {
                 async.complete();
             }
         };

@@ -74,7 +74,7 @@ public class Protocol {
     public static final String SUBSCRIBE_STARTPOS = "startPos";
     public static final String SUBSCRIBE_STARTTIMESTAMP = "startTimestamp";
     public static final String SUBSCRIBE_DURABLEID = "durableID";
-    public static final String SUBSCRIBE_MATCHER = "matcher";
+    public static final String SUBSCRIBE_FILTER_NAME = "filterName";
 
     public static final String UNSUBSCRIBE_SUBID = "subID";
 

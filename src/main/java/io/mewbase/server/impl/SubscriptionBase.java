@@ -6,6 +6,7 @@ import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
 import io.mewbase.server.Log;
 import io.mewbase.server.LogReadStream;
+import io.mewbase.server.filter.FilterFactory;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.ClientOptionsBase;
@@ -13,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
+
 
 /**
  * Created by tim on 26/09/16.
@@ -26,6 +29,7 @@ public abstract class SubscriptionBase {
     private final ServerImpl server;
     private final SubDescriptor subDescriptor;
     private final Context ctx;
+    private final Predicate<BsonObject> subsFilter;
     protected LogReadStream readStream;
     private boolean ignoreFirst;
 
@@ -34,6 +38,8 @@ public abstract class SubscriptionBase {
         this.server = server;
         this.subDescriptor = subDescriptor;
         this.ctx = Vertx.currentContext();
+        this.subsFilter = FilterFactory.makeFilter(subDescriptor.getFilterName());
+
         if (subDescriptor.getDurableID() != null) {
             Binder binder = server.getDurableSubsBinder();
             CompletableFuture<BsonObject> cf = binder.get(subDescriptor.getDurableID());
@@ -96,7 +102,9 @@ public abstract class SubscriptionBase {
                 return;
             }
         }
-        onReceiveFrame(pos, frame);
+
+        if (subsFilter.test(frame)) onReceiveFrame(pos, frame);
+        return;
     }
 
     protected abstract void onReceiveFrame(long pos, BsonObject frame);

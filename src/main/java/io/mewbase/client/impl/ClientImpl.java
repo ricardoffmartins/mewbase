@@ -89,7 +89,7 @@ public class ClientImpl implements Client, ClientFrameHandler {
         frame.put(Protocol.SUBSCRIBE_STARTTIMESTAMP, descriptor.getStartTimestamp());
 
         frame.put(Protocol.SUBSCRIBE_DURABLEID, descriptor.getDurableID());
-        frame.put(Protocol.SUBSCRIBE_MATCHER, descriptor.getMatcher());
+        frame.put(Protocol.SUBSCRIBE_FILTER_NAME, descriptor.getFilterName());
         write(cf, Protocol.SUBSCRIBE_FRAME, frame, resp -> {
             boolean ok = resp.getBoolean(Protocol.RESPONSE_OK);
             if (ok) {
