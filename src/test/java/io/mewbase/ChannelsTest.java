@@ -13,6 +13,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -140,8 +141,11 @@ public class ChannelsTest extends ServerTestBase {
     public void testSubscribeRetro(TestContext context) throws Exception {
         Producer prod = client.createProducer(TEST_CHANNEL_1);
         int numEvents = 10;
+
+        Set<Integer> writtenNumbers = new HashSet<Integer>(numEvents);
         for (int i = 0; i < numEvents; i++) {
             BsonObject event = new BsonObject().put("foo", "bar").put("num", i);
+            writtenNumbers.add(i);
             CompletableFuture<Void> cf = prod.publish(event);
             if (i == numEvents - 1) {
                 cf.get();
@@ -149,7 +153,7 @@ public class ChannelsTest extends ServerTestBase {
         }
         SubDescriptor descriptor = new SubDescriptor();
         descriptor.setChannel(TEST_CHANNEL_1);
-        descriptor.setStartPos(0);
+        descriptor.setStartEventNum(0);
 
         Async async = context.async();
         AtomicLong lastPos = new AtomicLong(-1);
@@ -161,8 +165,10 @@ public class ChannelsTest extends ServerTestBase {
             lastPos.set(re.channelPos());
             BsonObject event = re.event();
             long count = receivedCount.getAndIncrement();
-            context.assertEquals(count, (long)event.getInteger("num"));
+            // no order assertion but we can assert once and once only
+            writtenNumbers.remove( event.getInteger("num"));
             if (count == numEvents - 1) {
+                context.assertTrue(writtenNumbers.isEmpty());
                 async.complete();
             }
         };

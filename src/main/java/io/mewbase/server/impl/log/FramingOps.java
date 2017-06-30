@@ -14,7 +14,7 @@ import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
 /**
- * The HeaderOps intended to manipulate Buffers (Vertx over Netty) in order to add/remove a header
+ * The FramingOps intended to manipulate Buffers (Vertx over Netty) in order to add/remove a header
  * from each Bson encoded event (record) that is written into the log
  *
  *

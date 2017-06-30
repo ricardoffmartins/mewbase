@@ -1,19 +1,18 @@
 package io.mewbase.common;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.MewException;
 
 /**
  * Created by tim on 22/09/16.
  */
 public class SubDescriptor {
 
-    public static final long DEFAULT_START_POS = -1;
+    public static final long DEFAULT_START_NUM = -1;
     public static final long DEFAULT_START_TIME = 0;
 
     private String channel;
     private String durableID;
-    private long startPos = DEFAULT_START_POS;
+    private long startEventNum = DEFAULT_START_NUM;
     private long startTimestamp = DEFAULT_START_TIME;
     private BsonObject matcher;
     private String group;
@@ -36,12 +35,12 @@ public class SubDescriptor {
         return this;
     }
 
-    public long getStartPos() {
-        return startPos;
+    public long getStartEventNum() {
+        return startEventNum;
     }
 
-    public SubDescriptor setStartPos(long startPos) {
-        this.startPos = startPos;
+    public SubDescriptor setStartEventNum(long startEventNum) {
+        this.startEventNum = startEventNum;
         return this;
     }
 
@@ -80,7 +79,7 @@ public class SubDescriptor {
         SubDescriptor that = (SubDescriptor) o;
 
         if (startTimestamp != that.startTimestamp) return false;
-        if (startPos != that.startPos) return false;
+        if (startEventNum != that.startEventNum) return false;
         if (durableID != null ? !durableID.equals(that.durableID) : that.durableID != null) return false;
         if (channel != null ? !channel.equals(that.channel) : that.channel != null) return false;
         if (matcher != null ? !matcher.equals(that.matcher) : that.matcher != null) return false;
@@ -92,7 +91,7 @@ public class SubDescriptor {
     public int hashCode() {
         int result = durableID != null ? durableID.hashCode() : 0;
         result = 31 * result + (channel != null ? channel.hashCode() : 0);
-        result = 31 * result + (int) (startPos ^ (startPos >>> 32));
+        result = 31 * result + (int) (startEventNum ^ (startEventNum >>> 32));
         result = 31 * result + (int) (startTimestamp ^ (startTimestamp >>> 32));
         result = 31 * result + (matcher != null ? matcher.hashCode() : 0);
         result = 31 * result + (group != null ? group.hashCode() : 0);

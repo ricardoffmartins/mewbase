@@ -58,7 +58,7 @@ public class DurableSubTest extends ServerTestBase {
         SubDescriptor descriptor = new SubDescriptor();
         descriptor.setChannel(TEST_CHANNEL_1);
         descriptor.setDurableID(TEST_DURABLE_ID);
-        descriptor.setStartPos(0);
+        descriptor.setStartEventNum(0);
 
         Async async1 = context.async();
 
@@ -124,7 +124,7 @@ public class DurableSubTest extends ServerTestBase {
 
         SubDescriptor descriptor = new SubDescriptor();
         descriptor.setChannel(TEST_CHANNEL_1);
-        descriptor.setStartPos(0);
+        descriptor.setStartEventNum(0);
 
         int startNum = 10;
 
@@ -145,7 +145,7 @@ public class DurableSubTest extends ServerTestBase {
         SubDescriptor descriptor2 = new SubDescriptor();
         descriptor2.setChannel(TEST_CHANNEL_1);
         descriptor2.setDurableID(TEST_DURABLE_ID);
-        descriptor2.setStartPos(startPos.get());
+        descriptor2.setStartEventNum(startPos.get());
 
         Async async2 = context.async();
         AtomicInteger expectedCount = new AtomicInteger(startNum);
@@ -169,7 +169,7 @@ public class DurableSubTest extends ServerTestBase {
         SubDescriptor descriptor = new SubDescriptor();
         descriptor.setChannel(TEST_CHANNEL_1);
         descriptor.setDurableID(TEST_DURABLE_ID);
-        descriptor.setStartPos(0);
+        descriptor.setStartEventNum(0);
 
         Async async1 = context.async();
         AtomicInteger expectedCount = new AtomicInteger();

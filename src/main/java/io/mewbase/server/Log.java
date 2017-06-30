@@ -20,7 +20,4 @@ public interface Log {
 
     int getFileNumber();
 
-    long getHeadPos();
-
-    int getFilePos();
 }

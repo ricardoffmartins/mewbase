@@ -57,49 +57,11 @@ public class LogTestBase extends ServerTestBase {
         server.createChannel(TEST_CHANNEL_1).get();
     }
 
-    protected void saveInfo(int fileNumber, int headPos, int fileHeadPos, int lastWrittenPos, boolean shutdown) {
-        BsonObject info = new BsonObject();
-        info.put("fileNumber", fileNumber);
-        info.put("headPos", headPos);
-        info.put("fileHeadPos", fileHeadPos);
-        info.put("lastWrittenPos", lastWrittenPos);
-        info.put("shutdown", shutdown);
-        saveFileInfo(info);
-    }
-
-    protected void saveFileInfo(BsonObject info) {
-        Buffer buff = info.encode();
-        File f = new File(logsDir, getLogInfoFileName(TEST_CHANNEL_1));
-        try {
-            if (!f.exists()) {
-                if (!f.createNewFile()) {
-                    throw new MewException("Failed to create file " + f);
-                }
-            }
-            Files.write(f.toPath(), buff.getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
-        } catch (IOException e) {
-            throw new MewException(e);
-        }
-    }
-
-    protected String getLogInfoFileName(String channel) {
-        return channel + "-log-info.dat";
-    }
 
     protected String getLogFileName(String channel, int i) {
         return channel + "-" + String.format("%012d", i) + ".log";
     }
 
-
-    protected BsonObject readInfoFromFile(File infoFile) {
-        try {
-            byte[] bytes = Files.readAllBytes(infoFile.toPath());
-            Buffer buff = Buffer.buffer(bytes);
-            return new BsonObject(buff);
-        } catch (IOException e) {
-            throw new MewException(e);
-        }
-    }
 
     protected Buffer readFileIntoBuffer(File f) throws IOException {
         byte[] bytes = Files.readAllBytes(f.toPath());
@@ -147,6 +109,7 @@ public class LogTestBase extends ServerTestBase {
 
     protected void assertLogChunkLength(int fileNumber, int length) {
         File file = new File(logsDir, getLogFileName(TEST_CHANNEL_1, fileNumber));
+        assertTrue(file.exists());
         assertEquals(length, file.length());
     }
 
@@ -160,20 +123,23 @@ public class LogTestBase extends ServerTestBase {
         assertEquals(expected, files.length);
     }
 
-    protected void appendObjectsSequentially(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
+    protected void publishObjectsSequentially(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
         for (int i = 0; i < num; i++) {
-            log.append(objectFunction.apply(i)).get();
+            ((ServerImpl)server).publishEvent(log, objectFunction.apply(i)).get();
         }
     }
 
-    protected void appendObjectsConcurrently(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
+    protected List<Long> publishObjectsConcurrently(int num, Function<Integer, BsonObject> objectFunction) throws Exception {
         List<CompletableFuture<Long>> cfs = new ArrayList<>();
+        List<Long> futuresInCompletedOrder = new ArrayList<>();
         for (int i = 0; i < num; i++) {
-            CompletableFuture<Long> pos = log.append(objectFunction.apply(i));
-            cfs.add(pos);
+            CompletableFuture<Long> eventNum = ((ServerImpl)server).publishEvent(log, objectFunction.apply(i));
+            eventNum.whenComplete( (l,e) -> futuresInCompletedOrder.add(l));
+            cfs.add(eventNum);
         }
         CompletableFuture<Void> all = CompletableFuture.allOf(cfs.toArray(new CompletableFuture[num]));
         all.get();
+        return futuresInCompletedOrder;
     }
 
 
