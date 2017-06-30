@@ -297,9 +297,11 @@ public class LogImpl implements Log {
         faf.scheduleOp(runner);
     }
 
-    private synchronized void sendToSubs(long seq, BsonObject bsonObject) {
-        ++expectedSeq;
-        lastWrittenSeq.set(seq);
+    private void sendToSubs(long seq, BsonObject bsonObject) {
+        synchronized (this) {
+            ++expectedSeq;
+            lastWrittenSeq.set(seq);
+        }
         for (LogReadStreamImpl stream : fileLogStreams) {
             if (stream.matches(bsonObject)) {
                 try {
