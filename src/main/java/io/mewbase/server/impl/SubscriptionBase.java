@@ -87,21 +87,24 @@ public abstract class SubscriptionBase {
         }
     }
 
-    // This can be called on different threads depending on whether the frame is coming from file or direct
-    private synchronized void handleEvent0(long pos, BsonObject frame) {
+    // This can be called on different threads depending on whether the record is coming from file or direct
+    private synchronized void handleEvent0(long pos, BsonObject record) {
         if (ignoreFirst) {
             ignoreFirst = false;
             return;
         }
         // only do the Bson lookup if there is a non default timestamp and watch for the "fast fail" return
         if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
-            final long timeStamp = frame.getLong(Protocol.RECEV_TIMESTAMP);
+            final long timeStamp = record.getLong(Protocol.RECEV_TIMESTAMP);
             if (timeStamp < subDescriptor.getStartTimestamp()) {
                 return;
             }
         }
 
-        if (subsFilter.test(frame)) onReceiveFrame(pos, frame);
+        BsonObject event = record.getBsonObject("event");
+        if (subsFilter.test(event)) {
+            onReceiveFrame(pos, record);
+        }
         return;
     }
 

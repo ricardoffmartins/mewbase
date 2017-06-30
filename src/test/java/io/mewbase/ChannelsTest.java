@@ -132,9 +132,10 @@ public class ChannelsTest extends ServerTestBase {
             async.complete();
         };
 
-        Subscription sub = client.subscribe(descriptor, handler).get();
-
+        CompletableFuture<Subscription> fut = client.subscribe(descriptor, handler);
+        Subscription sub = fut.get();
         prod.publish(sent).get();
+
     }
 
     @Test
@@ -238,7 +239,6 @@ public class ChannelsTest extends ServerTestBase {
         for (int i = 0; i < events; i++) {
             BsonObject event = new BsonObject().put("foo", "bar").put("num", i);
             CompletableFuture<Void> cf = prod.publish(event);
-            // wait for the 'ack' on the last event to ensure that it has be timestamped
             if (i == events - 1) {
                 cf.get();
             }
@@ -254,6 +254,7 @@ public class ChannelsTest extends ServerTestBase {
         SubDescriptor descriptor = new SubDescriptor();
         descriptor.setChannel(TEST_CHANNEL_1);
         descriptor.setFilterName(filterName);
+        descriptor.setStartEventNum(0);     // replay all the events and filter num 7
 
         Async async = context.async();
 
@@ -269,7 +270,9 @@ public class ChannelsTest extends ServerTestBase {
                 async.complete();
             }
         };
-        Subscription sub = client.subscribe(descriptor, handler).get();
+
+        CompletableFuture<Subscription> fut = client.subscribe(descriptor, handler);
+        Subscription sub = fut.get();
     }
 
 

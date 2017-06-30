@@ -170,7 +170,8 @@ public class ConnectionImpl implements ServerFrameHandler {
                     .setStartEventNum(startSeq == null ? SubDescriptor.DEFAULT_START_NUM : startSeq)
                     .setStartTimestamp(startTimestamp)
                     .setFilterName(filterName)
-                    .setDurableID(durableID).setChannel(channel);
+                    .setDurableID(durableID)
+                    .setChannel(channel);
 
             if (subDescriptor.getStartEventNum() != SubDescriptor.DEFAULT_START_NUM &&
                 subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {

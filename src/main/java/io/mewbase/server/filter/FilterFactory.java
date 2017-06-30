@@ -17,11 +17,13 @@ public class FilterFactory {
 
     public static Predicate<BsonObject> makeFilter(String name) {
 
+        if (name == null) name = "null"; // force non null
+
        Predicate<BsonObject> filter = filters.get(name);
        if (filter != null) {
            logger.info("Found filter named '"+name+"' - applying to subscription");
         } else {
-           logger.info("No filter found for name '" + name + " creating inclusion function filter");
+           logger.info("No filter found for name '" + name + "' creating inclusion function filter");
            filter = bson -> true;
        }
        return filter;
