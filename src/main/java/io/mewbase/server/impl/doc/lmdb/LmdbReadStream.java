@@ -3,15 +3,20 @@ package io.mewbase.server.impl.doc.lmdb;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.DocReadStream;
 import io.vertx.core.buffer.Buffer;
-import org.fusesource.lmdbjni.Database;
-import org.fusesource.lmdbjni.Entry;
-import org.fusesource.lmdbjni.EntryIterator;
-import org.fusesource.lmdbjni.Transaction;
+
+import org.lmdbjava.CursorIterator;
+import org.lmdbjava.Dbi;
+import org.lmdbjava.Txn;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 
 /**
  * Created by tim on 29/12/16.
@@ -24,21 +29,23 @@ public class LmdbReadStream implements DocReadStream {
     private static final int MAX_DELIVER_BATCH = 100;
 
     private final LmdbBinderFactory binderFactory;
-    private final Transaction tx;
-    private final EntryIterator iter;
+    private final Txn txn;
+    private final CursorIterator<ByteBuffer> cursorItr;  // in lmdbjava cursor is the main abstraction
+    private final Iterator<CursorIterator.KeyVal<ByteBuffer>> itr;
     private final Function<BsonObject, Boolean> matcher;
     private Consumer<BsonObject> handler;
     private boolean paused;
-    private boolean hasMore;
     private boolean handledOne;
     private boolean closed;
 
-    LmdbReadStream(LmdbBinderFactory binderFactory, Database db, Function<BsonObject, Boolean> matcher) {
+
+    LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Function<BsonObject, Boolean> matcher) {
         this.binderFactory = binderFactory;
-        this.tx = binderFactory.getEnv().createReadTransaction();
-        this.iter = db.iterate(tx);
+        this.txn = binderFactory.getEnv().txnRead(); // set uo a read transaction
+        this.cursorItr = db.iterate(txn, FORWARD);
+        this.itr = cursorItr.iterable().iterator();
         this.matcher = matcher;
-        this.hasMore = iter.hasNext();
+        ;
     }
 
     @Override
@@ -73,16 +80,16 @@ public class LmdbReadStream implements DocReadStream {
     public synchronized void close() {
         printThread();
         if (!closed) {
-            iter.close();
+            // Following comment may no longer apply to lmdbjava
             // Beware calling tx.close() if the database/env object is closed can cause a core dump:
-            // https://github.com/deephacks/lmdbjni/issues/78
-            tx.close();
+            cursorItr.close();
+            txn.close();
             closed = true;
         }
     }
 
     public synchronized boolean hasMore() {
-        return hasMore;
+        return itr.hasNext();
     }
 
     private void printThread() {
@@ -96,13 +103,13 @@ public class LmdbReadStream implements DocReadStream {
             return;
         }
         for (int i = 0; i < MAX_DELIVER_BATCH; i++) {
-            if (iter.hasNext()) {
-                Entry entry = iter.next();
-
-                byte[] val = entry.getValue();
-                BsonObject doc = new BsonObject(Buffer.buffer(val));
+            if (itr.hasNext()) {
+                final CursorIterator.KeyVal<ByteBuffer> kv = itr.next();
+                // lift it from LMDB side into local memory
+                byte [] local = new byte[kv.val().remaining()];
+                kv.val().get(local);
+                BsonObject doc = new BsonObject(Buffer.buffer(local));
                 if (handler != null && matcher.apply(doc)) {
-                    hasMore = iter.hasNext();
                     handler.accept(doc);
                     handledOne = true;
                     if (paused) {

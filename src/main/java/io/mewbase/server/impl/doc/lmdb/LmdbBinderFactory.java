@@ -7,13 +7,17 @@ import io.mewbase.server.impl.BinderFactory;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
-import org.fusesource.lmdbjni.Constants;
-import org.fusesource.lmdbjni.Env;
+
+
+import org.lmdbjava.Env;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+
+import static org.lmdbjava.EnvFlags.MDB_NOTLS;
 
 /**
  * Created by tim on 29/12/16.
@@ -30,7 +34,7 @@ public class LmdbBinderFactory implements BinderFactory {
     private final long maxDBSize;
     private final Vertx vertx;
     private final WorkerExecutor exec;
-    private Env env;
+    private Env<ByteBuffer> env;
 
     public LmdbBinderFactory(ServerOptions serverOptions, Vertx vertx) {
         logger.trace("Starting lmdb binder factory with docs dir: " + serverOptions.getDocsDir());
@@ -47,10 +51,11 @@ public class LmdbBinderFactory implements BinderFactory {
         exec.executeBlocking(fut -> {
             File fDocsDir = new File(docsDir);
             createIfDoesntExists(fDocsDir);
-            env = new Env();
-            env.setMaxDbs(maxDBs);
-            env.setMapSize(maxDBSize);
-            env.open(fDocsDir.getPath(), Constants.NOTLS);
+            env = Env.<ByteBuffer>create()
+                    .setMapSize(maxDBSize)
+                    .setMaxDbs(maxDBs)
+                    .setMaxReaders(1024 * 1024)
+                    .open(fDocsDir, Integer.MAX_VALUE, MDB_NOTLS);  // TODO Check size is correct default
             fut.complete(null);
         }, res);
         return res;
@@ -92,6 +97,5 @@ public class LmdbBinderFactory implements BinderFactory {
             }
         }
     }
-
 
 }
