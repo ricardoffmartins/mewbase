@@ -265,7 +265,6 @@ public class ChannelsTest extends ServerTestBase {
             long count = receivedCount.getAndIncrement();
             // if the number is 7 the filter was not applied
             context.assertTrue((long)event.getInteger("num") != 7);
-
             if (count == events - 2) {
                 async.complete();
             }
