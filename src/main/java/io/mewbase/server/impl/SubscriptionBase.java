@@ -5,7 +5,6 @@ import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
 import io.mewbase.server.Log;
 import io.mewbase.server.LogReadStream;
-import io.mewbase.server.filter.FilterFactory;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public abstract class SubscriptionBase {
         this.server = server;
         this.subDescriptor = subDescriptor;
         this.ctx = Vertx.currentContext();
-        this.subsFilter = FilterFactory.makeFilter(subDescriptor.getFilterName());
+        this.subsFilter = server.getSubscritionFilter(subDescriptor);
 
         if (subDescriptor.getDurableID() != null) {
             Binder binder = server.getDurableSubsBinder();

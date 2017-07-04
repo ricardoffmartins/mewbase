@@ -4,7 +4,6 @@ import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.*;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.filter.FilterFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -14,7 +13,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -245,10 +243,13 @@ public class ChannelsTest extends ServerTestBase {
         }
 
         final String filterName = "com.mewbase.filter.Not7";
-        FilterFactory.addFilter(filterName, event -> {
-            int val = event.getInteger("num");
-            return val != 7;
-        });
+        server.buildSubsFilter(TEST_CHANNEL_1)
+                .named(filterName)
+                .withFilter(event -> {
+                    int val = event.getInteger("num");
+                    return val != 7;
+                })
+                .store();
 
 
         SubDescriptor descriptor = new SubDescriptor();

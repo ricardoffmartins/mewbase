@@ -2,6 +2,7 @@ package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
+import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.*;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
@@ -26,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -44,11 +46,14 @@ public class ServerImpl implements Server {
     private final Vertx vertx;
     private final ProjectionManager projectionManager;
     private final CQRSManager cqrsManager;
+
     private final Set<Transport> transports = new ConcurrentHashSet<>();
 
     private final ConcurrentMap<String, CompletableFuture<Boolean>> startingBinders = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Binder> binders = new ConcurrentHashMap<>();
     private final BinderFactory systemBinderFactory;
+
+    private final ConcurrentMap<String,ChannelFilters> filters = new ConcurrentHashMap<>();
 
     private final FileAccess faf;
     private final ConcurrentMap<String, CompletableFuture<Boolean>> startingLogs = new ConcurrentHashMap<>();
@@ -199,15 +204,33 @@ public class ServerImpl implements Server {
         return new ArrayList<>(logs.keySet());
     }
 
+
+    // TODO This never returns a valid channel
     @Override
     public Channel getChannel(String channelName) {
         return null;
     }
 
+    @Override
+    public SubsFilterBuilder buildSubsFilter(String channelName) { return new SubsFilterBuilderImpl(channelName, filters); }
+
+    public Predicate<BsonObject> getSubscritionFilter(SubDescriptor descriptor) {
+        try {
+            ChannelFilters chanFilters = filters.get(descriptor.getChannel());
+            Predicate<BsonObject> filter = chanFilters.get(descriptor.getFilterName());
+            return filter;
+        } catch (Exception exp) {
+            logger.error("Failed to find subscription filter for descriptor " + descriptor.toString() );
+            return f -> true;
+        }
+    }
+
     // TODO should we really expose this?
+    @Deprecated // 4/7/17
     public Log getLog(String channel) {
         return logs.get(channel);
     }
+
 
     // Projection related API
 
@@ -237,6 +260,7 @@ public class ServerImpl implements Server {
     public QueryBuilder buildQuery(String queryName) {
         return new QueryBuilderImpl(cqrsManager, queryName);
     }
+
 
     // REST Adaptor API
 
