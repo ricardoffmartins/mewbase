@@ -274,6 +274,5 @@ public class ChannelsTest extends ServerTestBase {
         CompletableFuture<Subscription> fut = client.subscribe(descriptor, handler);
         Subscription sub = fut.get();
     }
-
-
+    
 }
