@@ -89,7 +89,7 @@ public class LogImpl implements Log {
         if (!currFile.exists()) {
             if (fileNumber == 0 && filePos == 0) {
                 // This is OK, new log
-                logger.trace("Creating new log info file for channel {}", channel);
+                logger.trace("Creating new log file for channel {}", channel);
                 // Create a new first file
                 cfCreate = createAndFillFile(getFileName(channel,0));
             }
