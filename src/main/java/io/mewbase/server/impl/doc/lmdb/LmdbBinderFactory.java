@@ -54,7 +54,7 @@ public class LmdbBinderFactory implements BinderFactory {
             env = Env.<ByteBuffer>create()
                     .setMapSize(maxDBSize)
                     .setMaxDbs(maxDBs)
-                    .setMaxReaders(1024 * 1024)
+                    .setMaxReaders(1024)
                     .open(fDocsDir, Integer.MAX_VALUE, MDB_NOTLS);  // TODO Check size is correct default
             fut.complete(null);
         }, res);
