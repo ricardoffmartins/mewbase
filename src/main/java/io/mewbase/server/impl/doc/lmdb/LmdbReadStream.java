@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -38,9 +39,12 @@ public class LmdbReadStream implements DocReadStream {
     private boolean handledOne;
     private boolean closed;
 
+    private static AtomicLong openTxnCount = new AtomicLong();
+    
 
     LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Function<BsonObject, Boolean> matcher) {
         this.binderFactory = binderFactory;
+        // System.out.println("Open txn :" + openTxnCount.incrementAndGet());
         this.txn = binderFactory.getEnv().txnRead(); // set uo a read transaction
         this.cursorItr = db.iterate(txn, FORWARD);
         this.itr = cursorItr.iterable().iterator();
@@ -83,6 +87,7 @@ public class LmdbReadStream implements DocReadStream {
             // Following comment may no longer apply to lmdbjava
             // Beware calling tx.close() if the database/env object is closed can cause a core dump:
             cursorItr.close();
+           //  System.out.println("Closed txn :" + openTxnCount.decrementAndGet());
             txn.close();
             closed = true;
         }

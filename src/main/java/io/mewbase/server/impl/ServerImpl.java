@@ -321,6 +321,7 @@ public class ServerImpl implements Server {
             stream.handler(doc -> {
                 docs.add(doc);
                 if (!stream.hasMore()) {
+                    stream.close();
                     cf.complete(docs);
                 }
             });

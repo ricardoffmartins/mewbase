@@ -46,7 +46,7 @@ public class LmdbBinder implements Binder {
     public CompletableFuture<BsonObject> get(String id) {
         AsyncResCF<BsonObject> res = new AsyncResCF<>();
         binderFactory.getExec().executeBlocking(fut -> {
-            // in oreder to do a read we have to do it under a txn so use
+            // in order to do a read we have to do it under a txn so use
             // try with resource to get the auto close magic.
             try (Txn<ByteBuffer> txn = binderFactory.getEnv().txnRead()) {
                 ByteBuffer key = getKey(id);
