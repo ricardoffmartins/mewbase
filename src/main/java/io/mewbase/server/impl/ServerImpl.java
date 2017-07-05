@@ -224,8 +224,7 @@ public class ServerImpl implements Server {
                 logger.error("Failed to find subscription filter named " + descriptor.getFilterName() );
             }
         } catch (Exception exp) {
-            logger.error("Failed to find subscription filter in Channel " + descriptor.getChannel() );
-            return f -> true;
+            logger.error("Failed to any find subscription filter in Channel " + descriptor.getChannel() );
         }
         logger.info("Filter lookup failed so using 'match all' filter" + descriptor.getChannel() );
         return f -> true;
