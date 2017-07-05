@@ -205,8 +205,7 @@ public class ServerImpl implements Server {
     }
 
 
-    // TODO This never returns a valid channel
-    @Override
+    @Override  // TODO This never returns a valid channel
     public Channel getChannel(String channelName) {
         return null;
     }
@@ -214,16 +213,24 @@ public class ServerImpl implements Server {
     @Override
     public SubsFilterBuilder buildSubsFilter(String channelName) { return new SubsFilterBuilderImpl(channelName, filters); }
 
-    public Predicate<BsonObject> getSubscritionFilter(SubDescriptor descriptor) {
+
+    public Predicate<BsonObject> getSubscriptionFilter(SubDescriptor descriptor) {
         try {
             ChannelFilters chanFilters = filters.get(descriptor.getChannel());
             Predicate<BsonObject> filter = chanFilters.get(descriptor.getFilterName());
-            return filter;
+            if (filter != null) {
+                return filter;
+            } else {
+                logger.error("Failed to find subscription filter named " + descriptor.getFilterName() );
+            }
         } catch (Exception exp) {
-            logger.error("Failed to find subscription filter for descriptor " + descriptor.toString() );
+            logger.error("Failed to find subscription filter in Channel " + descriptor.getChannel() );
             return f -> true;
         }
+        logger.info("Filter lookup failed so using 'match all' filter" + descriptor.getChannel() );
+        return f -> true;
     }
+
 
     // TODO should we really expose this?
     @Deprecated // 4/7/17

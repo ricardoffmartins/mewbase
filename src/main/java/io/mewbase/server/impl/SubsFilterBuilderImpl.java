@@ -43,7 +43,8 @@ public class SubsFilterBuilderImpl implements SubsFilterBuilder {
             throw new IllegalStateException("Please specify a filter predicate function using 'withFilter' function");
         }
 
-        ChannelFilters subsFilters = filters.getOrDefault(channelName, new ChannelFilters());
+        filters.putIfAbsent(channelName, new ChannelFilters());
+        ChannelFilters subsFilters = filters.get(channelName);
         subsFilters.put(filterName,filter);
     }
 
