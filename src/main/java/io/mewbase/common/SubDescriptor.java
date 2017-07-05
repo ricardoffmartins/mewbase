@@ -14,7 +14,7 @@ public class SubDescriptor {
     private String durableID;
     private long startEventNum = DEFAULT_START_NUM;
     private long startTimestamp = DEFAULT_START_TIME;
-    private BsonObject matcher;
+    private String filterName;
     private String group;
 
     public String getDurableID() {
@@ -53,12 +53,12 @@ public class SubDescriptor {
         return this;
     }
 
-    public BsonObject getMatcher() {
-        return matcher;
+    public String getFilterName() {
+        return filterName;
     }
 
-    public SubDescriptor setMatcher(BsonObject matcher) {
-        this.matcher = matcher;
+    public SubDescriptor setFilterName(String filterName) {
+        this.filterName = filterName;
         return this;
     }
 
@@ -82,7 +82,7 @@ public class SubDescriptor {
         if (startEventNum != that.startEventNum) return false;
         if (durableID != null ? !durableID.equals(that.durableID) : that.durableID != null) return false;
         if (channel != null ? !channel.equals(that.channel) : that.channel != null) return false;
-        if (matcher != null ? !matcher.equals(that.matcher) : that.matcher != null) return false;
+        if (filterName != null ? !filterName.equals(that.filterName) : that.filterName != null) return false;
         return group != null ? group.equals(that.group) : that.group == null;
 
     }
@@ -93,7 +93,7 @@ public class SubDescriptor {
         result = 31 * result + (channel != null ? channel.hashCode() : 0);
         result = 31 * result + (int) (startEventNum ^ (startEventNum >>> 32));
         result = 31 * result + (int) (startTimestamp ^ (startTimestamp >>> 32));
-        result = 31 * result + (matcher != null ? matcher.hashCode() : 0);
+        result = 31 * result + (filterName != null ? filterName.hashCode() : 0);
         result = 31 * result + (group != null ? group.hashCode() : 0);
         return result;
     }

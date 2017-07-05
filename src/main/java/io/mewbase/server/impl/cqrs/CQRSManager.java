@@ -23,7 +23,6 @@ public class CQRSManager {
 
     private final static Logger logger = LoggerFactory.getLogger(CQRSManager.class);
 
-
     private final ServerImpl server;
     private final Map<String, CommandHandlerImpl> commandHandlers = new ConcurrentHashMap<>();
     private final Map<String, QueryImpl> queries = new ConcurrentHashMap<>();

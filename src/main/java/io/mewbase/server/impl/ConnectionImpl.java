@@ -164,13 +164,14 @@ public class ConnectionImpl implements ServerFrameHandler {
             Long startSeq = frame.getLong(Protocol.SUBSCRIBE_STARTPOS);
             Long startTimestamp = frame.getLong(Protocol.SUBSCRIBE_STARTTIMESTAMP);
             String durableID = frame.getString(Protocol.SUBSCRIBE_DURABLEID);
-            BsonObject matcher = frame.getBsonObject(Protocol.SUBSCRIBE_MATCHER);
+            String filterName = frame.getString(Protocol.SUBSCRIBE_FILTER_NAME);
 
             SubDescriptor subDescriptor = new SubDescriptor()
                     .setStartEventNum(startSeq == null ? SubDescriptor.DEFAULT_START_NUM : startSeq)
                     .setStartTimestamp(startTimestamp)
-                    .setMatcher(matcher)
-                    .setDurableID(durableID).setChannel(channel);
+                    .setFilterName(filterName)
+                    .setDurableID(durableID)
+                    .setChannel(channel);
 
             if (subDescriptor.getStartEventNum() != SubDescriptor.DEFAULT_START_NUM &&
                 subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {

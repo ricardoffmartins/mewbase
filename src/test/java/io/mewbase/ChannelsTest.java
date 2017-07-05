@@ -13,7 +13,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -131,9 +130,10 @@ public class ChannelsTest extends ServerTestBase {
             async.complete();
         };
 
-        Subscription sub = client.subscribe(descriptor, handler).get();
-
+        CompletableFuture<Subscription> fut = client.subscribe(descriptor, handler);
+        Subscription sub = fut.get();
         prod.publish(sent).get();
+
     }
 
     @Test
@@ -228,4 +228,51 @@ public class ChannelsTest extends ServerTestBase {
     }
 
 
+    @Test
+    //@Repeat(value = 10000)
+    public void testSubscribeWithFilter(TestContext context) throws Exception {
+
+        Producer prod = client.createProducer(TEST_CHANNEL_1);
+        final int events = 10;
+        for (int i = 0; i < events; i++) {
+            BsonObject event = new BsonObject().put("foo", "bar").put("num", i);
+            CompletableFuture<Void> cf = prod.publish(event);
+            if (i == events - 1) {
+                cf.get();
+            }
+        }
+
+        final String filterName = "com.mewbase.filter.Not7";
+        server.buildSubsFilter(TEST_CHANNEL_1)
+                .named(filterName)
+                .withFilter(event -> {
+                    int val = event.getInteger("num");
+                    return val != 7;
+                })
+                .store();
+
+
+        SubDescriptor descriptor = new SubDescriptor();
+        descriptor.setChannel(TEST_CHANNEL_1);
+        descriptor.setFilterName(filterName);
+        descriptor.setStartEventNum(0);     // replay all the events and filter num 7
+
+        Async async = context.async();
+
+        AtomicInteger receivedCount = new AtomicInteger();
+        Consumer<ClientDelivery> handler = re -> {
+            context.assertEquals(TEST_CHANNEL_1, re.channel());
+            BsonObject event = re.event();
+            long count = receivedCount.getAndIncrement();
+            // if the number is 7 the filter was not applied
+            context.assertTrue((long)event.getInteger("num") != 7);
+            if (count == events - 2) {
+                async.complete();
+            }
+        };
+
+        CompletableFuture<Subscription> fut = client.subscribe(descriptor, handler);
+        Subscription sub = fut.get();
+    }
+    
 }

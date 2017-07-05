@@ -115,7 +115,8 @@ Fields
 * `startTimestamp` - optional - int64. The earliest timestamp of events in the stream to start from subscribing from.
 * `durableID` - optional - string. Unique id for a durable subscription. If provided then the server will look-up and
 resume an existing subscription for that name, otherwise a new durable subscription for that name will be created.
-* `matcher` - optional BSONObject. Object to match on the event fields. Non matching events will be filtered out.
+* `filterName` - optional - string named filter to apply to Events in the subscription so that Event not matching the filter will not
+be delivered. (e.g. FQCN "io.mewbase.subscription.filter.DiscardCakes" )
  
 if `startEventNum` or `startTimestamp` are omitted then only events starting from when the subscription was created will
 be received. 

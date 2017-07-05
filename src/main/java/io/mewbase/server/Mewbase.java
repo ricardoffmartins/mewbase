@@ -27,6 +27,7 @@ public interface Mewbase {
 
     List<String> listChannels();
 
+    SubsFilterBuilder buildSubsFilter(String channelName);
 
     // Projection related operations
 

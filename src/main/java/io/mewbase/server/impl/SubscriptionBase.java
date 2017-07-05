@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
+
 
 /**
  * Created by tim on 26/09/16.
@@ -24,6 +26,7 @@ public abstract class SubscriptionBase {
     private final ServerImpl server;
     private final SubDescriptor subDescriptor;
     private final Context ctx;
+    private final Predicate<BsonObject> subsFilter;
     protected LogReadStream readStream;
     private boolean ignoreFirst;
 
@@ -32,6 +35,8 @@ public abstract class SubscriptionBase {
         this.server = server;
         this.subDescriptor = subDescriptor;
         this.ctx = Vertx.currentContext();
+        this.subsFilter = server.getSubscritionFilter(subDescriptor);
+
         if (subDescriptor.getDurableID() != null) {
             Binder binder = server.getDurableSubsBinder();
             CompletableFuture<BsonObject> cf = binder.get(subDescriptor.getDurableID());
@@ -81,20 +86,25 @@ public abstract class SubscriptionBase {
         }
     }
 
-    // This can be called on different threads depending on whether the frame is coming from file or direct
-    private synchronized void handleEvent0(long pos, BsonObject frame) {
+    // This can be called on different threads depending on whether the record is coming from file or direct
+    private synchronized void handleEvent0(long pos, BsonObject record) {
         if (ignoreFirst) {
             ignoreFirst = false;
             return;
         }
         // only do the Bson lookup if there is a non default timestamp and watch for the "fast fail" return
         if (subDescriptor.getStartTimestamp() != SubDescriptor.DEFAULT_START_TIME) {
-            final long timeStamp = frame.getLong(Protocol.RECEV_TIMESTAMP);
+            final long timeStamp = record.getLong(Protocol.RECEV_TIMESTAMP);
             if (timeStamp < subDescriptor.getStartTimestamp()) {
                 return;
             }
         }
-        onReceiveFrame(pos, frame);
+
+        BsonObject event = record.getBsonObject("event");
+        if (subsFilter.test(event)) {
+            onReceiveFrame(pos, record);
+        }
+        return;
     }
 
     protected abstract void onReceiveFrame(long pos, BsonObject frame);
