@@ -35,7 +35,7 @@ public abstract class SubscriptionBase {
         this.server = server;
         this.subDescriptor = subDescriptor;
         this.ctx = Vertx.currentContext();
-        this.subsFilter = server.getSubscritionFilter(subDescriptor);
+        this.subsFilter = server.getSubscriptionFilter(subDescriptor);
 
         if (subDescriptor.getDurableID() != null) {
             Binder binder = server.getDurableSubsBinder();

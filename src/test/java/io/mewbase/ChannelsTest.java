@@ -4,15 +4,19 @@ import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.*;
 import io.mewbase.common.SubDescriptor;
+
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +36,44 @@ import static org.junit.Assert.*;
 public class ChannelsTest extends ServerTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(ChannelsTest.class);
+
+    // Patching this in to catch the log output
+    class TestAppender extends AppenderSkeleton {
+        private final List<LoggingEvent> log = new ArrayList<LoggingEvent>();
+
+        @Override
+        public boolean requiresLayout() {
+            return false;
+        }
+
+        @Override
+        protected void append(final LoggingEvent loggingEvent) {
+            log.add(loggingEvent);
+        }
+
+        @Override
+        public void close() {
+        }
+
+        public List<LoggingEvent> getLog() {
+            return new ArrayList<LoggingEvent>(log);
+        }
+    }
+
+
+    private TestAppender patchTestAppender() {
+        final TestAppender appender = new TestAppender();
+        final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getRootLogger();
+        logger.addAppender(appender);
+        return appender;
+    }
+
+    private void removeTestAppender(TestAppender appender) {
+        final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getRootLogger();
+        logger.removeAppender(appender);
+    }
+
+
 
     @Override
     protected void setupChannelsAndBinders() throws Exception {
@@ -227,6 +269,29 @@ public class ChannelsTest extends ServerTestBase {
         Subscription sub = client.subscribe(descriptor, handler).get();
     }
 
+    @Test
+    public void testFailingSubsBuilder(TestContext context)  {
+
+        final String filterName = "com.mewbase.filter.Not7";
+        try { // no filter specified
+            server.buildSubsFilter(TEST_CHANNEL_1)
+                    .named(filterName)
+                    .store();
+        } catch (IllegalStateException ese) {
+             assertTrue(ese.getMessage().contains("withFilter")); // leave a clue
+        }
+
+        try { // no name
+            server.buildSubsFilter(TEST_CHANNEL_1)
+                    .withFilter(event -> {
+                        int val = event.getInteger("num");
+                        return val != 7;
+                    })
+                    .store();
+        } catch (IllegalStateException ese) {
+            assertTrue(ese.getMessage().contains("named")); // leave a clue
+        }
+    }
 
     @Test
     //@Repeat(value = 10000)
@@ -274,5 +339,63 @@ public class ChannelsTest extends ServerTestBase {
         CompletableFuture<Subscription> fut = client.subscribe(descriptor, handler);
         Subscription sub = fut.get();
     }
+
+
+    @Test
+    public void testSubscribeWithWrongFilter(TestContext context) throws Exception {
+
+        final TestAppender appender = patchTestAppender();
+
+        Producer prod = client.createProducer(TEST_CHANNEL_1);
+        final int events = 10;
+        for (int i = 0; i < events; i++) {
+            BsonObject event = new BsonObject().put("foo", "bar").put("num", i);
+            CompletableFuture<Void> cf = prod.publish(event);
+            if (i == events - 1) {
+                cf.get();
+            }
+        }
+
+        final String filterName = "com.mewbase.filter.Not7";
+        final String wrongFilterName = "BadBadName";
+
+        server.buildSubsFilter(TEST_CHANNEL_1)
+                .named(filterName)
+                .withFilter(event -> {
+                    int val = event.getInteger("num");
+                    return val != 7;
+                })
+                .store();
+
+
+        SubDescriptor descriptor = new SubDescriptor();
+        descriptor.setChannel(TEST_CHANNEL_1);
+        descriptor.setFilterName(wrongFilterName);
+        descriptor.setStartEventNum(0);     // replay all the events and filter num 7
+
+        Async async = context.async();
+
+        AtomicInteger receivedCount = new AtomicInteger();
+        Consumer<ClientDelivery> handler = re -> {
+            context.assertEquals(TEST_CHANNEL_1, re.channel());
+            BsonObject event = re.event();
+            long count = receivedCount.getAndIncrement();
+            // should see all the even t
+            if (count == events - 1) {
+                async.complete();
+            }
+        };
+
+        CompletableFuture<Subscription> fut = client.subscribe(descriptor, handler);
+        Subscription sub = fut.get();
+
+        List<LoggingEvent> logged = appender.getLog();
+        // check that it reports the bad name
+        assertTrue(logged.get(0).getMessage().toString().contains(wrongFilterName));
+        // check that it does a match all in the case of failure
+        assertTrue(logged.get(1).getMessage().toString().contains("match all"));
+        removeTestAppender(appender);
+    }
+
     
 }
