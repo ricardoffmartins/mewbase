@@ -119,7 +119,7 @@ public class PublishObjectsTest extends LogTestBase {
         startLog();
         List<Long> orderedResults = publishObjectsConcurrently(numRecords, i -> event.copy().put("num", i));
 
-        // Wait until the logs are flushed to avoid incomlpete read below
+        // Wait until the logs are flushed to avoid incomplete read below
         Thread.sleep(11);
 
         assertExists(0);
