@@ -43,8 +43,7 @@ public interface Client {
     CompletableFuture<BsonObject> findByID(String binderName, String id);
 
     // TODO use Reactive streams for this instead
-    void executeQuery(String queryName, BsonObject params,
-                      Consumer<QueryResult> resultHandler, Consumer<Throwable> exceptionHandler);
+    void executeQuery(String queryName, Consumer<QueryResult> resultHandler, Consumer<Throwable> exceptionHandler);
 
     CompletableFuture<BsonArray> listBinders();
 

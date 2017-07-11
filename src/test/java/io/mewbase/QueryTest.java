@@ -82,7 +82,7 @@ public class QueryTest extends ServerTestBase {
 
         Async async = context.async();
         AtomicInteger cnt = new AtomicInteger();
-        client.executeQuery("testQuery", new BsonObject(), qr -> {
+        client.executeQuery("testQuery", qr -> {
             String expectedID = getID(cnt.getAndIncrement());
             context.assertEquals(expectedID, qr.document().getString("id"));
             if (cnt.get() == numDocs) {

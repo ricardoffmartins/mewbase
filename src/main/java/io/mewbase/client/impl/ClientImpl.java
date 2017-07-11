@@ -143,7 +143,8 @@ public class ClientImpl implements Client, ClientFrameHandler {
 
 
     @Override
-    public void executeQuery(String queryName, BsonObject params, Consumer<QueryResult> resultHandler,
+    public void executeQuery(String queryName,
+                             Consumer<QueryResult> resultHandler,
                              Consumer<Throwable> exceptionHandler) {
         CompletableFuture<Void> cf = new CompletableFuture<>();
         if (exceptionHandler != null) {
@@ -154,7 +155,8 @@ public class ClientImpl implements Client, ClientFrameHandler {
         }
         BsonObject frame = new BsonObject();
         frame.put(Protocol.QUERY_NAME, queryName);
-        frame.put(Protocol.QUERY_PARAMS, params);
+        BsonObject emptyParams = new BsonObject();
+        frame.put(Protocol.QUERY_PARAMS, emptyParams);
         int queryID = requestIDSequence.getAndIncrement();
         frame.put(Protocol.QUERY_QUERYID, queryID);
         queryResultHandlers.put(queryID, resultHandler);
