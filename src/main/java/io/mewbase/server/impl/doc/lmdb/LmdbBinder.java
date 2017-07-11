@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static java.nio.ByteBuffer.allocateDirect;
 
@@ -38,8 +39,8 @@ public class LmdbBinder implements Binder {
     }
 
     @Override
-    public DocReadStream getMatching(Function<BsonObject, Boolean> matcher) {
-        return new LmdbReadStream(binderFactory, db, matcher);
+    public DocReadStream getMatching(Predicate<BsonObject> filter) {
+        return new LmdbReadStream(binderFactory, db, filter);
     }
 
     @Override

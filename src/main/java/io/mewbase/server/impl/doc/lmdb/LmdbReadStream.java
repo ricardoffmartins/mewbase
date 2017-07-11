@@ -3,6 +3,7 @@ package io.mewbase.server.impl.doc.lmdb;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.DocReadStream;
 import io.mewbase.util.AsyncResCF;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 
 import org.lmdbjava.CursorIterator;
@@ -17,6 +18,7 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 
@@ -31,11 +33,19 @@ public class LmdbReadStream implements DocReadStream {
     private static final int MAX_DELIVER_BATCH = 100;
 
     private final LmdbBinderFactory binderFactory;
+
     private final Txn txn;
     private final CursorIterator<ByteBuffer> cursorItr;  // in lmdbjava cursor is the main abstraction
     private final Iterator<CursorIterator.KeyVal<ByteBuffer>> itr;
-    private final Function<BsonObject, Boolean> matcher;
+    // attempt to give thread affinity to the txn
+    private final WorkerExecutor exec;
+    private final String POOL_NAME = "READ_STREAM_THREAD";
+    private final int SINGLE_THREAD = 1;
+
+    private final Predicate<BsonObject> filter;
+
     private Consumer<BsonObject> handler;
+
     private boolean paused;
     private boolean handledOne;
     private boolean closed;
@@ -43,14 +53,14 @@ public class LmdbReadStream implements DocReadStream {
     private static AtomicLong openTxnCount = new AtomicLong();
 
 
-    LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Function<BsonObject, Boolean> matcher) {
+    LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Predicate<BsonObject> filter) {
         this.binderFactory = binderFactory;
         // System.out.println("Open txn :" + openTxnCount.incrementAndGet());
         this.txn = binderFactory.getEnv().txnRead(); // set uo a read transaction
         this.cursorItr = db.iterate(txn, FORWARD);
         this.itr = cursorItr.iterable().iterator();
-        this.matcher = matcher;
-        ;
+        this.filter = filter;
+        this.exec = binderFactory.getVertx().createSharedWorkerExecutor(POOL_NAME, SINGLE_THREAD);
     }
 
     @Override
@@ -103,11 +113,8 @@ public class LmdbReadStream implements DocReadStream {
     }
 
     // TODO - shouldn't this be on a worker thread?
-    // as of 10/7/17 looks like the transaction runs on different threads.
-    // Changing the context from Vert.x to the LmdbBinderFactory
-    // as provoked more regular core dumps which can be prevented by reducing the pool value to 1
-    // at the cost of other errors.
-
+    // as of 10/7/17 made a local single threaded Vert.x execution context which stops
+    // all seg faults
     private void runIterNextAsync() {
         AsyncResCF<Void> res = new AsyncResCF<>();
         binderFactory.getExec().executeBlocking(fut -> {
@@ -129,7 +136,7 @@ public class LmdbReadStream implements DocReadStream {
                 Buffer buffer = Buffer.buffer(kv.val().remaining());
                 buffer.setBytes(0, kv.val());
                 BsonObject doc = new BsonObject(buffer);
-                if (handler != null && matcher.apply(doc)) {
+                if (handler != null && filter.test(doc)) {
                     handler.accept(doc);
                     handledOne = true;
                     if (paused) {

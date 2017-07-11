@@ -85,6 +85,7 @@ public class QueryTest extends ServerTestBase {
         client.executeQuery("testQuery", new BsonObject(), qr -> {
             String expectedID = getID(cnt.getAndIncrement());
             context.assertEquals(expectedID, qr.document().getString("id"));
+    System.out.println(qr.document().getString("id"));
             cnt.getAndIncrement();
             if (cnt.get() == numDocs) {
                 context.assertTrue(qr.isLast());

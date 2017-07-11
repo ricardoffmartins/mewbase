@@ -4,6 +4,7 @@ import io.mewbase.bson.BsonObject;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Created by tim on 29/12/16.
@@ -17,9 +18,9 @@ public interface Binder {
     /**
      * Get a document in a named binder matching the filter
      *
-     * @param matcher matching projection for documents
+     * @param filter matching projection for documents
      */
-    DocReadStream getMatching(Function<BsonObject, Boolean> matcher);
+    DocReadStream getMatching(Predicate<BsonObject> filter);
 
     /**
      * Get a document  with the given id
