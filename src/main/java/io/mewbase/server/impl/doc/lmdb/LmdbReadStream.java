@@ -2,6 +2,7 @@ package io.mewbase.server.impl.doc.lmdb;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.DocReadStream;
+import io.mewbase.util.AsyncResCF;
 import io.vertx.core.buffer.Buffer;
 
 import org.lmdbjava.CursorIterator;
@@ -40,7 +41,7 @@ public class LmdbReadStream implements DocReadStream {
     private boolean closed;
 
     private static AtomicLong openTxnCount = new AtomicLong();
-    
+
 
     LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Function<BsonObject, Boolean> matcher) {
         this.binderFactory = binderFactory;
@@ -101,7 +102,21 @@ public class LmdbReadStream implements DocReadStream {
         //logger.trace("Thread is {}", Thread.currentThread());
     }
 
-    // TODO shouldn't this be on a worker thread?
+    // TODO - shouldn't this be on a worker thread?
+    // as of 10/7/17 looks like the transaction runs on different threads.
+    // Changing the context from Vert.x to the LmdbBinderFactory
+    // as provoked more regular core dumps which can be prevented by reducing the pool value to 1
+    // at the cost of other errors.
+
+    private void runIterNextAsync() {
+        AsyncResCF<Void> res = new AsyncResCF<>();
+        binderFactory.getExec().executeBlocking(fut -> {
+            iterNext();
+            fut.complete(null);
+        }, res);
+    }
+
+
     private synchronized void iterNext() {
         printThread();
         if (paused || closed) {
@@ -110,10 +125,10 @@ public class LmdbReadStream implements DocReadStream {
         for (int i = 0; i < MAX_DELIVER_BATCH; i++) {
             if (itr.hasNext()) {
                 final CursorIterator.KeyVal<ByteBuffer> kv = itr.next();
-                // lift it from LMDB side into local memory
-                byte [] local = new byte[kv.val().remaining()];
-                kv.val().get(local);
-                BsonObject doc = new BsonObject(Buffer.buffer(local));
+                // Copy bytes from LMDB managed memory to vert.x buffer
+                Buffer buffer = Buffer.buffer(kv.val().remaining());
+                buffer.setBytes(0, kv.val());
+                BsonObject doc = new BsonObject(buffer);
                 if (handler != null && matcher.apply(doc)) {
                     handler.accept(doc);
                     handledOne = true;
@@ -133,7 +148,4 @@ public class LmdbReadStream implements DocReadStream {
         runIterNextAsync();
     }
 
-    private void runIterNextAsync() {
-        binderFactory.getVertx().runOnContext(v -> iterNext());
-    }
 }

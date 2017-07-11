@@ -27,7 +27,7 @@ public class LmdbBinderFactory implements BinderFactory {
     private final static Logger logger = LoggerFactory.getLogger(LmdbBinderFactory.class);
 
     private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.docmanagerpool";
-    private static final int LMDB_DOCMANAGER_POOL_SIZE = 10;
+    private static final int LMDB_DOCMANAGER_POOL_SIZE = 1;
 
     private final String docsDir;
     private final int maxDBs;

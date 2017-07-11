@@ -52,9 +52,10 @@ public class LmdbBinder implements Binder {
                 ByteBuffer key = getKey(id);
                 final ByteBuffer found = db.get(txn, key);
                 if (found != null) {
-                    byte [] local = new byte[txn.val().remaining()];
-                    txn.val().get(local);
-                    BsonObject doc = new BsonObject(Buffer.buffer(local));
+                    // copy to local Vert.x buffer from the LMDB mem managed array
+                    Buffer buffer = Buffer.buffer(txn.val().remaining());
+                    buffer.setBytes( 0 , txn.val() );
+                    BsonObject doc = new BsonObject(buffer);
                     fut.complete(doc);
                 } else {
                     fut.complete(null);
