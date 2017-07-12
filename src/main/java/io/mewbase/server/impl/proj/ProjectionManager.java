@@ -11,6 +11,7 @@ import io.mewbase.server.ProjectionBuilder;
 import io.mewbase.server.impl.Protocol;
 import io.mewbase.server.impl.ServerImpl;
 import io.mewbase.util.AsyncResCF;
+import io.vertx.core.Context;
 import io.vertx.core.shareddata.Lock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,7 @@ public class ProjectionManager {
         final Function<BsonObject, String> docIDSelector;
         final BiFunction<BsonObject, Delivery, BsonObject> projectionFunction;
         final Binder binder;
+        final Context context;
 
         public ProjectionImpl(String name, String channel, String binderName, Function<BsonObject, Boolean> eventFilter,
                               Function<BsonObject, String> docIDSelector,
@@ -74,8 +76,13 @@ public class ProjectionManager {
             this.docIDSelector = docIDSelector;
             this.projectionFunction = projectionFunction;
             SubDescriptor subDescriptor = new SubDescriptor().setChannel(channel).setDurableID(name);
-            this.subscription = new ProjectionSubscription(server, subDescriptor, this::handler);
+            this.subscription = new ProjectionSubscription(server, subDescriptor, this::doHandle);
             this.binder = server.getBinder(binderName);
+            this.context = server.getVertx().getOrCreateContext();
+        }
+
+        void doHandle(long seq, BsonObject frame) {
+            context.runOnContext(v -> this.handler(seq, frame));
         }
 
         void handler(long seq, BsonObject frame) {
@@ -87,6 +94,9 @@ public class ProjectionManager {
             }
 
             String docID = docIDSelector.apply(event);
+
+            logger.trace("projection manager receiving " + docID + " thread " + Thread.currentThread());
+
             if (docID == null) {
                 throw new IllegalArgumentException("No doc ID found in event " + event);
             }
@@ -137,6 +147,7 @@ public class ProjectionManager {
                         lastSeqs.put(name, seq);
 
                         // Store the doc
+                        logger.trace("Putting doc from binder " + docID + " thread " + Thread.currentThread());
                         CompletableFuture<Void> cfSaved = binder.put(docID, updated);
                         return cfSaved.thenApply(v -> true);
                     })
