@@ -4,6 +4,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.server.Binder;
 import io.mewbase.server.DocReadStream;
 import io.mewbase.util.AsyncResCF;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 
 import org.lmdbjava.Dbi;
@@ -28,25 +29,31 @@ public class LmdbBinder implements Binder {
 
     private final static Logger logger = LoggerFactory.getLogger(LmdbBinder.class);
 
+    private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.docmanagerpool";
+
     private final LmdbBinderFactory binderFactory;
     private final String name;
     private Dbi<ByteBuffer> db;
     private AsyncResCF<Void> startRes;
+    private final WorkerExecutor exec;
 
     public LmdbBinder(LmdbBinderFactory binderFactory, String name) {
         this.binderFactory = binderFactory;
         this.name = name;
+        // TODO - would be better to maintain a pool of single threaded executors and assign them round robin to
+        // binders to avoid each binder having its own thread
+        exec = binderFactory.getVertx().createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME + "." + name, 1);
     }
 
     @Override
     public DocReadStream getMatching(Predicate<BsonObject> filter) {
-        return new LmdbReadStream(binderFactory, db, filter);
+        return new LmdbReadStream(binderFactory, db, filter, exec);
     }
 
     @Override
     public CompletableFuture<BsonObject> get(String id) {
         AsyncResCF<BsonObject> res = new AsyncResCF<>();
-        binderFactory.getExec().executeBlocking(fut -> {
+        exec.executeBlocking(fut -> {
             // in order to do a read we have to do it under a txn so use
             // try with resource to get the auto close magic.
             try (Txn<ByteBuffer> txn = binderFactory.getEnv().txnRead()) {
@@ -69,10 +76,8 @@ public class LmdbBinder implements Binder {
     @Override
     public CompletableFuture<Void> put(String id, BsonObject doc) {
         AsyncResCF<Void> res = new AsyncResCF<>();
-        logger.trace("Submitting put " + id);
-        binderFactory.getExec().executeBlocking(fut -> {
+        exec.executeBlocking(fut -> {
             ByteBuffer key = getKey(id);
-            logger.trace("Putting key " + id);
             byte[] valBytes = doc.encode().getBytes();
             final ByteBuffer val = allocateDirect(valBytes.length);
             val.put(valBytes).flip();
@@ -85,7 +90,7 @@ public class LmdbBinder implements Binder {
     @Override
     public CompletableFuture<Boolean> delete(String id) {
         AsyncResCF<Boolean> res = new AsyncResCF<>();
-        binderFactory.getExec().executeBlocking(fut -> {
+        exec.executeBlocking(fut -> {
             ByteBuffer key = getKey(id);
             boolean deleted = db.delete(key);
             fut.complete(deleted);
@@ -96,7 +101,7 @@ public class LmdbBinder implements Binder {
     @Override
     public CompletableFuture<Void> close() {
         AsyncResCF<Void> res = new AsyncResCF<>();
-        binderFactory.getExec().executeBlocking(fut -> {
+        exec.executeBlocking(fut -> {
             db.close();
             binderFactory.getEnv().sync(true);
             fut.complete(null);
@@ -109,7 +114,7 @@ public class LmdbBinder implements Binder {
         // TODO test this! - Deals with race where start is called before previous start is complete
         if (startRes == null) {
             startRes = new AsyncResCF<>();
-            binderFactory.getExec().executeBlocking(fut -> {
+            exec.executeBlocking(fut -> {
                 logger.trace("Opening lmdb database " + name);
                 db = binderFactory.getEnv().openDbi(name, DbiFlags.MDB_CREATE );
                 logger.trace("Opened lmdb database " + name);

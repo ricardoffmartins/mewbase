@@ -27,7 +27,6 @@ public class LmdbBinderFactory implements BinderFactory {
     private final static Logger logger = LoggerFactory.getLogger(LmdbBinderFactory.class);
 
     private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.docmanagerpool";
-    private static final int LMDB_DOCMANAGER_POOL_SIZE = 1;
 
     private final String docsDir;
     private final int maxDBs;
@@ -42,7 +41,8 @@ public class LmdbBinderFactory implements BinderFactory {
         this.maxDBs = serverOptions.getMaxBinders();
         this.maxDBSize = serverOptions.getMaxBinderSize();
         this.vertx = vertx;
-        exec = vertx.createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME, LMDB_DOCMANAGER_POOL_SIZE);
+        // This exec is only usedf for opening or closing the env
+        exec = vertx.createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME, 1);
     }
 
     @Override
@@ -80,10 +80,6 @@ public class LmdbBinderFactory implements BinderFactory {
 
     Vertx getVertx() {
         return vertx;
-    }
-
-    WorkerExecutor getExec() {
-        return exec;
     }
 
     Env getEnv() {

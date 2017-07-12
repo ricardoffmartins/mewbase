@@ -37,10 +37,7 @@ public class LmdbReadStream implements DocReadStream {
     private final Txn txn;
     private final CursorIterator<ByteBuffer> cursorItr;  // in lmdbjava cursor is the main abstraction
     private final Iterator<CursorIterator.KeyVal<ByteBuffer>> itr;
-    // attempt to give thread affinity to the txn
     private final WorkerExecutor exec;
-    private final String POOL_NAME = "READ_STREAM_THREAD";
-    private final int SINGLE_THREAD = 1;
 
     private final Predicate<BsonObject> filter;
 
@@ -53,13 +50,13 @@ public class LmdbReadStream implements DocReadStream {
     private static AtomicLong openTxnCount = new AtomicLong();
 
 
-    LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Predicate<BsonObject> filter) {
+    LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Predicate<BsonObject> filter, WorkerExecutor exec) {
         this.binderFactory = binderFactory;
         this.txn = binderFactory.getEnv().txnRead(); // set uo a read transaction
         this.cursorItr = db.iterate(txn, FORWARD);
         this.itr = cursorItr.iterable().iterator();
         this.filter = filter;
-        this.exec = binderFactory.getVertx().createSharedWorkerExecutor(POOL_NAME, SINGLE_THREAD);
+        this.exec = exec;
     }
 
     @Override
@@ -111,7 +108,6 @@ public class LmdbReadStream implements DocReadStream {
         //logger.trace("Thread is {}", Thread.currentThread());
     }
 
-    // TODO - shouldn't this be on a worker thread?
     // as of 10/7/17 made a local single threaded Vert.x execution context which stops
     // all seg faults
     private void runIterNextAsync() {
@@ -135,7 +131,6 @@ public class LmdbReadStream implements DocReadStream {
                 Buffer buffer = Buffer.buffer(kv.val().remaining());
                 buffer.setBytes(0, kv.val());
                 BsonObject doc = new BsonObject(buffer);
-                logger.trace("Reading doc " + doc);
                 if (handler != null && filter.test(doc)) {
                     handler.accept(doc);
                     handledOne = true;

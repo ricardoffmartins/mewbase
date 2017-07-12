@@ -30,7 +30,6 @@ public class SubscriptionImpl extends SubscriptionBase {
         frame = frame.copy();
         frame.put(Protocol.RECEV_SUBID, id);
         frame.put(Protocol.RECEV_POS, pos);
-        logger.trace("sub delivering " + frame);
         Buffer buff = connection.writeResponse(Protocol.RECEV_FRAME, frame);
         unackedBytes += buff.length();
         if (unackedBytes > maxUnackedBytes) {
