@@ -65,8 +65,9 @@ public class QueryTest extends ServerTestBase {
         }
     }
 
-    @Repeat(value=1000)
+
     @Test
+    // @Repeat(value=1000)
     public void testExecuteQuery(TestContext context) throws Exception {
         int numDocs = 100;
         for (int i = 0; i < numDocs; i++) {

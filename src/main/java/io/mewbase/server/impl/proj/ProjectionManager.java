@@ -95,7 +95,7 @@ public class ProjectionManager {
 
             String docID = docIDSelector.apply(event);
 
-            logger.trace("projection manager receiving " + docID + " thread " + Thread.currentThread());
+            // logger.trace("projection manager receiving " + docID + " thread " + Thread.currentThread());
 
             if (docID == null) {
                 throw new IllegalArgumentException("No doc ID found in event " + event);
@@ -147,7 +147,7 @@ public class ProjectionManager {
                         lastSeqs.put(name, seq);
 
                         // Store the doc
-                        logger.trace("Putting doc from binder " + docID + " thread " + Thread.currentThread());
+                        // logger.trace("Putting doc from binder " + docID + " thread " + Thread.currentThread());
                         CompletableFuture<Void> cfSaved = binder.put(docID, updated);
                         return cfSaved.thenApply(v -> true);
                     })

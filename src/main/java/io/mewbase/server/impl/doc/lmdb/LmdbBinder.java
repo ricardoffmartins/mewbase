@@ -69,10 +69,10 @@ public class LmdbBinder implements Binder {
     @Override
     public CompletableFuture<Void> put(String id, BsonObject doc) {
         AsyncResCF<Void> res = new AsyncResCF<>();
-        logger.trace("Submitting put " + id);
+        // logger.debug("Submitting put " + id);
         binderFactory.getExec().executeBlocking(fut -> {
             ByteBuffer key = getKey(id);
-            logger.trace("Putting key " + id);
+            // logger.debug("Putting key " + id);
             byte[] valBytes = doc.encode().getBytes();
             final ByteBuffer val = allocateDirect(valBytes.length);
             val.put(valBytes).flip();

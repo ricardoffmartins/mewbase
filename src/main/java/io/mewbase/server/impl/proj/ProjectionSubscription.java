@@ -31,7 +31,7 @@ public class ProjectionSubscription extends SubscriptionBase {
 
     @Override
     protected void onReceiveFrame(long pos, BsonObject frame) {
-        logger.trace("Projection sub receiving " + frame);
+        // logger.trace("Projection sub receiving " + frame);
         unackedEvents++;
         if (unackedEvents > maxUnackedEvents) {
             readStream.pause();
