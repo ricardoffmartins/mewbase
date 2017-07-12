@@ -523,7 +523,7 @@ public class ConnectionImpl implements ServerFrameHandler {
     protected Buffer writeResponse(String frameName, BsonObject frame) {
 
         Buffer buff = Protocol.encodeFrame(frameName, frame);
-        System.out.println("WritBuf :" + buff.toString());
+        //System.out.println("WritBuf :" + buff.toString());
         // TODO compare performance of writing directly in all cases and via context
         Context curr = Vertx.currentContext();
         if (curr != context) {

@@ -5,6 +5,7 @@ import io.mewbase.client.MewException;
 import io.mewbase.client.Producer;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,6 +65,7 @@ public class QueryTest extends ServerTestBase {
         }
     }
 
+    @Repeat(value=1000)
     @Test
     public void testExecuteQuery(TestContext context) throws Exception {
         int numDocs = 100;

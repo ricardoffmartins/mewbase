@@ -135,6 +135,7 @@ public class LmdbReadStream implements DocReadStream {
                 Buffer buffer = Buffer.buffer(kv.val().remaining());
                 buffer.setBytes(0, kv.val());
                 BsonObject doc = new BsonObject(buffer);
+                logger.trace("Reading doc " + doc);
                 if (handler != null && filter.test(doc)) {
                     handler.accept(doc);
                     handledOne = true;

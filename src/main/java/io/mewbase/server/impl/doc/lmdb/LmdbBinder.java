@@ -71,6 +71,7 @@ public class LmdbBinder implements Binder {
         AsyncResCF<Void> res = new AsyncResCF<>();
         binderFactory.getExec().executeBlocking(fut -> {
             ByteBuffer key = getKey(id);
+            logger.trace("Putting key " + id);
             byte[] valBytes = doc.encode().getBytes();
             final ByteBuffer val = allocateDirect(valBytes.length);
             val.put(valBytes).flip();
