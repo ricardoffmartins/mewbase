@@ -55,7 +55,6 @@ public class LmdbReadStream implements DocReadStream {
 
     LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Predicate<BsonObject> filter) {
         this.binderFactory = binderFactory;
-        // System.out.println("Open txn :" + openTxnCount.incrementAndGet());
         this.txn = binderFactory.getEnv().txnRead(); // set uo a read transaction
         this.cursorItr = db.iterate(txn, FORWARD);
         this.itr = cursorItr.iterable().iterator();
@@ -117,7 +116,7 @@ public class LmdbReadStream implements DocReadStream {
     // all seg faults
     private void runIterNextAsync() {
         AsyncResCF<Void> res = new AsyncResCF<>();
-        binderFactory.getExec().executeBlocking(fut -> {
+        exec.executeBlocking(fut -> {
             iterNext();
             fut.complete(null);
         }, res);
