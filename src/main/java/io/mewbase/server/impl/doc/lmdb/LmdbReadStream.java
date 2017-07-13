@@ -45,6 +45,7 @@ public class LmdbReadStream implements DocReadStream {
 
     private Consumer<BsonObject> handler;
 
+    private boolean hasMore;
     private boolean paused;
     private boolean handledOne;
     private boolean closed;
@@ -57,6 +58,7 @@ public class LmdbReadStream implements DocReadStream {
         this.itr = cursorItr.iterable().iterator();
         this.filter = filter;
         this.exec = exec;
+        hasMore = itr.hasNext();    // check if the CursorIterator has any content before resetting txn
         txn.reset();    // we only need to have the transaction active while we read items under the Cursor (Iterator).
     }
 
@@ -94,13 +96,7 @@ public class LmdbReadStream implements DocReadStream {
         }
     }
 
-    public synchronized boolean hasMore()  {
-        txn.renew();  // has next needs data access
-        boolean hasMore = itr.hasNext();
-        txn.reset();
-        return hasMore;
-    }
-
+    public synchronized boolean hasMore()  { return hasMore; }
 
     // Exec is managed by BinderFactory to maintain thread affinity
     private void runIterNextAsync() {
@@ -120,11 +116,12 @@ public class LmdbReadStream implements DocReadStream {
         for (int i = 0; i < MAX_DELIVER_BATCH; i++) {
             // before we access the data via the cursor it is necessary to
             txn.renew();
-            if (itr.hasNext()) {
+            if (hasMore) {
                 final CursorIterator.KeyVal<ByteBuffer> kv = itr.next();
                 // Copy bytes from LMDB managed memory to vert.x buffer
                 Buffer buffer = Buffer.buffer(kv.val().remaining());
                 buffer.setBytes(0, kv.val());
+                hasMore = itr.hasNext();
                 txn.reset(); // got data so release the txn
                 BsonObject doc = new BsonObject(buffer);
                 if (handler != null && filter.test(doc)) {

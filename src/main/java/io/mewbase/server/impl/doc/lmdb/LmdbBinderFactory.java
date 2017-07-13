@@ -5,6 +5,7 @@ import io.mewbase.server.Binder;
 import io.mewbase.server.ServerOptions;
 import io.mewbase.server.impl.BinderFactory;
 import io.mewbase.util.AsyncResCF;
+import io.mewbase.util.SizedExecutorPool;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 
@@ -28,6 +29,9 @@ public class LmdbBinderFactory implements BinderFactory {
 
     private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.docmanagerpool";
 
+    private final int executorPoolSize = 16;
+    private final SizedExecutorPool singleExecPool;
+
     private final String docsDir;
     private final int maxDBs;
     private final long maxDBSize;
@@ -41,6 +45,8 @@ public class LmdbBinderFactory implements BinderFactory {
         this.maxDBs = serverOptions.getMaxBinders();
         this.maxDBSize = serverOptions.getMaxBinderSize();
         this.vertx = vertx;
+        this.singleExecPool = new SizedExecutorPool(vertx,LMDB_DOCMANAGER_POOL_NAME,executorPoolSize);
+
         // This exec is only used for opening or closing the env
         exec = vertx.createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME, 1);
     }
@@ -55,7 +61,7 @@ public class LmdbBinderFactory implements BinderFactory {
                     .setMapSize(maxDBSize)
                     .setMaxDbs(maxDBs)
                     .setMaxReaders(1024)
-                    .open(fDocsDir, Integer.MAX_VALUE, MDB_NOTLS);  // TODO Check size is correct default
+                    .open(fDocsDir, Integer.MAX_VALUE, MDB_NOTLS);
             fut.complete(null);
         }, res);
         return res;
@@ -76,6 +82,10 @@ public class LmdbBinderFactory implements BinderFactory {
             logger.trace("closed lmdb binder factory " + LmdbBinderFactory.this);
         }, res);
         return res;
+    }
+
+    WorkerExecutor getSingleWorkerExecutor() {
+        return singleExecPool.getWorkerExecutor() ;
     }
 
     Vertx getVertx() {

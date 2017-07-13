@@ -29,8 +29,6 @@ public class LmdbBinder implements Binder {
 
     private final static Logger logger = LoggerFactory.getLogger(LmdbBinder.class);
 
-    private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.docmanagerpool";
-
     private final LmdbBinderFactory binderFactory;
     private final String name;
     private Dbi<ByteBuffer> db;
@@ -40,9 +38,7 @@ public class LmdbBinder implements Binder {
     public LmdbBinder(LmdbBinderFactory binderFactory, String name) {
         this.binderFactory = binderFactory;
         this.name = name;
-        // TODO - would be better to maintain a pool of single threaded executors and assign them round robin to
-        // binders to avoid each binder having its own thread
-        exec = binderFactory.getVertx().createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME + "." + name, 1);
+        exec = binderFactory.getSingleWorkerExecutor();
     }
 
     @Override
