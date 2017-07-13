@@ -41,7 +41,7 @@ public class LmdbBinderFactory implements BinderFactory {
         this.maxDBs = serverOptions.getMaxBinders();
         this.maxDBSize = serverOptions.getMaxBinderSize();
         this.vertx = vertx;
-        // This exec is only usedf for opening or closing the env
+        // This exec is only used for opening or closing the env
         exec = vertx.createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME, 1);
     }
 

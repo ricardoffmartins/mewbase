@@ -6,6 +6,7 @@ import io.mewbase.util.AsyncResCF;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 
+import org.lmdbjava.Cursor;
 import org.lmdbjava.CursorIterator;
 import org.lmdbjava.Dbi;
 import org.lmdbjava.Txn;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -47,16 +49,15 @@ public class LmdbReadStream implements DocReadStream {
     private boolean handledOne;
     private boolean closed;
 
-    private static AtomicLong openTxnCount = new AtomicLong();
-
 
     LmdbReadStream(LmdbBinderFactory binderFactory, Dbi<ByteBuffer> db, Predicate<BsonObject> filter, WorkerExecutor exec) {
         this.binderFactory = binderFactory;
-        this.txn = binderFactory.getEnv().txnRead(); // set uo a read transaction
+        this.txn = binderFactory.getEnv().txnRead(); // set up a read transaction
         this.cursorItr = db.iterate(txn, FORWARD);
         this.itr = cursorItr.iterable().iterator();
         this.filter = filter;
         this.exec = exec;
+        txn.reset();    // we only need to have the transaction active while we read items under the Cursor (Iterator).
     }
 
     @Override
@@ -70,46 +71,38 @@ public class LmdbReadStream implements DocReadStream {
 
     @Override
     public synchronized void start() {
-        printThread();
         runIterNextAsync();
     }
 
     @Override
     public synchronized void pause() {
-        printThread();
         paused = true;
     }
 
     @Override
     public synchronized void resume() {
-        printThread();
         paused = false;
         runIterNextAsync();
     }
 
     @Override
     public synchronized void close() {
-        printThread();
         if (!closed) {
-            // Following comment may no longer apply to lmdbjava
-            // Beware calling tx.close() if the database/env object is closed can cause a core dump:
             cursorItr.close();
-           //  System.out.println("Closed txn :" + openTxnCount.decrementAndGet());
             txn.close();
             closed = true;
         }
     }
 
-    public synchronized boolean hasMore() {
-        return itr.hasNext();
+    public synchronized boolean hasMore()  {
+        txn.renew();  // has next needs data access
+        boolean hasMore = itr.hasNext();
+        txn.reset();
+        return hasMore;
     }
 
-    private void printThread() {
-        //logger.trace("Thread is {}", Thread.currentThread());
-    }
 
-    // as of 10/7/17 made a local single threaded Vert.x execution context which stops
-    // all seg faults
+    // Exec is managed by BinderFactory to maintain thread affinity
     private void runIterNextAsync() {
         AsyncResCF<Void> res = new AsyncResCF<>();
         exec.executeBlocking(fut -> {
@@ -120,16 +113,19 @@ public class LmdbReadStream implements DocReadStream {
 
 
     private synchronized void iterNext() {
-        printThread();
+
         if (paused || closed) {
             return;
         }
         for (int i = 0; i < MAX_DELIVER_BATCH; i++) {
+            // before we access the data via the cursor it is necessary to
+            txn.renew();
             if (itr.hasNext()) {
                 final CursorIterator.KeyVal<ByteBuffer> kv = itr.next();
                 // Copy bytes from LMDB managed memory to vert.x buffer
                 Buffer buffer = Buffer.buffer(kv.val().remaining());
                 buffer.setBytes(0, kv.val());
+                txn.reset(); // got data so release the txn
                 BsonObject doc = new BsonObject(buffer);
                 if (handler != null && filter.test(doc)) {
                     handler.accept(doc);
@@ -143,7 +139,7 @@ public class LmdbReadStream implements DocReadStream {
                     // Send back an empty result
                     handler.accept(null);
                 }
-                close();
+                close(); // closes the active txn.
                 return;
             }
         }
