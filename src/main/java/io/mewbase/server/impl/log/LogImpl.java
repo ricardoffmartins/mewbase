@@ -104,7 +104,7 @@ public class LogImpl implements Log {
         }
         startRes = cf.thenAccept(bf -> {
             currWriteFile = bf;
-            logger.trace("Opened file log " + this);
+            logger.trace("Started file log for channel {}", channel);
         }).thenRun(this::scheduleFlush);
 
         return startRes;
