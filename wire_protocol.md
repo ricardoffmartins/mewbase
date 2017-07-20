@@ -179,8 +179,8 @@ Sent by client to query documents from a binder
 Fields
  
 * `queryID` - mandatory, int32. Unique id of query per connection.
-* `binder` - mandatory, string. Name of binder to query in.
-* `matcher` - mandatory, BSONObject. Matcher to match documents in binder.
+* `name` - mandatory, string that unique names the Query
+* `params` - mandatory, BSONObject. Parameters that provide a context to the Query Function defined in the server.
 
 The server will respond with a QUERYRESPONSE after processing the query request.
 
