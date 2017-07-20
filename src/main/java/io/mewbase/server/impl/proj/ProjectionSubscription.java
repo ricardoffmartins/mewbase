@@ -4,6 +4,9 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.impl.ServerImpl;
 import io.mewbase.server.impl.SubscriptionBase;
+import io.mewbase.server.impl.SubscriptionImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.BiConsumer;
 
@@ -11,6 +14,9 @@ import java.util.function.BiConsumer;
  * Created by tim on 24/11/16.
  */
 public class ProjectionSubscription extends SubscriptionBase {
+
+    private final static Logger logger = LoggerFactory.getLogger(ProjectionSubscription.class);
+
 
     private final int maxUnackedEvents;
     private final BiConsumer<Long, BsonObject> frameHandler;

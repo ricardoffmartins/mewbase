@@ -5,6 +5,7 @@ import io.mewbase.client.MewException;
 import io.mewbase.client.Producer;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,6 +66,7 @@ public class QueryTest extends ServerTestBase {
     }
 
     @Test
+    //@Repeat(value = 1000)
     public void testExecuteQuery(TestContext context) throws Exception {
         int numDocs = 100;
         for (int i = 0; i < numDocs; i++) {
@@ -92,6 +94,9 @@ public class QueryTest extends ServerTestBase {
                 context.assertFalse(qr.isLast());
             }
         }, t -> context.fail("Exception shouldn't be received"));
+
+
+        Thread.sleep(100);
     }
 
 

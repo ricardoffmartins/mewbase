@@ -5,15 +5,20 @@ import io.mewbase.server.Binder;
 import io.mewbase.server.ServerOptions;
 import io.mewbase.server.impl.BinderFactory;
 import io.mewbase.util.AsyncResCF;
+import io.mewbase.util.SizedExecutorPool;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
-import org.fusesource.lmdbjni.Constants;
-import org.fusesource.lmdbjni.Env;
+
+
+import org.lmdbjava.Env;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+
+import static org.lmdbjava.EnvFlags.MDB_NOTLS;
 
 /**
  * Created by tim on 29/12/16.
@@ -23,14 +28,16 @@ public class LmdbBinderFactory implements BinderFactory {
     private final static Logger logger = LoggerFactory.getLogger(LmdbBinderFactory.class);
 
     private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.docmanagerpool";
-    private static final int LMDB_DOCMANAGER_POOL_SIZE = 10;
+
+    private final int executorPoolSize = 16;
+    private final SizedExecutorPool singleExecPool;
 
     private final String docsDir;
     private final int maxDBs;
     private final long maxDBSize;
     private final Vertx vertx;
     private final WorkerExecutor exec;
-    private Env env;
+    private Env<ByteBuffer> env;
 
     public LmdbBinderFactory(ServerOptions serverOptions, Vertx vertx) {
         logger.trace("Starting lmdb binder factory with docs dir: " + serverOptions.getDocsDir());
@@ -38,7 +45,10 @@ public class LmdbBinderFactory implements BinderFactory {
         this.maxDBs = serverOptions.getMaxBinders();
         this.maxDBSize = serverOptions.getMaxBinderSize();
         this.vertx = vertx;
-        exec = vertx.createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME, LMDB_DOCMANAGER_POOL_SIZE);
+        this.singleExecPool = new SizedExecutorPool(vertx,LMDB_DOCMANAGER_POOL_NAME,executorPoolSize);
+
+        // This exec is only used for opening or closing the env
+        exec = vertx.createSharedWorkerExecutor(LMDB_DOCMANAGER_POOL_NAME, 1);
     }
 
     @Override
@@ -47,10 +57,11 @@ public class LmdbBinderFactory implements BinderFactory {
         exec.executeBlocking(fut -> {
             File fDocsDir = new File(docsDir);
             createIfDoesntExists(fDocsDir);
-            env = new Env();
-            env.setMaxDbs(maxDBs);
-            env.setMapSize(maxDBSize);
-            env.open(fDocsDir.getPath(), Constants.NOTLS);
+            env = Env.<ByteBuffer>create()
+                    .setMapSize(maxDBSize)
+                    .setMaxDbs(maxDBs)
+                    .setMaxReaders(1024)
+                    .open(fDocsDir, Integer.MAX_VALUE, MDB_NOTLS);
             fut.complete(null);
         }, res);
         return res;
@@ -73,12 +84,12 @@ public class LmdbBinderFactory implements BinderFactory {
         return res;
     }
 
-    Vertx getVertx() {
-        return vertx;
+    WorkerExecutor getSingleWorkerExecutor() {
+        return singleExecPool.getWorkerExecutor() ;
     }
 
-    WorkerExecutor getExec() {
-        return exec;
+    Vertx getVertx() {
+        return vertx;
     }
 
     Env getEnv() {
@@ -92,6 +103,5 @@ public class LmdbBinderFactory implements BinderFactory {
             }
         }
     }
-
 
 }

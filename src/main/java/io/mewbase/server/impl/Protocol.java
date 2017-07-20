@@ -153,6 +153,7 @@ public class Protocol {
         // TODO bit clunky - need to add size back in so it can be decoded, improve this!
         Buffer buff2 = Buffer.buffer(buffer.length() + 4);
         buff2.appendIntLE(size + 4).appendBuffer(buffer);
+    //System.out.println("ReadBuf :" + buff2.toString());
         BsonObject bson = new BsonObject(buff2);
         handleBson(size, bson);
     }
