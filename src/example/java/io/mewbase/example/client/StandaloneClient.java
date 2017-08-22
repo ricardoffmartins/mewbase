@@ -32,7 +32,6 @@ public class StandaloneClient {
     private static final String CHANNEL = "Channel1";
 
 
-
     public static void main(String[] args) {
         try {
             new StandaloneClient().run();

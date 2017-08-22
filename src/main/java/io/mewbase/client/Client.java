@@ -25,7 +25,6 @@ public interface Client {
     }
 
     // Error codes
-
     int ERR_AUTHENTICATION_FAILED = 1;
     int ERR_NOT_AUTHORISED = 2;
     int ERR_NO_SUCH_CHANNEL = 3;
