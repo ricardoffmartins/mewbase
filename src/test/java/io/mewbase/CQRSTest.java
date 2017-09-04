@@ -60,9 +60,9 @@ public class CQRSTest extends ServerTestBase {
             async.complete();
         };
 
-        client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
-        BsonObject sentCommand = new BsonObject().put("commandField", "foobar");
-        client.sendCommand(commandName, sentCommand).get();
+       // client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
+       // BsonObject sentCommand = new BsonObject().put("commandField", "foobar");
+       // client.sendCommand(commandName, sentCommand).get();
 
     }
 
@@ -182,7 +182,7 @@ public class CQRSTest extends ServerTestBase {
             async1.complete();
         };
 
-        client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler1).get();
+        //client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler1).get();
 
         Async async2 = testContext.async();
 
@@ -192,7 +192,7 @@ public class CQRSTest extends ServerTestBase {
             async2.complete();
         };
 
-        client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_2), subHandler2).get();
+       // client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_2), subHandler2).get();
 
         BsonObject sentCommand1 = new BsonObject().put("commandField", commandName1);
         client.sendCommand(commandName1, sentCommand1).get();

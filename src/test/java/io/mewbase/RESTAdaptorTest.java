@@ -39,7 +39,7 @@ public class RESTAdaptorTest extends ServerTestBase {
     protected void setup(TestContext context) throws Exception {
         super.setup(context);
         installInsertProjection();
-        prod = client.createProducer(TEST_CHANNEL_1);
+        //prod = client.createProducer(TEST_CHANNEL_1);
     }
 
     @Override
@@ -73,7 +73,7 @@ public class RESTAdaptorTest extends ServerTestBase {
             async.complete();
         };
 
-        client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
+        //client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
 
         server.exposeCommand(commandName, "/orders/:customerID", HttpMethod.POST);
 
@@ -111,7 +111,7 @@ public class RESTAdaptorTest extends ServerTestBase {
             async.complete();
         };
 
-        client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
+        //client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
 
         server.exposeCommand(commandName, "/orders", HttpMethod.POST);
 

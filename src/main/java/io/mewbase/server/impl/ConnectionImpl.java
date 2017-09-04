@@ -5,7 +5,6 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.client.Client;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
-import io.mewbase.server.Log;
 import io.mewbase.server.MewbaseAuthProvider;
 import io.mewbase.server.MewbaseUser;
 import io.mewbase.server.impl.auth.UnauthorizedUser;

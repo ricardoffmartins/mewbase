@@ -1,7 +1,6 @@
 package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.server.SubsFilterBuilder;
 
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;

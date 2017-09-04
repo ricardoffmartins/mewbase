@@ -25,7 +25,6 @@ public interface Client {
     }
 
     // Error codes
-
     int ERR_AUTHENTICATION_FAILED = 1;
     int ERR_NOT_AUTHORISED = 2;
     int ERR_NO_SUCH_CHANNEL = 3;
@@ -50,26 +49,27 @@ public interface Client {
 
     CompletableFuture<Boolean> createBinder(String binderName);
 
-    // Channel related operations
-
-    CompletableFuture<Subscription> subscribe(SubDescriptor subDescriptor, Consumer<ClientDelivery> handler);
-
-    Producer createProducer(String channel);
-
-    CompletableFuture<Void> publish(String channel, BsonObject event);
-
-    CompletableFuture<Void> publish(String channel, BsonObject event, Function<BsonObject, String> partitionFunc);
-
-    CompletableFuture<BsonArray> listChannels();
-
-    CompletableFuture<Boolean> createChannel(String binderName);
-
     // Command related operations
 
     CompletableFuture<Void> sendCommand(String commandName, BsonObject command);
 
-    // Admin operations
 
+    // Channel related operations
+
+    // Stage 1 remove all channel related ops
+   // CompletableFuture<Subscription> subscribe(SubDescriptor subDescriptor, Consumer<ClientDelivery> handler);
+
+   // Producer createProducer(String channel);
+
+   // CompletableFuture<Void> publish(String channel, BsonObject event);
+
+   // CompletableFuture<Void> publish(String channel, BsonObject event, Function<BsonObject, String> partitionFunc);
+
+    //CompletableFuture<BsonArray> listChannels();
+
+   // CompletableFuture<Boolean> createChannel(String binderName);
+
+    // Admin operations
     CompletableFuture<Void> close();
 
 }

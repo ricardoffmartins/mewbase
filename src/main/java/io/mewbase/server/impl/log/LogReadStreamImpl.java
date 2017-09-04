@@ -3,7 +3,6 @@ package io.mewbase.server.impl.log;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.client.MewException;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.LogReadStream;
 import io.mewbase.server.impl.BasicFile;
 
 import io.netty.buffer.ByteBuf;

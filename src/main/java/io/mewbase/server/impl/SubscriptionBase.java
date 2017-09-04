@@ -3,8 +3,6 @@ package io.mewbase.server.impl;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.Binder;
-import io.mewbase.server.Log;
-import io.mewbase.server.LogReadStream;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;

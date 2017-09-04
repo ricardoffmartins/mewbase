@@ -18,16 +18,6 @@ public interface Mewbase {
 
     List<String> listBinders();
 
-    // Channel related operations
-
-
-    CompletableFuture<Boolean> createChannel(String channelName);
-
-    Channel getChannel(String channelName);
-
-    List<String> listChannels();
-
-    SubsFilterBuilder buildSubsFilter(String channelName);
 
     // Projection related operations
 
@@ -37,9 +27,11 @@ public interface Mewbase {
 
     Projection getProjection(String projectionName);
 
+
     // Command handler related operations
 
     CommandHandlerBuilder buildCommandHandler(String commandName);
+
 
     // Query related operations
 

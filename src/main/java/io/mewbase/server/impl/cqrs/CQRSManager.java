@@ -5,7 +5,6 @@ import io.mewbase.client.MewException;
 import io.mewbase.server.Binder;
 import io.mewbase.server.CommandContext;
 import io.mewbase.server.CommandHandlerBuilder;
-import io.mewbase.server.Log;
 import io.mewbase.server.impl.ServerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

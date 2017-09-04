@@ -1,9 +1,6 @@
 package io.mewbase.log;
 
-import io.mewbase.bson.BsonObject;
-import io.mewbase.server.Log;
 import io.mewbase.server.impl.ServerImpl;
-import io.vertx.ext.unit.junit.Repeat;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -38,7 +38,6 @@ public class ServerImpl implements Server {
     private final static Logger logger = LoggerFactory.getLogger(ServerImpl.class);
 
     public static final String BINDERS_BINDER_NAME = "_mb.binders";
-    public static final String CHANNELS_BINDER_NAME = "_mb.channels";
     public static final String DURABLE_SUBS_BINDER_NAME = "_mb.durableSubs";
 
     private final ServerOptions serverOptions;
@@ -47,23 +46,17 @@ public class ServerImpl implements Server {
     private final ProjectionManager projectionManager;
     private final CQRSManager cqrsManager;
 
-    private final Set<Transport> transports = new ConcurrentHashSet<>();
 
     private final ConcurrentMap<String, CompletableFuture<Boolean>> startingBinders = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Binder> binders = new ConcurrentHashMap<>();
     private final BinderFactory systemBinderFactory;
 
-    private final ConcurrentMap<String,ChannelFilters> filters = new ConcurrentHashMap<>();
-
     private final FileAccess faf;
-    private final ConcurrentMap<String, CompletableFuture<Boolean>> startingLogs = new ConcurrentHashMap<>();
-    private final Map<String, Log> logs = new ConcurrentHashMap<>();
 
     private final RESTServiceAdaptor restServiceAdaptor;
 
     // The system binders
     private Binder bindersBinder;
-    private Binder channelsBinder;
     private Binder durableSubsBinder;
 
     ServerImpl(Vertx vertx, boolean ownVertx, ServerOptions serverOptions) {
@@ -88,14 +81,14 @@ public class ServerImpl implements Server {
     @Override
     public synchronized CompletableFuture<Void> start() {
         Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
-        return startBinders().thenCompose(v -> startLogs())
-                .thenCompose(v -> startTransports()).thenCompose(v -> restServiceAdaptor.start());
+        return startBinders()
+                .thenCompose(v -> restServiceAdaptor.start());
     }
 
     @Override
     public synchronized CompletableFuture<Void> stop() {
-        CompletableFuture<Void> cf = restServiceAdaptor.stop().thenCompose(v -> stopTransports())
-                .thenCompose(v -> stopBinders()).thenCompose(v -> stopLogs());
+        CompletableFuture<Void> cf = restServiceAdaptor.stop()
+                .thenCompose(v -> stopBinders());
         if (ownVertx) {
             cf = cf.thenCompose(v -> {
                 AsyncResCF<Void> cfCloseVertx = new AsyncResCF<>();
@@ -125,6 +118,7 @@ public class ServerImpl implements Server {
     public Binder getBinder(String name) {
         return binders.get(name);
     }
+
 
     @Override
     public CompletableFuture<Boolean> createBinder(String name) {
@@ -163,82 +157,6 @@ public class ServerImpl implements Server {
         return durableSubsBinder;
     }
 
-    // Channel related API
-
-    @Override
-    // Must be synchronized to prevent race
-    public synchronized CompletableFuture<Boolean> createChannel(String channel) {
-        Log log = logs.get(channel);
-        if (log != null) {
-            return CompletableFuture.completedFuture(false);
-        } else {
-            // A bit of jiggery pokery to ensure we don't have a non started log in the logs map
-            // but we don't end up creating some log twice
-            CompletableFuture<Boolean> cfStart = new CompletableFuture<>();
-            CompletableFuture<Boolean> cfPrev = startingLogs.putIfAbsent(channel, cfStart);
-            if (cfPrev != null) {
-                return cfPrev;
-            } else {
-                final Log thelog = new LogImpl(vertx, faf, serverOptions, channel);
-                thelog.start().thenCompose(v -> insertLog(channel)).thenAccept(v -> {
-                    // Must be synchronized to prevent race
-                    synchronized (ServerImpl.this) {
-                        logs.put(channel, thelog);
-                        startingLogs.remove(channel);
-                    }
-                }).handle((v, t) -> {
-                    if (t == null) {
-                        cfStart.complete(true);
-                    } else {
-                        cfStart.completeExceptionally(t);
-                    }
-                    return null;
-                });
-                return cfStart;
-            }
-        }
-    }
-
-    @Override
-    public List<String> listChannels() {
-        return new ArrayList<>(logs.keySet());
-    }
-
-
-    @Override  // TODO This never returns a valid channel
-    public Channel getChannel(String channelName) {
-        return null;
-    }
-
-    @Override
-    public SubsFilterBuilder buildSubsFilter(String channelName) { return new SubsFilterBuilderImpl(channelName, filters); }
-
-
-    public Predicate<BsonObject> getSubscriptionFilter(SubDescriptor descriptor) {
-        try {
-            ChannelFilters chanFilters = filters.get(descriptor.getChannel());
-            Predicate<BsonObject> filter = chanFilters.get(descriptor.getFilterName());
-            if (filter != null) {
-                return filter;
-            } else {
-                logger.error("Failed to find subscription filter named " + descriptor.getFilterName() );
-            }
-        } catch (Exception exp) {
-            logger.error("Failed to any find subscription filter in Channel " + descriptor.getChannel() );
-        }
-        logger.info("Filter lookup failed so using 'match all' filter" + descriptor.getChannel() );
-        return f -> true;
-    }
-
-
-    // TODO should we really expose this?
-    @Deprecated // 4/7/17
-    public Log getLog(String channel) {
-        return logs.get(channel);
-    }
-
-
-    // Projection related API
 
     @Override
     public ProjectionBuilder buildProjection(String projectionName) {
@@ -256,7 +174,6 @@ public class ServerImpl implements Server {
     }
 
     // CQRS related API
-
     @Override
     public CommandHandlerBuilder buildCommandHandler(String commandName) {
         return cqrsManager.buildCommandHandler(commandName);
@@ -321,9 +238,9 @@ public class ServerImpl implements Server {
 
     private CompletableFuture<Void> startSystemBinders() {
         bindersBinder = loadBinder(BINDERS_BINDER_NAME);
-        channelsBinder = loadBinder(CHANNELS_BINDER_NAME);
+        // channelsBinder = loadBinder(CHANNELS_BINDER_NAME);
         durableSubsBinder = loadBinder(DURABLE_SUBS_BINDER_NAME);
-        return CompletableFuture.allOf(bindersBinder.start(), channelsBinder.start(), durableSubsBinder.start());
+        return CompletableFuture.allOf(bindersBinder.start(), durableSubsBinder.start());
     }
 
     private Binder loadBinder(String binderName) {
@@ -370,68 +287,10 @@ public class ServerImpl implements Server {
         });
     }
 
-    private CompletableFuture<Void> startLogs() {
 
-        File logsDir = new File(serverOptions.getLogsDir());
-        if (!logsDir.exists()) {
-            if (!logsDir.mkdirs()) {
-                throw new MewException("Failed to create directory " + logsDir);
-            }
-        }
+    // start the connection to the home nats cluster
+    // TODO Start Nats client
+    // private CompletableFuture<Void> startLogs() {
 
-        CompletableFuture<List<BsonObject>> docsCf = listBinder(channelsBinder);
-        return docsCf.thenCompose(list -> {
-            List<String> ids = list.stream().map(doc -> doc.getString(Binder.ID_FIELD)).collect(Collectors.toList());
-            return startLogs(ids);
-        });
-    }
-
-    private CompletableFuture<Void> stopLogs() {
-        CompletableFuture[] arr = new CompletableFuture[logs.size()];
-        int i = 0;
-        for (Log log : logs.values()) {
-            arr[i++] = log.close();
-        }
-        return CompletableFuture.allOf(arr);
-    }
-
-    private CompletableFuture<Void> startLogs(List<String> logNames) {
-        CompletableFuture[] arr = new CompletableFuture[logNames.size()];
-        int i = 0;
-        for (String logName : logNames) {
-            LogImpl log = new LogImpl(vertx, faf, serverOptions, logName);
-            logs.put(logName, log);
-            arr[i++] = log.start();
-        }
-        return CompletableFuture.allOf(arr);
-    }
-
-    private CompletableFuture<Void> insertLog(String logName) {
-        // TODO bit weird having the id in the object too??
-        return channelsBinder.put(logName, new BsonObject().put(Binder.ID_FIELD, logName));
-    }
-
-    private CompletableFuture<Void> startTransports() {
-        // For now just net transport
-        Transport transport = new NetTransport(vertx, serverOptions);
-        transports.add(transport);
-        transport.connectHandler(this::connectHandler);
-        return transport.start();
-    }
-
-    private void connectHandler(TransportConnection transportConnection) {
-        new ConnectionImpl(this, transportConnection, Vertx.currentContext(),
-                serverOptions.getAuthProvider());
-    }
-
-    private CompletableFuture<Void> stopTransports() {
-        CompletableFuture[] all = new CompletableFuture[transports.size()];
-        int i = 0;
-        for (Transport transport : transports) {
-            all[i++] = transport.stop();
-        }
-        transports.clear();
-        return CompletableFuture.allOf(all);
-    }
 
 }

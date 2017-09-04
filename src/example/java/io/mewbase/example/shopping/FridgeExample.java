@@ -78,7 +78,7 @@ public class FridgeExample {
         BsonObject event = new BsonObject().put("fridgeID", "f1").put("eventType", "doorStatus");
 
         // Open the door
-        client.publish("fridge.status", event.copy().put("status", "open"));
+       // client.publish("fridge.status", event.copy().put("status", "open"));
         // wait for event to log and projection to fire
         Thread.sleep(100);
 
@@ -87,7 +87,7 @@ public class FridgeExample {
         System.out.println("Fridge State is :" + fridgeState1);
 
         // Shut the door
-        client.publish("fridge.status", event.copy().put("status", "shut"));
+       // client.publish("fridge.status", event.copy().put("status", "shut"));
         Thread.sleep(100);
 
         // Now get the fridge state again

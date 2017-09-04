@@ -2,8 +2,6 @@ package io.mewbase.log;
 
 import io.mewbase.ServerTestBase;
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.MewException;
-import io.mewbase.server.Log;
 import io.mewbase.server.ServerOptions;
 import io.mewbase.server.impl.ServerImpl;
 import io.vertx.core.buffer.Buffer;
@@ -12,7 +10,6 @@ import io.vertx.ext.unit.TestContext;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

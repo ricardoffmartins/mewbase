@@ -3,7 +3,6 @@ package io.mewbase.server.impl.cqrs;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.CommandContext;
 import io.mewbase.server.CommandHandler;
-import io.mewbase.server.Log;
 
 import java.util.function.BiConsumer;
 

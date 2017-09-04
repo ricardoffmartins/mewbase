@@ -2,7 +2,6 @@ package io.mewbase.log;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.LogReadStream;
 import io.mewbase.server.ServerOptions;
 import io.mewbase.server.impl.log.FramingOps;
 import io.mewbase.server.impl.log.HeaderOps;
