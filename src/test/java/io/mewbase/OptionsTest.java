@@ -57,23 +57,8 @@ public class OptionsTest extends MewbaseTestBase {
         options.setDocsDir(s);
         assertEquals(s, options.getDocsDir());
 
-        assertEquals(ServerOptions.DEFAULT_MAX_LOG_CHUNK_SIZE, options.getMaxLogChunkSize());
-        int i = randomInt();
-        options.setMaxLogChunkSize(i);
-        assertEquals(i, options.getMaxLogChunkSize());
-
-        assertEquals(ServerOptions.DEFAULT_PREALLOCATE_SIZE, options.getPreallocateSize());
-        i = randomInt();
-        options.setPreallocateSize(i);
-        assertEquals(i, options.getPreallocateSize());
-
-        assertEquals(ServerOptions.DEFAULT_READ_BUFFER_SIZE, options.getReadBufferSize());
-        i = randomInt();
-        options.setReadBufferSize(i);
-        assertEquals(i, options.getReadBufferSize());
-
         assertEquals(ServerOptions.DEFAULT_QUERY_MAX_UNACKED_BYTES, options.getQueryMaxUnackedBytes());
-        i = randomInt();
+        int i = randomInt();
         options.setQueryMaxUnackedBytes(i);
         assertEquals(i, options.getQueryMaxUnackedBytes());
 
@@ -87,13 +72,8 @@ public class OptionsTest extends MewbaseTestBase {
         options.setProjectionMaxUnackedEvents(i);
         assertEquals(i, options.getProjectionMaxUnackedEvents());
 
-        assertEquals(ServerOptions.DEFAULT_LOG_FLUSH_INTERVAL, options.getLogFlushInterval());
-        long l = randomLong();
-        options.setLogFlushInterval(l);
-        assertEquals(l, options.getLogFlushInterval());
-
         assertEquals(ServerOptions.DEFAULT_MAX_BINDER_SIZE, options.getMaxBinderSize());
-        l = randomLong();
+        long l = randomLong();
         options.setMaxBinderSize(l);
         assertEquals(l, options.getMaxBinderSize());
 
@@ -113,15 +93,9 @@ public class OptionsTest extends MewbaseTestBase {
         JsonObject json = new JsonObject();
         ServerOptions options = new ServerOptions(json);
         assertEquals(ServerOptions.DEFAULT_DOCS_DIR, options.getDocsDir());
-        assertEquals(ServerOptions.DEFAULT_LOGS_DIR, options.getLogsDir());
-        assertEquals(ServerOptions.DEFAULT_MAX_LOG_CHUNK_SIZE, options.getMaxLogChunkSize());
-        assertEquals(ServerOptions.DEFAULT_MAX_RECORD_SIZE, options.getMaxRecordSize());
-        assertEquals(ServerOptions.DEFAULT_PREALLOCATE_SIZE, options.getPreallocateSize());
-        assertEquals(ServerOptions.DEFAULT_READ_BUFFER_SIZE, options.getReadBufferSize());
         assertEquals(ServerOptions.DEFAULT_QUERY_MAX_UNACKED_BYTES, options.getQueryMaxUnackedBytes());
         assertEquals(ServerOptions.DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES, options.getSubscriptionMaxUnackedBytes());
         assertEquals(ServerOptions.DEFAULT_PROJECTION_MAX_UNACKED_EVENTS, options.getProjectionMaxUnackedEvents());
-        assertEquals(ServerOptions.DEFAULT_LOG_FLUSH_INTERVAL, options.getLogFlushInterval());
         assertEquals(ServerOptions.DEFAULT_MAX_BINDER_SIZE, options.getMaxBinderSize());
         assertEquals(ServerOptions.DEFAULT_MAX_BINDERS, options.getMaxBinders());
         assertEquals(ServerOptions.DEFAULT_DOC_STREAM_BATCH_SIZE, options.getDocStreamBatchSize());
@@ -164,16 +138,10 @@ public class OptionsTest extends MewbaseTestBase {
         json.put("netServerOptions", jnso);
         ServerOptions options = new ServerOptions(json);
         assertEquals(docsDir, options.getDocsDir());
-        assertEquals(logsDir, options.getLogsDir());
-        assertEquals(maxLogChunkSize, options.getMaxLogChunkSize());
-        assertEquals(maxRecordSize, options.getMaxRecordSize());
-        assertEquals(preallocateSize, options.getPreallocateSize());
-        assertEquals(readBufferSize, options.getReadBufferSize());
 
         assertEquals(queryMaxUnackedBytes, options.getQueryMaxUnackedBytes());
         assertEquals(subscriptionMaxUnackedBytes, options.getSubscriptionMaxUnackedBytes());
         assertEquals(projectionMaxUnackedEvents, options.getProjectionMaxUnackedEvents());
-        assertEquals(logFlushInterval, options.getLogFlushInterval());
         assertEquals(maxBinderSize, options.getMaxBinderSize());
         assertEquals(maxBinders, options.getMaxBinders());
 

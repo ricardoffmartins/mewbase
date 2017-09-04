@@ -26,7 +26,7 @@ public class ServerTestBase extends MewbaseTestBase {
     protected Vertx vertx;
     protected Server server;
     protected Client client;
-    protected File logsDir;
+
     protected File docsDir;
 
     @Before
@@ -54,11 +54,10 @@ public class ServerTestBase extends MewbaseTestBase {
     protected void setup0() throws Exception {
         createDirectories();
         startServerAndClient();
-        setupChannelsAndBinders();
+        setupBinders();
     }
 
     protected void createDirectories() throws Exception {
-        logsDir = testFolder.newFolder();
         docsDir = testFolder.newFolder();
     }
 
@@ -98,12 +97,11 @@ public class ServerTestBase extends MewbaseTestBase {
         if (hasClient) {
             startClient();
         }
-        setupChannelsAndBinders();
+        setupBinders();
     }
 
     protected ServerOptions createServerOptions() {
         return new ServerOptions()
-                .setLogsDir(logsDir.getPath())
                 .setDocsDir(docsDir.getPath());
     }
 
@@ -111,7 +109,7 @@ public class ServerTestBase extends MewbaseTestBase {
         return new ClientOptions();
     }
 
-    protected void setupChannelsAndBinders() throws Exception {
+    protected void setupBinders() throws Exception {
     }
 
 

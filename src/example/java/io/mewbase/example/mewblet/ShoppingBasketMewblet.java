@@ -12,7 +12,6 @@ public class ShoppingBasketMewblet implements Mewblet {
     @Override
     public void setup(Mewbase mewbase) throws Exception {
 
-        mewbase.createChannel("orders").get();
         mewbase.createBinder("baskets").get();
 
         mewbase.buildProjection("maintain_basket")                                // projection name

@@ -37,6 +37,7 @@ public class ShoppingBasketExample {
 
         BsonObject event = new BsonObject().put("eventType", "add_item").put("basketID", "basket1111");
 
+        // need to connect to 
         client.publish("orders", event.copy().put("productID", "prod1234").put("quantity", 2));
         client.publish("orders", event.copy().put("productID", "prod2341").put("quantity", 1));
         client.publish("orders", event.copy().put("productID", "prod5432").put("quantity", 3));

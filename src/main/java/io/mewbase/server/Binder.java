@@ -31,7 +31,7 @@ public interface Binder {
     CompletableFuture<BsonObject> get(String id);
 
     /**
-     * Put a document iat the given id
+     * Put a document at the given id
      *
      * @param id  the name of the document within the binder
      * @param doc the document to save
