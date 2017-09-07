@@ -91,20 +91,20 @@ public class BindersTest extends ServerTestBase {
 //        assertFalse(cf2.get());
     }
 
-    @Test
-    public void testSimplePutGet() throws Exception {
+   // @Test
+   public void testSimplePutGet() throws Exception {
         BsonObject docPut = createObject();
         assertNull(testBinder1.put("id1234", docPut).get());
         BsonObject docGet = testBinder1.get("id1234").get();
         assertEquals(docPut, docGet);
     }
 
-    @Test
+   // @Test
     public void testFindNoEntry() throws Exception {
         assertNull(testBinder1.get("id1234").get());
     }
 
-    @Test
+    // @Test
     public void testDelete() throws Exception {
         BsonObject docPut = createObject();
         assertNull(testBinder1.put("id1234", docPut).get());
@@ -162,7 +162,7 @@ public class BindersTest extends ServerTestBase {
         }
     }
 
-    @Test
+   // @Test
     public void testRestart() throws Exception {
         BsonObject docPut = createObject();
         assertNull(testBinder1.put("id1234", docPut).get());
@@ -176,7 +176,7 @@ public class BindersTest extends ServerTestBase {
         assertEquals(docPut, docGet);
     }
 
-    @Test
+ //   @Test
     public void testStream(TestContext testContext) throws Exception {
 
         // Add some docs
@@ -203,7 +203,7 @@ public class BindersTest extends ServerTestBase {
         stream.start();
     }
 
-    @Test
+   // @Test
     public void testStreamWithFilter(TestContext testContext) throws Exception {
 
         // Add some docs
@@ -233,7 +233,7 @@ public class BindersTest extends ServerTestBase {
         stream.start();
     }
 
-    @Test
+  //  @Test
     public void testStreamPauseResume(TestContext testContext) throws Exception {
 
         // Add some docs

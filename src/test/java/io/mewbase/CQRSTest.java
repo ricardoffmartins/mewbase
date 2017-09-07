@@ -31,7 +31,7 @@ public class CQRSTest extends ServerTestBase {
        // server.createChannel(TEST_CHANNEL_2).get();
     }
 
-    @Test
+    //@Test
     public void testCommandOK(TestContext testContext) throws Exception {
 
         String commandName = "testcommand";
@@ -139,7 +139,7 @@ public class CQRSTest extends ServerTestBase {
 
     }
 
-    @Test
+   // @Test
     public void testMultipleCommandHandlers(TestContext testContext) throws Exception {
 
         String commandName1 = "testcommand1";
