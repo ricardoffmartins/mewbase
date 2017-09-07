@@ -1,6 +1,6 @@
 package io.mewbase.server.impl.doc.lmdb;
 
-import io.mewbase.client.MewException;
+
 import io.mewbase.server.Binder;
 import io.mewbase.server.ServerOptions;
 import io.mewbase.server.impl.BinderFactory;
@@ -99,7 +99,7 @@ public class LmdbBinderFactory implements BinderFactory {
     private void createIfDoesntExists(File dir) {
         if (!dir.exists()) {
             if (!dir.mkdirs()) {
-                throw new MewException("Failed to create dir " + dir);
+                throw new RuntimeException("Failed to create dir " + dir);
             }
         }
     }

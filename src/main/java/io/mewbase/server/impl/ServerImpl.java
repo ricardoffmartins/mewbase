@@ -1,21 +1,19 @@
 package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.MewException;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.server.*;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
 import io.mewbase.server.impl.doc.lmdb.LmdbBinderFactory;
 import io.mewbase.server.impl.file.af.AFFileAccess;
-import io.mewbase.server.impl.log.FramingOps;
-import io.mewbase.server.impl.log.LogImpl;
+
 import io.mewbase.server.impl.proj.ProjectionManager;
-import io.mewbase.server.impl.transport.net.NetTransport;
+
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.impl.ConcurrentHashSet;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -210,12 +208,12 @@ public class ServerImpl implements Server {
         return cqrsManager;
     }
 
-    public CompletableFuture<Long> publishEvent(Log log, BsonObject event) {
-        BsonObject record = new BsonObject();
-        record.put(Protocol.RECEV_TIMESTAMP, System.currentTimeMillis());
-        record.put(Protocol.RECEV_EVENT, event);
-        return log.append(record);
-    }
+//    public CompletableFuture<Long> publishEvent(Log log, BsonObject event) {
+//        BsonObject record = new BsonObject();
+//        record.put(Protocol.RECEV_TIMESTAMP, System.currentTimeMillis());
+//        record.put(Protocol.RECEV_EVENT, event);
+//        return log.append(record);
+//    }
 
     private CompletableFuture<Void> startBinders() {
         return systemBinderFactory.start().thenCompose(v -> startSystemBinders()).thenCompose(v -> startUserBinders());

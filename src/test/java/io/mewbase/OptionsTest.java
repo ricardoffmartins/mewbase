@@ -1,9 +1,9 @@
 package io.mewbase;
 
-import io.mewbase.client.ClientOptions;
+
 import io.mewbase.server.ServerOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.NetClientOptions;
+
 import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.NetServerOptionsConverter;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -23,24 +23,6 @@ public class OptionsTest extends MewbaseTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(OptionsTest.class);
 
-    @Test
-    public void testClientOptions() throws Exception {
-
-        ClientOptions options = new ClientOptions();
-        assertEquals(new NetClientOptions(), options.getNetClientOptions());
-        assertEquals(ClientOptions.DEFAULT_PORT, options.getPort());
-        assertEquals(ClientOptions.DEFAULT_HOST, options.getHost());
-        NetClientOptions netClientOptions2 = new NetClientOptions();
-        options.setNetClientOptions(netClientOptions2);
-        assertSame(netClientOptions2, options.getNetClientOptions());
-
-        int i = randomInt();
-        options.setPort(i);
-        assertEquals(i, options.getPort());
-        String s = randomString();
-        options.setHost(s);
-        assertEquals(s, options.getHost());
-    }
 
     @Test
     public void testServerOptions() throws Exception {

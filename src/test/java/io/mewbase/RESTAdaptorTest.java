@@ -2,10 +2,7 @@ package io.mewbase;
 
 import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.ClientDelivery;
-import io.mewbase.client.Producer;
-import io.mewbase.client.Subscription;
-import io.mewbase.common.SubDescriptor;
+
 import io.mewbase.server.CommandHandler;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -33,7 +30,8 @@ public class RESTAdaptorTest extends ServerTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(RESTAdaptorTest.class);
 
-    protected Producer prod;
+    // TODO - Use new Event Source
+    // protected Producer prod;
 
     @Override
     protected void setup(TestContext context) throws Exception {
@@ -42,9 +40,9 @@ public class RESTAdaptorTest extends ServerTestBase {
         //prod = client.createProducer(TEST_CHANNEL_1);
     }
 
-    @Override
+
     protected void setupChannelsAndBinders() throws Exception {
-        server.createChannel(TEST_CHANNEL_1).get();
+       // server.createChannel(TEST_CHANNEL_1).get();
         server.createBinder(TEST_BINDER1).get();
     }
 
@@ -67,11 +65,11 @@ public class RESTAdaptorTest extends ServerTestBase {
 
         Async async = testContext.async(2);
 
-        Consumer<ClientDelivery> subHandler = del -> {
-            BsonObject event = del.event();
-            testContext.assertEquals("foobar", event.getString("eventField"));
-            async.complete();
-        };
+//        Consumer<ClientDelivery> subHandler = del -> {
+//            BsonObject event = del.event();
+//            testContext.assertEquals("foobar", event.getString("eventField"));
+//            async.complete();
+//        };
 
         //client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
 
@@ -105,11 +103,11 @@ public class RESTAdaptorTest extends ServerTestBase {
 
         Async async = testContext.async(2);
 
-        Consumer<ClientDelivery> subHandler = del -> {
-            BsonObject event = del.event();
-            testContext.assertEquals("foobar", event.getString("eventField"));
-            async.complete();
-        };
+//        Consumer<ClientDelivery> subHandler = del -> {
+//            BsonObject event = del.event();
+//            testContext.assertEquals("foobar", event.getString("eventField"));
+//            async.complete();
+//        };
 
         //client.subscribe(new SubDescriptor().setChannel(TEST_CHANNEL_1), subHandler).get();
 
@@ -136,11 +134,11 @@ public class RESTAdaptorTest extends ServerTestBase {
         for (int i = 0; i < numDocs; i++) {
             String docID = getID(i);
             BsonObject doc = new BsonObject().put("id", docID).put("foo", "bar");
-            prod.publish(doc).get();
+           // prod.publish(doc).get();
             bsonArray.add(doc);
         }
 
-        waitForDoc(numDocs - 1);
+       // waitForDoc(numDocs - 1);
 
         // Setup a query
         server.buildQuery(queryName).documentFilter((doc, ctx) -> {
@@ -174,8 +172,8 @@ public class RESTAdaptorTest extends ServerTestBase {
     public void testFindByID(TestContext testContext) throws Exception {
 
         BsonObject doc = new BsonObject().put("id", getID(0)).put("foo", "bar");
-        prod.publish(doc).get();
-        waitForDoc(0);
+      //  prod.publish(doc).get();
+      //  waitForDoc(0);
 
         server.exposeFindByID(TEST_BINDER1, "/orders/:id");
 
@@ -200,16 +198,17 @@ public class RESTAdaptorTest extends ServerTestBase {
         req.end();
     }
 
-    protected BsonObject waitForDoc(int docID) {
-        // Wait until docs are inserted
-        return waitForNonNull(() -> {
-            try {
-                return client.findByID(TEST_BINDER1, getID(docID)).get();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
+//    protected BsonObject waitForDoc(int docID) {
+//        // Wait until docs are inserted
+////        return waitForNonNull(() -> {
+////            try {
+////                return client.findByID(TEST_BINDER1, getID(docID)).get();
+////            } catch (Exception e) {
+////                throw new RuntimeException(e);
+////            }
+////        });
+//        assert
+//    }
 
     protected void installInsertProjection() {
         server.buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy(ev -> true)

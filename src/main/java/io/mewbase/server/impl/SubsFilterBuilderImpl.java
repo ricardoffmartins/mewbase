@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 
 
-public class SubsFilterBuilderImpl implements SubsFilterBuilder {
+public class SubsFilterBuilderImpl  {
 
     private final String channelName;
     private final ConcurrentMap<String,ChannelFilters> filters;
@@ -20,19 +20,19 @@ public class SubsFilterBuilderImpl implements SubsFilterBuilder {
         this.filters = filters;
     }
 
-    @Override
-    public SubsFilterBuilder named(String filterName) {
-        this.filterName = filterName;
-        return this;
-    }
+//    @Override
+//    public SubsFilterBuilder named(String filterName) {
+//        this.filterName = filterName;
+//        return this;
+//    }
+//
+//    @Override
+//    public SubsFilterBuilder withFilter(Predicate<BsonObject> filter) {
+//        this.filter = filter;
+//        return this;
+//    }
 
-    @Override
-    public SubsFilterBuilder withFilter(Predicate<BsonObject> filter) {
-        this.filter = filter;
-        return this;
-    }
 
-    @Override
     public void store() {
 
         if (this.filterName == null) {

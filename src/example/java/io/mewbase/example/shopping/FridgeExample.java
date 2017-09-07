@@ -2,8 +2,7 @@ package io.mewbase.example.shopping;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
-import io.mewbase.client.Client;
-import io.mewbase.client.ClientOptions;
+
 import io.mewbase.common.Delivery;
 import io.mewbase.server.Server;
 import io.mewbase.server.ServerOptions;
@@ -45,7 +44,7 @@ public class FridgeExample {
         // Setup and start a server
         final Server server = Server.newServer(new ServerOptions());
         server.start().get();
-        server.createChannel("fridge.status").get();
+
         server.createBinder("fridges").get();
 
         // Register a projection that will respond to fridge door status events
@@ -72,29 +71,31 @@ public class FridgeExample {
     private void exampleClient() throws Exception {
 
         // Create a client
-        final Client client = Client.newClient(new ClientOptions());
+        //final Client client = Client.newClient(new ClientOptions());
 
         // Send some open close events for this fridge
         BsonObject event = new BsonObject().put("fridgeID", "f1").put("eventType", "doorStatus");
 
         // Open the door
-       // client.publish("fridge.status", event.copy().put("status", "open"));
+        // TODO -
+        // client.publish("fridge.status", event.copy().put("status", "open"));
         // wait for event to log and projection to fire
         Thread.sleep(100);
 
         // Now get the status
-        BsonObject fridgeState1 = client.findByID("fridges", "f1").get();
-        System.out.println("Fridge State is :" + fridgeState1);
+       // BsonObject fridgeState1 = client.findByID("fridges", "f1").get();
+       // System.out.println("Fridge State is :" + fridgeState1);
 
         // Shut the door
-       // client.publish("fridge.status", event.copy().put("status", "shut"));
+        // TODO
+        // client.publish("fridge.status", event.copy().put("status", "shut"));
         Thread.sleep(100);
 
         // Now get the fridge state again
-        BsonObject fridgeState2 = client.findByID("fridges", "f1").get();
-        System.out.println("Fridge State is :" + fridgeState2);
+        //BsonObject fridgeState2 = client.findByID("fridges", "f1").get();
+       //  System.out.println("Fridge State is :" + fridgeState2);
 
-        client.close().get();
+        // client.close().get();
     }
 
 }

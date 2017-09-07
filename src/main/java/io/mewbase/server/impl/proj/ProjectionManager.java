@@ -1,7 +1,7 @@
 package io.mewbase.server.impl.proj;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.MewException;
+
 import io.mewbase.common.Delivery;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.common.impl.DeliveryImpl;
@@ -152,12 +152,12 @@ public class ProjectionManager {
                     // 4. acknowledge and release lock if was processed
                     .thenAccept(processed -> {
                         if (processed) {
-                            subscription.acknowledge(seq);
+                           // subscription.acknowledge(seq);
                         }
                         try {
                             cfLock.get().release();
                         } catch (Exception e) {
-                            throw new MewException(e);
+                            throw new RuntimeException(e);
                         }
                     })
 
@@ -175,12 +175,12 @@ public class ProjectionManager {
 
         @Override
         public void pause() {
-            subscription.pause();
+            /// subscription.pause();
         }
 
         @Override
         public void resume() {
-            subscription.resume();
+            //subscription.resume();
         }
 
     }

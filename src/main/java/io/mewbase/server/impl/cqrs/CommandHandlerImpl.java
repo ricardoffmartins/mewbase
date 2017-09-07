@@ -14,7 +14,7 @@ public class CommandHandlerImpl implements CommandHandler {
     private final String name;
     private String channelName;
     private BiConsumer<BsonObject, CommandContext> handler;
-    private Log log;
+    //private Log log;
 
     public CommandHandlerImpl(String name) {
         this.name = name;
@@ -50,11 +50,5 @@ public class CommandHandlerImpl implements CommandHandler {
 
     }
 
-    public Log getLog() {
-        return log;
-    }
 
-    public void setLog(Log log) {
-        this.log = log;
-    }
 }

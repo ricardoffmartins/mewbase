@@ -4,7 +4,6 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
 import io.mewbase.server.Binder;
 import io.mewbase.server.Mewbase;
-import io.mewbase.server.Mewblet;
 import io.vertx.core.http.HttpMethod;
 
 import java.util.UUID;
@@ -13,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Created by tim on 11/01/17.
  */
-public class OrderServiceMewblet implements Mewblet {
+public class OrderService  {
 
     private static class Event {
 
@@ -169,17 +168,15 @@ public class OrderServiceMewblet implements Mewblet {
     private static final String ORDER_PLACED_EVENT_TYPE = "orderPlaced";
 
 
-    @Override
-    public void setup(Mewbase mewbase) throws Exception {
+    public void setupServer(Mewbase mewbase) throws Exception {
 
-        mewbase.createChannel(ORDERS_CHANNEL_NAME).get();
+
         mewbase.createBinder(BASKETS_BINDER_NAME).get();
 
-        Channel ordersChannel = mewbase.getChannel(ORDERS_CHANNEL_NAME);
         Binder basketsBinder = mewbase.getBinder(BASKETS_BINDER_NAME);
 
         mewbase.buildProjection("maintain_basket")                    // projection name
-                .projecting(ordersChannel.getName())                               // channel name
+                .projecting(ORDERS_CHANNEL_NAME)                                    // channel name
                 .filteredBy(ev -> new Event(ev).getEventType().equals(ADD_ITEM_EVENT_TYPE)) // event filter
                 .onto(basketsBinder.getName())                                     // binder name
                 .identifiedBy(ev -> new AddItemEvent(ev).getCustomerID())          // document id selector; how to obtain the doc id from the event bson

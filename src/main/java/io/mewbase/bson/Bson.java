@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import de.undercouch.bson4jackson.BsonFactory;
-import io.mewbase.client.MewException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,7 +58,7 @@ public class Bson {
         try {
             mapper.writeValue(outputStream, obj);
         } catch (Exception e) {
-            throw new MewException(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -68,7 +67,7 @@ public class Bson {
         try {
             return mapper.readValue(inputStream, clazz);
         } catch (Exception e) {
-            throw new MewException(e);
+            throw new RuntimeException(e);
         }
     }
 

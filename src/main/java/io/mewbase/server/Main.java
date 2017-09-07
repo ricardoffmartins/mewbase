@@ -1,6 +1,6 @@
 package io.mewbase.server;
 
-import io.mewbase.client.MewException;
+
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
@@ -59,14 +59,14 @@ public class Main {
                             return;
                         }
                     } catch (FileNotFoundException e) {
-                        throw new MewException(e);
+                        throw new Exception(e);
                     }
                 }
             }
 
             // Adjust the logs and docs dir to point in the distro
             options.setDocsDir(adjustDir(installDir, options.getDocsDir()));
-            options.setLogsDir(adjustDir(installDir, options.getLogsDir()));
+            //options.setLogsDir(adjustDir(installDir, options.getLogsDir()));
 
             server = Server.newServer(options);
             server.start().get();
