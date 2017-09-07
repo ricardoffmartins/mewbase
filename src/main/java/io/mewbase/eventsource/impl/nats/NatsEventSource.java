@@ -4,13 +4,11 @@ import io.mewbase.eventsource.Event;
 import io.mewbase.eventsource.EventHandler;
 import io.mewbase.eventsource.EventSource;
 import io.mewbase.eventsource.Subscription;
-import io.mewbase.server.impl.ServerImpl;
+
 import io.nats.stan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 
 
 public class NatsEventSource implements EventSource {
@@ -30,6 +28,7 @@ public class NatsEventSource implements EventSource {
             nats = cf.createConnection();
         } catch (Exception exp) {
             logger.error("Error connecting to Nats Streaming Server", exp);
+            throw new RuntimeException(exp);
         }
     }
 
