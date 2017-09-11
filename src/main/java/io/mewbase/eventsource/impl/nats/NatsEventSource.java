@@ -9,7 +9,9 @@ import io.nats.stan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+/**
+ * These tests assume that there is an instance of Nats Streaming Server running on localhost:4222
+ */
 
 public class NatsEventSource implements EventSource {
 
