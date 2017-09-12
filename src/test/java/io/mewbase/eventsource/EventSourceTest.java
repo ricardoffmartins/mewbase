@@ -4,11 +4,14 @@ import io.mewbase.ServerTestBase;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.eventsource.impl.nats.NatsEventSource;
-import io.mewbase.eventsource.nats.NatsEventProducer;
-import io.vertx.ext.unit.TestContext;
+import io.mewbase.eventsource.impl.nats.NatsEventProducer;
+import io.nats.stan.Message;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by Nige on 7/9/2017.
@@ -23,29 +26,37 @@ public class EventSourceTest extends ServerTestBase {
 //
 //    }
     public final String DEFAULT_CHANNEL = "Channel1";
-    public final TestEventProducer = new NatsEventProducer;
+    public final TestEventProducer prod = new NatsEventProducer(DEFAULT_CHANNEL);
 
-    @Test
-    public void testConnect() throws Exception {
-        EventSource es = new NatsEventSource();
-        // es.subscribe("Channel1", new )]assert
-        assert (true);
+    public EventSourceTest() throws Exception {
     }
 
     @Test
-    public void EventSourceSingleMessage throws Exception {
+    public void testConnectToEventSource() throws Exception {
         EventSource es = new NatsEventSource();
-        es.subscribe(DEFAULT_CHANNEL, new
-                // TODO call back
-            // call back
-        )
+        es.close();
+        assert (true);
+    }
 
 
-        BsonObject bson = new BsonObject();
-        bson
+    @Test
+    public void testEventSourceSingleEvent() throws Exception {
 
-        / check the call back
+        final String inputUUID = randomString();
+        final BsonObject bson = new BsonObject().put("data",inputUUID);
 
+        final CountDownLatch latch = new CountDownLatch(2);
+        EventSource es = new NatsEventSource();
+        es.subscribe(DEFAULT_CHANNEL, new EventHandler() {
+                    public void onEvent(Event  evt) {
+                        latch.countDown();
+                        BsonObject bson  = new BsonObject(Buffer.buffer(evt.getData()));
+                        assert(inputUUID.equals(bson.getString("data")));
+                        latch.countDown();
+            }
+        });
+        latch.await();
+        es.close();
     }
 
 

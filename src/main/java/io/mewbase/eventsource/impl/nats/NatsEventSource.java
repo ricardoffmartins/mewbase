@@ -9,6 +9,8 @@ import io.nats.stan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
 /**
  * These tests assume that there is an instance of Nats Streaming Server running on localhost:4222
  */
@@ -43,7 +45,7 @@ public class NatsEventSource implements EventSource {
                 eventHandler.onEvent(evt);
             }
         };
-        SubscriptionOptions opts = new SubscriptionOptions.Builder().deliverAllAvailable().build();
+        SubscriptionOptions opts = new SubscriptionOptions.Builder().build();
         Subscription subs = null;
         try {
             subs = new NatsSubscription( nats.subscribe(channelName, handler, opts) );
@@ -53,6 +55,13 @@ public class NatsEventSource implements EventSource {
         return subs;
     }
 
-
+    @Override
+    public void close() {
+        try {
+            nats.close();
+        } catch (Exception exp) {
+            logger.error("Error attempting close Nats Streaming Server Event source", exp);
+        }
+    }
 
 }

@@ -7,8 +7,8 @@ import java.io.IOException;
 
 public interface TestEventProducer {
 
-    void sendEvent(BsonObject event) throws IOException;
+    void sendEvent(BsonObject event) throws Exception;
 
-    void sendNumberedEvents(Long startNumber, Long endNumber) throws IOException;
+    void sendNumberedEvents(Long startNumber, Long endNumber) throws Exception;
 
 }

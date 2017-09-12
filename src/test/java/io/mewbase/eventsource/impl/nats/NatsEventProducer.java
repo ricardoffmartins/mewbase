@@ -1,11 +1,12 @@
-package io.mewbase.eventsource.nats;
+package io.mewbase.eventsource.impl.nats;
 
-import io.mewbase.bson.Bson;
+
 import io.mewbase.bson.BsonObject;
 import io.nats.stan.Connection;
 import io.nats.stan.ConnectionFactory;
 
-import java.io.IOException;
+import java.util.UUID;
+
 
 public class NatsEventProducer implements io.mewbase.eventsource.TestEventProducer {
 
@@ -18,22 +19,23 @@ public class NatsEventProducer implements io.mewbase.eventsource.TestEventProduc
 
 
     public NatsEventProducer() throws Exception {
-        this("DefaultTestChannel");
+        this("Channel1");
     }
 
     public NatsEventProducer(String channelName) throws Exception {
         this.channelName = channelName;
         cf.setNatsUrl("nats://localhost:4222");
+        cf.setClientId(UUID.randomUUID().toString());
         nats = cf.createConnection();
     }
 
 
-    void sendEvent(BsonObject  event) throws IOException {
+    public void sendEvent(BsonObject  event) throws Exception {
         nats.publish( channelName, event.encode().getBytes() );
     }
 
-    void sendNumberedEvents(Long startNumber, Long endNumber) throws Exception {
-        throw new UnsupportedOperationException("sendNumberedEvents not implemented");1
+    public void sendNumberedEvents(Long startNumber, Long endNumber) throws Exception {
+        throw new UnsupportedOperationException("sendNumberedEvents not implemented");
     }
 
 }
