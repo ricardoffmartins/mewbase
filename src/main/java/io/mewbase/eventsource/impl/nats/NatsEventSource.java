@@ -1,6 +1,6 @@
 package io.mewbase.eventsource.impl.nats;
 
-import io.mewbase.eventsource.Event;
+
 import io.mewbase.eventsource.EventHandler;
 import io.mewbase.eventsource.EventSource;
 import io.mewbase.eventsource.Subscription;
@@ -9,7 +9,6 @@ import io.nats.stan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
 
 /**
  * These tests assume that there is an instance of Nats Streaming Server running on localhost:4222
@@ -36,23 +35,31 @@ public class NatsEventSource implements EventSource {
         }
     }
 
-    @Override
-    public Subscription subscribe(String channelName, EventHandler eventHandler) {
 
-        MessageHandler handler = new MessageHandler() {
-            public void onMessage(Message m) {
-                Event evt = new NatsEvent(m);
-                eventHandler.onEvent(evt);
-            }
+    private Subscription subscribeWithOptions(String channelName, EventHandler eventHandler, SubscriptionOptions opts) {
+
+        MessageHandler handler = message -> {
+            eventHandler.onEvent(new NatsEvent(message));
         };
-        SubscriptionOptions opts = new SubscriptionOptions.Builder().build();
         Subscription subs = null;
         try {
             subs = new NatsSubscription( nats.subscribe(channelName, handler, opts) );
         } catch (Exception exp) {
-           logger.error("Error attempting to subscribe to Nats Streaming Server", exp);
+            logger.error("Error attempting to subscribe to Nats Streaming Server", exp);
         }
         return subs;
+    }
+
+    @Override
+    public Subscription subscribe(String channelName, EventHandler eventHandler) {
+        SubscriptionOptions opts = new SubscriptionOptions.Builder().build();
+        return subscribeWithOptions( channelName, eventHandler, opts);
+    }
+
+    @Override
+    public Subscription subscribeFromEventNumber(String channelName, Long startInclusive, EventHandler eventHandler) {
+        SubscriptionOptions opts = new SubscriptionOptions.Builder().startAtSequence(startInclusive).build();
+        return subscribeWithOptions( channelName, eventHandler, opts );
     }
 
     @Override

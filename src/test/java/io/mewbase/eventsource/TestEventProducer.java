@@ -9,6 +9,8 @@ public interface TestEventProducer {
 
     void sendEvent(BsonObject event) throws Exception;
 
-    void sendNumberedEvents(Long startNumber, Long endNumber) throws Exception;
+    void sendNumberedEvents(Long startInclusive, Long endInclusive) throws Exception;
+
+    void close() throws Exception;
 
 }

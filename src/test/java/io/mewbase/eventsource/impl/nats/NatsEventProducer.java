@@ -2,24 +2,24 @@ package io.mewbase.eventsource.impl.nats;
 
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.eventsource.TestEventProducer;
 import io.nats.stan.Connection;
 import io.nats.stan.ConnectionFactory;
 
 import java.util.UUID;
+import java.util.stream.LongStream;
 
 
-public class NatsEventProducer implements io.mewbase.eventsource.TestEventProducer {
+public class NatsEventProducer implements TestEventProducer {
 
-    // TODO - Parameterise from server params
     final String userName = "TestClient";
     final String clusterName = "test-cluster";
     final ConnectionFactory cf = new ConnectionFactory(clusterName,userName);
     final Connection nats;
     final String channelName;
 
-
     public NatsEventProducer() throws Exception {
-        this("Channel1");
+        this("Channel1");   // default channel name
     }
 
     public NatsEventProducer(String channelName) throws Exception {
@@ -34,8 +34,21 @@ public class NatsEventProducer implements io.mewbase.eventsource.TestEventProduc
         nats.publish( channelName, event.encode().getBytes() );
     }
 
-    public void sendNumberedEvents(Long startNumber, Long endNumber) throws Exception {
-        throw new UnsupportedOperationException("sendNumberedEvents not implemented");
+    public void sendNumberedEvents(Long startInclusive, Long endInclusive) throws Exception {
+        LongStream.rangeClosed(startInclusive,endInclusive).forEach( l -> {
+            final BsonObject bsonEvent = new BsonObject().put("num", l);
+            try {
+                sendEvent(bsonEvent);
+            } catch(Exception e) {
+                // wrap and rethrow
+                throw new RuntimeException(e);
+            }
+        } );
+    }
+
+
+    public void close() throws Exception {
+        nats.close();
     }
 
 }
