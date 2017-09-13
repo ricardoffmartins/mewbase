@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.UUID;
 
 
 /**
@@ -30,6 +31,7 @@ public class NatsEventSource implements EventSource {
     public NatsEventSource() {
         cf.setNatsUrl("nats://localhost:4222");
         try {
+            cf.setClientId(UUID.randomUUID().toString());
             nats = cf.createConnection();
         } catch (Exception exp) {
             logger.error("Error connecting to Nats Streaming Server", exp);
