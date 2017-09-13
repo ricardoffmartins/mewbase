@@ -9,6 +9,8 @@ import io.nats.stan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+
 
 /**
  * These tests assume that there is an instance of Nats Streaming Server running on localhost:4222
@@ -57,10 +59,29 @@ public class NatsEventSource implements EventSource {
     }
 
     @Override
+    public Subscription subscribeFromMostRecent(String channelName, EventHandler eventHandler) {
+        SubscriptionOptions opts = new SubscriptionOptions.Builder().startWithLastReceived().build();
+        return subscribeWithOptions( channelName, eventHandler, opts );
+    }
+
+    @Override
     public Subscription subscribeFromEventNumber(String channelName, Long startInclusive, EventHandler eventHandler) {
         SubscriptionOptions opts = new SubscriptionOptions.Builder().startAtSequence(startInclusive).build();
         return subscribeWithOptions( channelName, eventHandler, opts );
     }
+
+    @Override
+    public Subscription subscribeFromInstant(String channelName, Instant startInstant, EventHandler eventHandler) {
+        SubscriptionOptions opts = new SubscriptionOptions.Builder().startAtTime(startInstant).build();
+        return subscribeWithOptions( channelName, eventHandler, opts );
+    }
+
+    @Override
+    public Subscription subscribeAll(String channelName, EventHandler eventHandler) {
+        SubscriptionOptions opts = new SubscriptionOptions.Builder().deliverAllAvailable().build();
+        return subscribeWithOptions( channelName, eventHandler, opts );
+    }
+
 
     @Override
     public void close() {

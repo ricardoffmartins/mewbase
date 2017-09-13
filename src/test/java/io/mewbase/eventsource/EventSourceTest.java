@@ -9,11 +9,10 @@ import io.mewbase.eventsource.impl.nats.NatsEventProducer;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -28,18 +27,7 @@ public class EventSourceTest extends ServerTestBase {
 //
 //    }
 
-//    TestEventProducer prod = new NatsEventProducer(DEFAULT_CHANNEL);
-//
-//
-//    @Before
-//    public void setupTestEventProducer() throws Exception {
-//       prod = new NatsEventProducer(DEFAULT_CHANNEL);
-//    }
-//
-//    @After
-//    public void closeTestEventProducer() throws Exception {
-//       prod.close();
-//    }
+
 
 
     @Test
@@ -110,6 +98,39 @@ public class EventSourceTest extends ServerTestBase {
 
 
     @Test
+    public void testMostRecent() throws Exception {
+
+        // Test local event producer to inject events in the event source.
+        final String testChannelName = "TestMostRecentChannel";
+        TestEventProducer prod = new NatsEventProducer(testChannelName);
+
+        final int START_EVENT_NUMBER = 1;
+        final long MID_EVENT_NUMBER = 256;
+        final int END_EVENT_NUMBER = 512;
+
+        final int eventsToTest = 100;
+        final CountDownLatch latch = new CountDownLatch(eventsToTest);
+
+        prod.sendNumberedEvents((long)START_EVENT_NUMBER, (long)MID_EVENT_NUMBER);
+
+        EventSource es = new NatsEventSource();
+        es.subscribeFromMostRecent(testChannelName, event -> {
+            BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+            long thisEventNum = MID_EVENT_NUMBER + (eventsToTest - latch.getCount());
+            assert(bson.getLong("num") == thisEventNum);
+            latch.countDown();
+        });
+
+        prod.sendNumberedEvents((long)MID_EVENT_NUMBER+1, (long)END_EVENT_NUMBER);
+
+        latch.await();
+        es.close();
+
+        prod.close();
+    }
+
+
+    @Test
     public void testSubscribeFromEventNumber() throws Exception {
 
         // Test local event producer to inject events in the event source.
@@ -132,6 +153,78 @@ public class EventSourceTest extends ServerTestBase {
             assert(bson.getLong("num") == thisEventNum);
             latch.countDown();
         });
+
+        latch.await();
+        es.close();
+
+        prod.close();
+    }
+
+    @Test
+    public void testSubscribeFromInstant() throws Exception {
+
+        // Test local event producer to inject events in the event source.
+        final String testChannelName = "TestFromInstantChannel";
+        TestEventProducer prod = new NatsEventProducer(testChannelName);
+
+        final int START_EVENT_NUMBER = 1;
+        final long MID_EVENT_NUMBER = 256;
+        final int END_EVENT_NUMBER = 512;
+
+        final int eventsToTest = 100;
+        final CountDownLatch latch = new CountDownLatch(eventsToTest);
+
+
+        prod.sendNumberedEvents((long)START_EVENT_NUMBER, MID_EVENT_NUMBER);
+
+        Thread.sleep(100); // give the events time to rest in the event source
+
+        Instant then = Instant.now();
+
+        Thread.sleep(100); // some room the other side of the time window
+
+        prod.sendNumberedEvents((long)MID_EVENT_NUMBER+1, (long)END_EVENT_NUMBER);
+
+        EventSource es = new NatsEventSource();
+        es.subscribeFromInstant(testChannelName, then, event -> {
+            BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+            long thisEventNum = MID_EVENT_NUMBER + 1 + (eventsToTest - latch.getCount());
+            assert(bson.getLong("num") == thisEventNum);
+            latch.countDown();
+        });
+
+        latch.await();
+        es.close();
+
+        prod.close();
+    }
+
+
+    @Test
+    public void testSubscribeAll() throws Exception {
+
+        // Test local event producer to inject events in the event source.
+        final String testChannelName = "TestAllChannel";
+        TestEventProducer prod = new NatsEventProducer(testChannelName);
+
+        final int START_EVENT_NUMBER = 1;
+        final long MID_EVENT_NUMBER = 256;
+        final int END_EVENT_NUMBER = 512;
+
+        final int eventsToTest = END_EVENT_NUMBER;
+        final CountDownLatch latch = new CountDownLatch(eventsToTest);
+
+        prod.sendNumberedEvents((long)START_EVENT_NUMBER, MID_EVENT_NUMBER);
+
+        EventSource es = new NatsEventSource();
+        es.subscribeAll(testChannelName,  event -> {
+            BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+            long thisEventNum = START_EVENT_NUMBER + eventsToTest - latch.getCount();
+            assert(bson.getLong("num") == thisEventNum);
+            latch.countDown();
+        });
+
+        prod.sendNumberedEvents( MID_EVENT_NUMBER+1, (long)END_EVENT_NUMBER );
 
         latch.await();
         es.close();
