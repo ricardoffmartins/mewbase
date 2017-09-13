@@ -25,11 +25,5 @@ public class NatsSubscription implements io.mewbase.eventsource.Subscription {
         subs.close();
     }
 
-    @Override
-    public String getChannelName() {
-        return subs.getQueue();
-    }
-
-
 
 }

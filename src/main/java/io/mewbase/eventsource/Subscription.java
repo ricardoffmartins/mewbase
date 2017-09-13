@@ -6,5 +6,4 @@ public interface Subscription {
 
     void close();
 
-    String getChannelName();
 }

@@ -50,7 +50,7 @@ public class EventSourceTest extends ServerTestBase {
 
         final CountDownLatch latch = new CountDownLatch(1);
         EventSource es = new NatsEventSource();
-        es.subscribe(testChannelName,  event ->  {
+        Subscription subs = es.subscribe(testChannelName,  event ->  {
                         BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
                         assert(inputUUID.equals(bson.getString("data")));
                         latch.countDown();
@@ -60,6 +60,9 @@ public class EventSourceTest extends ServerTestBase {
         prod.sendEvent(bsonEvent);
 
         latch.await();
+
+        subs.unsubscribe();
+
         es.close();
 
         prod.close();
