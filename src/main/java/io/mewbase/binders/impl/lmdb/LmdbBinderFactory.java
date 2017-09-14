@@ -1,9 +1,9 @@
-package io.mewbase.server.impl.doc.lmdb;
+package io.mewbase.binders.impl.lmdb;
 
 
-import io.mewbase.server.Binder;
-import io.mewbase.server.ServerOptions;
-import io.mewbase.server.impl.BinderFactory;
+import io.mewbase.binders.Binder;
+import io.mewbase.server.MewbaseOptions;
+import io.mewbase.binders.BinderFactory;
 import io.mewbase.util.AsyncResCF;
 import io.mewbase.util.SizedExecutorPool;
 import io.vertx.core.Vertx;
@@ -27,7 +27,7 @@ public class LmdbBinderFactory implements BinderFactory {
 
     private final static Logger logger = LoggerFactory.getLogger(LmdbBinderFactory.class);
 
-    private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.docmanagerpool";
+    private static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.binderpool";
 
     private final int executorPoolSize = 16;
     private final SizedExecutorPool singleExecPool;
@@ -39,11 +39,11 @@ public class LmdbBinderFactory implements BinderFactory {
     private final WorkerExecutor exec;
     private Env<ByteBuffer> env;
 
-    public LmdbBinderFactory(ServerOptions serverOptions, Vertx vertx) {
-        logger.trace("Starting lmdb binder factory with docs dir: " + serverOptions.getDocsDir());
-        this.docsDir = serverOptions.getDocsDir();
-        this.maxDBs = serverOptions.getMaxBinders();
-        this.maxDBSize = serverOptions.getMaxBinderSize();
+    public LmdbBinderFactory(MewbaseOptions mewbaseOptions, Vertx vertx) {
+        logger.trace("Starting lmdb binder factory with docs dir: " + mewbaseOptions.getDocsDir());
+        this.docsDir = mewbaseOptions.getDocsDir();
+        this.maxDBs = mewbaseOptions.getMaxBinders();
+        this.maxDBSize = mewbaseOptions.getMaxBinderSize();
         this.vertx = vertx;
         this.singleExecPool = new SizedExecutorPool(vertx,LMDB_DOCMANAGER_POOL_NAME,executorPoolSize);
 

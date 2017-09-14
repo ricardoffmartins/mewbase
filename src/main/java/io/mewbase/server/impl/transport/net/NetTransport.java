@@ -1,6 +1,6 @@
 package io.mewbase.server.impl.transport.net;
 
-import io.mewbase.server.ServerOptions;
+import io.mewbase.server.MewbaseOptions;
 import io.mewbase.server.impl.Transport;
 import io.mewbase.server.impl.TransportConnection;
 import io.vertx.core.Vertx;
@@ -24,13 +24,13 @@ public class NetTransport implements Transport {
     private final static Logger logger = LoggerFactory.getLogger(NetTransport.class);
 
     private final Vertx vertx;
-    private final ServerOptions serverOptions;
+    private final MewbaseOptions mewbaseOptions;
     private final Set<NetServer> netServers = new ConcurrentHashSet<>();
     private Consumer<TransportConnection> connectHandler;
 
-    public NetTransport(Vertx vertx, ServerOptions options) {
+    public NetTransport(Vertx vertx, MewbaseOptions options) {
         this.vertx = vertx;
-        this.serverOptions = options;
+        this.mewbaseOptions = options;
     }
 
     public CompletableFuture<Void> start() {
@@ -38,11 +38,11 @@ public class NetTransport implements Transport {
         logger.trace("Starting " + numServers + " net servers");
         CompletableFuture[] all = new CompletableFuture[numServers];
         for (int i = 0; i < numServers; i++) {
-            NetServer netServer = vertx.createNetServer(serverOptions.getNetServerOptions());
+            NetServer netServer = vertx.createNetServer(mewbaseOptions.getNetServerOptions());
             netServer.connectHandler(this::connectHandler);
             CompletableFuture<Void> cf = new CompletableFuture<>();
-            netServer.listen(serverOptions.getNetServerOptions().getPort(),
-                    serverOptions.getNetServerOptions().getHost(), ar -> {
+            netServer.listen(mewbaseOptions.getNetServerOptions().getPort(),
+                    mewbaseOptions.getNetServerOptions().getHost(), ar -> {
                         if (ar.succeeded()) {
                             logger.trace("Mewbase listening");
                             cf.complete(null);

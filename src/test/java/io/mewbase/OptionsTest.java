@@ -1,7 +1,7 @@
 package io.mewbase;
 
 
-import io.mewbase.server.ServerOptions;
+import io.mewbase.server.MewbaseOptions;
 import io.vertx.core.json.JsonObject;
 
 import io.vertx.core.net.NetServerOptions;
@@ -27,44 +27,44 @@ public class OptionsTest extends MewbaseTestBase {
     @Test
     public void testServerOptions() throws Exception {
 
-        ServerOptions options = new ServerOptions();
-        assertEquals(new NetServerOptions().setPort(ServerOptions.DEFAULT_PORT)
-                .setIdleTimeout(ServerOptions.DEFAULT_CONNECTION_IDLE_TIMEOUT), options.getNetServerOptions());
+        MewbaseOptions options = new MewbaseOptions();
+        assertEquals(new NetServerOptions().setPort(MewbaseOptions.DEFAULT_PORT)
+                .setIdleTimeout(MewbaseOptions.DEFAULT_CONNECTION_IDLE_TIMEOUT), options.getNetServerOptions());
         NetServerOptions netServerOptions2 = new NetServerOptions();
         options.setNetServerOptions(netServerOptions2);
         assertSame(netServerOptions2, options.getNetServerOptions());
 
-        assertEquals(ServerOptions.DEFAULT_DOCS_DIR, options.getDocsDir());
+        assertEquals(MewbaseOptions.DEFAULT_BINDERS_DIR, options.getDocsDir());
         String s = randomString();
         options.setDocsDir(s);
         assertEquals(s, options.getDocsDir());
 
-        assertEquals(ServerOptions.DEFAULT_QUERY_MAX_UNACKED_BYTES, options.getQueryMaxUnackedBytes());
+        assertEquals(MewbaseOptions.DEFAULT_QUERY_MAX_UNACKED_BYTES, options.getQueryMaxUnackedBytes());
         int i = randomInt();
         options.setQueryMaxUnackedBytes(i);
         assertEquals(i, options.getQueryMaxUnackedBytes());
 
-        assertEquals(ServerOptions.DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES, options.getSubscriptionMaxUnackedBytes());
+        assertEquals(MewbaseOptions.DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES, options.getSubscriptionMaxUnackedBytes());
         i = randomInt();
         options.setSubscriptionMaxUnackedBytes(i);
         assertEquals(i, options.getSubscriptionMaxUnackedBytes());
 
-        assertEquals(ServerOptions.DEFAULT_PROJECTION_MAX_UNACKED_EVENTS, options.getProjectionMaxUnackedEvents());
+        assertEquals(MewbaseOptions.DEFAULT_PROJECTION_MAX_UNACKED_EVENTS, options.getProjectionMaxUnackedEvents());
         i = randomInt();
         options.setProjectionMaxUnackedEvents(i);
         assertEquals(i, options.getProjectionMaxUnackedEvents());
 
-        assertEquals(ServerOptions.DEFAULT_MAX_BINDER_SIZE, options.getMaxBinderSize());
+        assertEquals(MewbaseOptions.DEFAULT_MAX_BINDER_SIZE, options.getMaxBinderSize());
         long l = randomLong();
         options.setMaxBinderSize(l);
         assertEquals(l, options.getMaxBinderSize());
 
-        assertEquals(ServerOptions.DEFAULT_MAX_BINDERS, options.getMaxBinders());
+        assertEquals(MewbaseOptions.DEFAULT_MAX_BINDERS, options.getMaxBinders());
         i = randomInt();
         options.setMaxBinders(i);
         assertEquals(i, options.getMaxBinders());
 
-        assertEquals(ServerOptions.DEFAULT_DOC_STREAM_BATCH_SIZE, options.getDocStreamBatchSize());
+        assertEquals(MewbaseOptions.DEFAULT_DOC_STREAM_BATCH_SIZE, options.getDocStreamBatchSize());
         i = randomInt();
         options.setDocStreamBatchSize(i);
         assertEquals(i, options.getDocStreamBatchSize());
@@ -73,14 +73,14 @@ public class OptionsTest extends MewbaseTestBase {
     @Test
     public void testServerOptionsFromEmptyJson() throws Exception {
         JsonObject json = new JsonObject();
-        ServerOptions options = new ServerOptions(json);
-        assertEquals(ServerOptions.DEFAULT_DOCS_DIR, options.getDocsDir());
-        assertEquals(ServerOptions.DEFAULT_QUERY_MAX_UNACKED_BYTES, options.getQueryMaxUnackedBytes());
-        assertEquals(ServerOptions.DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES, options.getSubscriptionMaxUnackedBytes());
-        assertEquals(ServerOptions.DEFAULT_PROJECTION_MAX_UNACKED_EVENTS, options.getProjectionMaxUnackedEvents());
-        assertEquals(ServerOptions.DEFAULT_MAX_BINDER_SIZE, options.getMaxBinderSize());
-        assertEquals(ServerOptions.DEFAULT_MAX_BINDERS, options.getMaxBinders());
-        assertEquals(ServerOptions.DEFAULT_DOC_STREAM_BATCH_SIZE, options.getDocStreamBatchSize());
+        MewbaseOptions options = new MewbaseOptions(json);
+        assertEquals(MewbaseOptions.DEFAULT_BINDERS_DIR, options.getDocsDir());
+        assertEquals(MewbaseOptions.DEFAULT_QUERY_MAX_UNACKED_BYTES, options.getQueryMaxUnackedBytes());
+        assertEquals(MewbaseOptions.DEFAULT_SUBSCRIPTION_MAX_UNACKED_BYTES, options.getSubscriptionMaxUnackedBytes());
+        assertEquals(MewbaseOptions.DEFAULT_PROJECTION_MAX_UNACKED_EVENTS, options.getProjectionMaxUnackedEvents());
+        assertEquals(MewbaseOptions.DEFAULT_MAX_BINDER_SIZE, options.getMaxBinderSize());
+        assertEquals(MewbaseOptions.DEFAULT_MAX_BINDERS, options.getMaxBinders());
+        assertEquals(MewbaseOptions.DEFAULT_DOC_STREAM_BATCH_SIZE, options.getDocStreamBatchSize());
         assertEquals(new NetServerOptions(), options.getNetServerOptions());
     }
 
@@ -118,7 +118,7 @@ public class OptionsTest extends MewbaseTestBase {
         JsonObject jnso = new JsonObject();
         NetServerOptionsConverter.toJson(nso, jnso);
         json.put("netServerOptions", jnso);
-        ServerOptions options = new ServerOptions(json);
+        MewbaseOptions options = new MewbaseOptions(json);
         assertEquals(docsDir, options.getDocsDir());
 
         assertEquals(queryMaxUnackedBytes, options.getQueryMaxUnackedBytes());

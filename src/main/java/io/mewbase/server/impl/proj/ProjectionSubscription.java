@@ -24,7 +24,7 @@ public class ProjectionSubscription  {
                                   BiConsumer<Long, BsonObject> frameHandler) {
 
         this.frameHandler = frameHandler;
-        this.maxUnackedEvents = server.getServerOptions().getProjectionMaxUnackedEvents();
+        this.maxUnackedEvents = server.getMewbaseOptions().getProjectionMaxUnackedEvents();
     }
 
 

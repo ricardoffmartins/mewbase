@@ -40,14 +40,14 @@ public class Main {
 
             File confDir = new File(installDir, CONF_DIR);
             File confFile = new File(confDir, CONF_FILE);
-            ServerOptions options;
+            MewbaseOptions options;
             if (!confDir.exists()) {
                 logger.warn("Directory " + CONF_DIR + " not found. Using default config instead");
-                options = new ServerOptions();
+                options = new MewbaseOptions();
             } else {
                 if (!confFile.exists()) {
                     logger.warn("File " + CONF_FILE + " not found in " + CONF_DIR + ". Using default config instead");
-                    options = new ServerOptions();
+                    options = new MewbaseOptions();
                 } else {
                     try (Scanner scanner = new Scanner(confFile).useDelimiter("\\A")) {
                         String sconf = scanner.next();
@@ -87,7 +87,7 @@ public class Main {
         return file.getPath();
     }
 
-    private ServerOptions jsonToOptions(JsonObject conf) {
-        return new ServerOptions(conf);
+    private MewbaseOptions jsonToOptions(JsonObject conf) {
+        return new MewbaseOptions(conf);
     }
 }

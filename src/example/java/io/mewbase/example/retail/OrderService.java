@@ -2,7 +2,7 @@ package io.mewbase.example.retail;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
-import io.mewbase.server.Binder;
+import io.mewbase.binders.Binder;
 import io.mewbase.server.Mewbase;
 import io.vertx.core.http.HttpMethod;
 

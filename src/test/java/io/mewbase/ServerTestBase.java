@@ -2,7 +2,7 @@ package io.mewbase;
 
 
 import io.mewbase.server.Server;
-import io.mewbase.server.ServerOptions;
+import io.mewbase.server.MewbaseOptions;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
@@ -62,8 +62,8 @@ public class ServerTestBase extends MewbaseTestBase {
 
 
     protected void startServer() throws Exception {
-        ServerOptions serverOptions = createServerOptions();
-        server = Server.newServer(vertx, serverOptions);
+        MewbaseOptions mewbaseOptions = createServerOptions();
+        server = Server.newServer(vertx, mewbaseOptions);
         server.start().get();
     }
 
@@ -81,8 +81,8 @@ public class ServerTestBase extends MewbaseTestBase {
 
     }
 
-    protected ServerOptions createServerOptions() {
-        return new ServerOptions()
+    protected MewbaseOptions createServerOptions() {
+        return new MewbaseOptions()
                 .setDocsDir(docsDir.getPath());
     }
 

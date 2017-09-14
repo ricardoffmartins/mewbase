@@ -10,6 +10,7 @@ public interface EventSink {
      * @param channelName
      * @param event as a byte array.
      */
+    // TODO Make a CompletableFuture with an ack handler in the impl
     void publish(String channelName, byte [] event);
 
     /**

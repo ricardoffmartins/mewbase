@@ -1,12 +1,10 @@
-package io.mewbase.server.impl.doc.lmdb;
+package io.mewbase.binders.impl.lmdb;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.server.DocReadStream;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 
-import org.lmdbjava.Cursor;
 import org.lmdbjava.CursorIterator;
 import org.lmdbjava.Dbi;
 import org.lmdbjava.Txn;
@@ -16,10 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
@@ -27,7 +22,7 @@ import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
 /**
  * Created by tim on 29/12/16.
  */
-public class LmdbReadStream implements DocReadStream {
+public class LmdbReadStream  {
 
     private final static Logger logger = LoggerFactory.getLogger(LmdbReadStream.class);
 
@@ -40,8 +35,6 @@ public class LmdbReadStream implements DocReadStream {
     private final CursorIterator<ByteBuffer> cursorItr;  // in lmdbjava cursor is the main abstraction
     private final Iterator<CursorIterator.KeyVal<ByteBuffer>> itr;
     private final WorkerExecutor exec;
-
-    private final Predicate<BsonObject> filter;
 
     private Consumer<BsonObject> handler;
 
@@ -62,32 +55,25 @@ public class LmdbReadStream implements DocReadStream {
         txn.reset();    // we only need to have the transaction active while we read items under the Cursor (Iterator).
     }
 
-    @Override
+
     public void exceptionHandler(Consumer<Throwable> handler) {
-    }
 
-    @Override
-    public void handler(Consumer<BsonObject> handler) {
-        this.handler = handler;
-    }
 
-    @Override
+
     public synchronized void start() {
         runIterNextAsync();
     }
 
-    @Override
     public synchronized void pause() {
         paused = true;
     }
 
-    @Override
     public synchronized void resume() {
         paused = false;
         runIterNextAsync();
     }
 
-    @Override
+
     public synchronized void close() {
         if (!closed) {
             cursorItr.close();

@@ -5,7 +5,7 @@ import io.mewbase.bson.BsonPath;
 
 import io.mewbase.common.Delivery;
 import io.mewbase.server.Server;
-import io.mewbase.server.ServerOptions;
+import io.mewbase.server.MewbaseOptions;
 
 
 /**
@@ -42,7 +42,7 @@ public class FridgeExample {
     private void exampleServer() throws Exception {
 
         // Setup and start a server
-        final Server server = Server.newServer(new ServerOptions());
+        final Server server = Server.newServer(new MewbaseOptions());
         server.start().get();
 
         server.createBinder("fridges").get();

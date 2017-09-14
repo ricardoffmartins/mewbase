@@ -4,7 +4,7 @@ import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
 
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.Binder;
+import io.mewbase.binders.Binder;
 import io.mewbase.server.MewbaseAuthProvider;
 import io.mewbase.server.MewbaseUser;
 import io.mewbase.server.impl.auth.UnauthorizedUser;
@@ -292,9 +292,10 @@ public class ConnectionImpl implements ServerFrameHandler {
                 //writeQueryError(Client.ERR_NO_SUCH_QUERY, "No such query " + queryName, queryID);
             } else {
                 QueryExecution qe = new ConnectionQueryExecution(this, queryID, query, params,
-                        server.getServerOptions().getQueryMaxUnackedBytes());
+                        server.getMewbaseOptions().getQueryMaxUnackedBytes());
                 queryStates.put(queryID, qe);
-                qe.start();
+                // TODO Query execution as Streams
+                // qe.start();
             }
         });
 
@@ -348,7 +349,8 @@ public class ConnectionImpl implements ServerFrameHandler {
             }
             QueryExecution queryState = queryStates.get(queryID);
             if (queryState != null) {
-                queryState.handleAck(bytes);
+                // Move flow control to streams
+               // queryState.handleAck(bytes);
             }
         });
     }

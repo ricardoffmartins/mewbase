@@ -4,7 +4,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
 
 import io.mewbase.server.Server;
-import io.mewbase.server.ServerOptions;
+import io.mewbase.server.MewbaseOptions;
 
 /**
  * Created by tim on 08/11/16.
@@ -26,7 +26,7 @@ public class ShoppingBasketExample {
     private void example() throws Exception {
 
         // Setup and start a server
-        ServerOptions options = new ServerOptions();
+        MewbaseOptions options = new MewbaseOptions();
         Server server = Server.newServer(options);
         server.start().get();
         server.createBinder("baskets").get();

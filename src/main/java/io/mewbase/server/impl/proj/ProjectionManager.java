@@ -5,7 +5,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.common.Delivery;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.common.impl.DeliveryImpl;
-import io.mewbase.server.Binder;
+import io.mewbase.binders.Binder;
 import io.mewbase.server.Projection;
 import io.mewbase.server.ProjectionBuilder;
 import io.mewbase.server.impl.Protocol;
@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static io.mewbase.server.Binder.ID_FIELD;
+import static io.mewbase.binders.Binder.ID_FIELD;
 
 
 /**

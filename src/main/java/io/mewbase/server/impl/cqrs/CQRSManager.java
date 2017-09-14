@@ -2,7 +2,7 @@ package io.mewbase.server.impl.cqrs;
 
 import io.mewbase.bson.BsonObject;
 
-import io.mewbase.server.Binder;
+import io.mewbase.binders.Binder;
 import io.mewbase.server.CommandContext;
 import io.mewbase.server.CommandHandlerBuilder;
 import io.mewbase.server.impl.ServerImpl;

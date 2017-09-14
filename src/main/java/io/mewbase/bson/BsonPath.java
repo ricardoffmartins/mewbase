@@ -3,6 +3,7 @@ package io.mewbase.bson;
 /**
  * Created by tim on 04/11/16.
  */
+@Deprecated
 public class BsonPath {
 
     public static BsonObject set(BsonObject doc, Object value, Object... path) {

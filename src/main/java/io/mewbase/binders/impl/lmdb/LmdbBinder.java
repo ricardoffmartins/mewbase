@@ -1,23 +1,22 @@
-package io.mewbase.server.impl.doc.lmdb;
+package io.mewbase.binders.impl.lmdb;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.server.Binder;
-import io.mewbase.server.DocReadStream;
+import io.mewbase.binders.Binder;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 
 import org.lmdbjava.Dbi;
-import org.lmdbjava.DbiFlags;
 import org.lmdbjava.Txn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static java.nio.ByteBuffer.allocateDirect;
 
@@ -31,6 +30,7 @@ public class LmdbBinder implements Binder {
 
     private final LmdbBinderFactory binderFactory;
     private final String name;
+
     private Dbi<ByteBuffer> db;
     private AsyncResCF<Void> startRes;
     private final WorkerExecutor exec;
@@ -42,8 +42,10 @@ public class LmdbBinder implements Binder {
     }
 
     @Override
-    public DocReadStream getMatching(Predicate<BsonObject> filter) {
-        return new LmdbReadStream(binderFactory, db, filter, exec);
+    public Stream<BsonObject> getMatching(Predicate<BsonObject> filter) {
+        // TODO Add all docs in binder to a stream.
+        // return new LmdbReadStream(binderFactory, db, filter, exec);
+        return new ArrayList<BsonObject>().stream();
     }
 
     @Override
@@ -94,31 +96,32 @@ public class LmdbBinder implements Binder {
         return res;
     }
 
-    @Override
-    public CompletableFuture<Void> close() {
-        AsyncResCF<Void> res = new AsyncResCF<>();
-        exec.executeBlocking(fut -> {
-            db.close();
-            binderFactory.getEnv().sync(true);
-            fut.complete(null);
-        }, res);
-        return res;
-    }
+//    @Override
+//    public CompletableFuture<Void> close() {
+//        AsyncResCF<Void> res = new AsyncResCF<>();
+//        exec.executeBlocking(fut -> {
+//            db.close();
+//            binderFactory.getEnv().sync(true);
+//            fut.complete(null);
+//        }, res);
+//        return res;
+//    }
 
-    @Override
-    public synchronized CompletableFuture<Void> start() {
-        // TODO test this! - Deals with race where start is called before previous start is complete
-        if (startRes == null) {
-            startRes = new AsyncResCF<>();
-            exec.executeBlocking(fut -> {
-                logger.trace("Opening lmdb database " + name);
-                db = binderFactory.getEnv().openDbi(name, DbiFlags.MDB_CREATE );
-                logger.trace("Opened lmdb database " + name);
-                fut.complete(null);
-            }, startRes);
-        }
-        return startRes;
-    }
+
+//    @Override
+//    public synchronized CompletableFuture<Void> start() {
+//        // TODO test this! - Deals with race where start is called before previous start is complete
+//        if (startRes == null) {
+//            startRes = new AsyncResCF<>();
+//            exec.executeBlocking(fut -> {
+//                logger.trace("Opening lmdb database " + name);
+//                db = binderFactory.getEnv().openDbi(name, DbiFlags.MDB_CREATE );
+//                logger.trace("Opened lmdb database " + name);
+//                fut.complete(null);
+//            }, startRes);
+//        }
+//        return startRes;
+//    }
 
     @Override
     public String getName() {

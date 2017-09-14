@@ -22,7 +22,7 @@ public class SubscriptionImpl  {
 
         this.id = id;
         this.connection = connection;
-        this.maxUnackedBytes = connection.server().getServerOptions().getSubscriptionMaxUnackedBytes();
+        this.maxUnackedBytes = connection.server().getMewbaseOptions().getSubscriptionMaxUnackedBytes();
     }
 
 

@@ -1,10 +1,10 @@
-package io.mewbase.server;
+package io.mewbase.binders;
 
 import io.mewbase.bson.BsonObject;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * Created by tim on 29/12/16.
@@ -20,10 +20,10 @@ public interface Binder {
      *
      * @param filter matching projection for documents
      */
-    DocReadStream getMatching(Predicate<BsonObject> filter);
+    Stream<BsonObject> getMatching(Predicate<BsonObject> filter);
 
     /**
-     * Get a document  with the given id
+     * Get a document with the given id
      *
      * @param id the name of the document within the binder
      * @return a CompleteableFuture of the document
@@ -46,9 +46,5 @@ public interface Binder {
      * @return a CompleteableFuture with a Boolean set to true if successful
      */
     CompletableFuture<Boolean> delete(String id);
-
-    CompletableFuture<Void> close();
-
-    CompletableFuture<Void> start();
 
 }

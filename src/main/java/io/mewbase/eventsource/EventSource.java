@@ -13,7 +13,6 @@ public interface EventSource {
      */
     Subscription subscribe(String channelName, EventHandler eventHandler);
 
-
     /**
      * Subscribe to a named channel with the given event handler resulting the most recent event ( == highest event
      * number) being available first and then any new events that may arrive.
