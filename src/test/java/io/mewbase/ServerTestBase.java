@@ -16,15 +16,8 @@ import java.io.File;
  */
 public class ServerTestBase extends MewbaseTestBase {
 
-    protected static final String TEST_CHANNEL_1 = "channel1";
-    protected static final String TEST_CHANNEL_2 = "channel2";
-
-    protected static final String TEST_BINDER1 = "binder1";
-    protected static final String TEST_BINDER2 = "binder2";
-
     protected Vertx vertx;
     protected Server server;
-
 
     protected File docsDir;
 
@@ -60,14 +53,11 @@ public class ServerTestBase extends MewbaseTestBase {
     }
 
 
-
     protected void startServer() throws Exception {
         MewbaseOptions mewbaseOptions = createServerOptions();
         server = Server.newServer(vertx, mewbaseOptions);
         server.start().get();
     }
-
-
 
     protected void stopServer() throws Exception {
         if ( server != null) {
@@ -82,13 +72,7 @@ public class ServerTestBase extends MewbaseTestBase {
     }
 
     protected MewbaseOptions createServerOptions() {
-        return new MewbaseOptions()
-                .setDocsDir(docsDir.getPath());
+        return new MewbaseOptions().setDocsDir(docsDir.getPath());
     }
-
-
-
-
-
 
 }

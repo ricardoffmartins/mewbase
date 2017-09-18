@@ -14,7 +14,7 @@ public interface Mewbase {
 
     // Binder related operations
 
-    CompletableFuture<Void> createBinder(String binderName);
+    CompletableFuture<Binder> createBinder(String binderName);
 
     CompletableFuture<Binder> getBinder(String name);
 

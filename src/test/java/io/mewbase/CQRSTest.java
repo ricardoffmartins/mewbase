@@ -37,11 +37,11 @@ public class CQRSTest extends ServerTestBase {
         String commandName = "testcommand";
 
         CommandHandler handler = server.buildCommandHandler(commandName)
-                .emittingTo(TEST_CHANNEL_1)
-                .as((command, context) -> {
-                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
-                    context.complete();
-                })
+//                .emittingTo(TEST_CHANNEL_1)
+//                .as((command, context) -> {
+//                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
+//                    context.complete();
+//                })
                 .create();
 
         assertNotNull(handler);
@@ -68,10 +68,10 @@ public class CQRSTest extends ServerTestBase {
         String commandName = "testcommand";
 
         CommandHandler handler = server.buildCommandHandler(commandName)
-                .emittingTo(TEST_CHANNEL_1)
-                .as((command, context) -> {
-                    context.completeExceptionally(new Exception("rejected"));
-                })
+//                .emittingTo(TEST_CHANNEL_1)
+//                .as((command, context) -> {
+//                    context.completeExceptionally(new Exception("rejected"));
+//                })
                 .create();
 
         assertNotNull(handler);
@@ -97,10 +97,10 @@ public class CQRSTest extends ServerTestBase {
         String commandName = "testcommand";
 
         CommandHandler handler = server.buildCommandHandler(commandName)
-                .emittingTo(TEST_CHANNEL_1)
-                .as((command, context) -> {
-                    //throw new Exception("oops!");
-                })
+//                .emittingTo(TEST_CHANNEL_1)
+//                .as((command, context) -> {
+//                    //throw new Exception("oops!");
+//                })
                 .create();
 
         assertNotNull(handler);
@@ -145,11 +145,11 @@ public class CQRSTest extends ServerTestBase {
         String commandName1 = "testcommand1";
 
         CommandHandler handler1 = server.buildCommandHandler(commandName1)
-                .emittingTo(TEST_CHANNEL_1)
-                .as((command, context) -> {
-                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
-                    context.complete();
-                })
+//                .emittingTo(TEST_CHANNEL_1)
+//                .as((command, context) -> {
+//                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
+//                    context.complete();
+//                })
                 .create();
 
         assertNotNull(handler1);
@@ -158,11 +158,11 @@ public class CQRSTest extends ServerTestBase {
         String commandName2 = "testcommand2";
 
         CommandHandler handler2 = server.buildCommandHandler(commandName2)
-                .emittingTo(TEST_CHANNEL_2)
-                .as((command, context) -> {
-                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
-                    context.complete();
-                })
+//                .emittingTo(TEST_CHANNEL_2)
+//                .as((command, context) -> {
+//                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
+//                    context.complete();
+//                })
                 .create();
 
         assertNotNull(handler2);

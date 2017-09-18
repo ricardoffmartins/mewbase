@@ -3,7 +3,6 @@ package io.mewbase.binders;
 import io.mewbase.bson.BsonObject;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -11,16 +10,18 @@ import java.util.stream.Stream;
  */
 public interface Binder {
 
-    String ID_FIELD = "id";
-
+    /**
+     * Get the name of this binder
+     * @return The binders name
+     */
     String getName();
 
     /**
-     * Get a document in a named binder matching the filter
+     * Get all of the IDs of documents in this Binder
      *
-     * @param filter matching projection for documents
+     * @return the IDs of all of the documents in the binder
      */
-    Stream<BsonObject> getMatching(Predicate<BsonObject> filter);
+    Stream<String> getIds();
 
     /**
      * Get a document with the given id

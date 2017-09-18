@@ -1,14 +1,11 @@
 package io.mewbase.server.impl;
 
 import io.mewbase.binders.Binder;
-import io.mewbase.binders.BinderFactory;
 import io.mewbase.binders.BinderStore;
 import io.mewbase.binders.impl.lmdb.LmdbBinderStore;
-import io.mewbase.bson.BsonObject;
 import io.mewbase.server.*;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
-import io.mewbase.binders.impl.lmdb.LmdbBinderFactory;
 import io.mewbase.server.impl.file.af.AFFileAccess;
 
 import io.mewbase.server.impl.proj.ProjectionManager;
@@ -20,12 +17,9 @@ import io.vertx.core.http.HttpMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
 /**
@@ -48,7 +42,7 @@ public class ServerImpl implements Server {
     private final BinderStore binderStore;
 
     private final FileAccess faf;
-
+;
 
     ServerImpl(Vertx vertx, boolean ownVertx, MewbaseOptions mewbaseOptions) {
         this.vertx = vertx;
@@ -104,8 +98,8 @@ public class ServerImpl implements Server {
 
 
     @Override
-    public CompletableFuture<Void> createBinder(String name) {
-        return binderStore.create(name);
+    public CompletableFuture<Binder> createBinder(String name) {
+        return binderStore.open(name);
     }
 
     @Override
@@ -163,7 +157,11 @@ public class ServerImpl implements Server {
 
     @Override
     public Mewbase exposeFindByID(String binderName, String uri) {
-        restServiceAdaptor.exposeFindByID(binderName, uri);
+        try {
+            restServiceAdaptor.exposeFindByID(binderName, uri);
+        } catch (Exception e) {
+            logger.error("No binder",e);
+        }
         return this;
     }
 

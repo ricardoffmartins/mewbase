@@ -21,14 +21,14 @@ public abstract class QueryExecution {
     private final static Logger logger = LoggerFactory.getLogger(QueryExecution.class);
 
     private int maxUnackedBytes;
-    private final Stream<BsonObject> readStream;
+    // private final Stream<BsonObject> readStream;
     private int unackedBytes;
     protected Context context;
 
     public QueryExecution(QueryImpl query, BsonObject params, int maxUnackedBytes) {
         this.maxUnackedBytes = maxUnackedBytes;
         Binder binder = query.getBinder();
-        readStream = binder.getMatching(doc -> true);
+        //readStream = binder.getMatching(doc -> true);
         QueryContext qc = new QueryContext(params);
         // TODO read items from stream and process. on lambda
 //        readStream.handler(doc -> {
@@ -64,9 +64,9 @@ public abstract class QueryExecution {
 //        }
 //    }
 
-    public void close() {
-        readStream.close();
-    }
+//    public void close() {
+//        readStream.close();
+//    }
 
     protected abstract Buffer writeQueryResult(BsonObject document, boolean last);
 

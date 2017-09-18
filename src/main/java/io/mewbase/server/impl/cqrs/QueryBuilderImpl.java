@@ -4,13 +4,19 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.server.Query;
 import io.mewbase.server.QueryBuilder;
 import io.mewbase.server.QueryContext;
+import io.mewbase.server.impl.ServerImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 
 /**
  * Created by tim on 10/01/17.
  */
 public class QueryBuilderImpl implements QueryBuilder {
+
+    private final static Logger logger = LoggerFactory.getLogger(QueryBuilderImpl.class);
 
     private final CQRSManager cqrsManager;
     private final QueryImpl query;
@@ -43,7 +49,11 @@ public class QueryBuilderImpl implements QueryBuilder {
         if (query.getDocumentFilter() != null && query.getIdSelector() != null) {
             throw new IllegalStateException("Can't set both document filter and id selector");
         }
-        cqrsManager.registerQuery(query);
+        try {
+            cqrsManager.registerQuery(query);
+        } catch (Exception e) {
+            logger.error("Failed to register query");
+        }
         return query;
     }
 }

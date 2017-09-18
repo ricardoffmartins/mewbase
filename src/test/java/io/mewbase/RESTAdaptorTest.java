@@ -43,7 +43,7 @@ public class RESTAdaptorTest extends ServerTestBase {
 
     protected void setupChannelsAndBinders() throws Exception {
        // server.createChannel(TEST_CHANNEL_1).get();
-        server.createBinder(TEST_BINDER1).get();
+       // server.createBinder(TEST_BINDER1).get();
     }
 
     @Test
@@ -52,12 +52,12 @@ public class RESTAdaptorTest extends ServerTestBase {
         String customerID = "customer123";
 
         CommandHandler handler = server.buildCommandHandler(commandName)
-                .emittingTo(TEST_CHANNEL_1)
-                .as((command, context) -> {
-                    testContext.assertEquals(customerID, command.getBsonObject("pathParams").getString("customerID"));
-                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
-                    context.complete();
-                })
+//                .emittingTo(TEST_CHANNEL_1)
+//                .as((command, context) -> {
+//                    testContext.assertEquals(customerID, command.getBsonObject("pathParams").getString("customerID"));
+//                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
+//                    context.complete();
+//                })
                 .create();
 
         assertNotNull(handler);
@@ -90,12 +90,12 @@ public class RESTAdaptorTest extends ServerTestBase {
     public void testSimpleCommand(TestContext testContext) throws Exception {
         String commandName = "testcommand";
         CommandHandler handler = server.buildCommandHandler(commandName)
-                .emittingTo(TEST_CHANNEL_1)
-                .as((command, context) -> {
-                    testContext.assertNull(command.getBsonObject("pathParams"));
-                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
-                    context.complete();
-                })
+//                .emittingTo(TEST_CHANNEL_1)
+//                .as((command, context) -> {
+//                    testContext.assertNull(command.getBsonObject("pathParams"));
+//                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
+//                    context.complete();
+//                })
                 .create();
 
         assertNotNull(handler);
@@ -141,9 +141,9 @@ public class RESTAdaptorTest extends ServerTestBase {
        // waitForDoc(numDocs - 1);
 
         // Setup a query
-        server.buildQuery(queryName).documentFilter((doc, ctx) -> {
-            return true;
-        }).from(TEST_BINDER1).create();
+//        server.buildQuery(queryName).documentFilter((doc, ctx) -> {
+//            return true;
+//        }).from(TEST_BINDER1).create();
 
         server.exposeQuery(queryName, "/orders/");
 
@@ -175,7 +175,7 @@ public class RESTAdaptorTest extends ServerTestBase {
       //  prod.publish(doc).get();
       //  waitForDoc(0);
 
-        server.exposeFindByID(TEST_BINDER1, "/orders/:id");
+      //  server.exposeFindByID(TEST_BINDER1, "/orders/:id");
 
         Async async = testContext.async();
 
@@ -211,9 +211,9 @@ public class RESTAdaptorTest extends ServerTestBase {
 //    }
 
     protected void installInsertProjection() {
-        server.buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy(ev -> true)
-                .identifiedBy(ev -> ev.getString("id"))
-                .as((basket, del) -> del.event()).create();
+//        server.buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy(ev -> true)
+//                .identifiedBy(ev -> ev.getString("id"))
+//                .as((basket, del) -> del.event()).create();
     }
 
 

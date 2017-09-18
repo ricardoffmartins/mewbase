@@ -13,6 +13,7 @@ import io.mewbase.server.impl.ServerImpl;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Context;
 import io.vertx.core.shareddata.Lock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,8 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
-import static io.mewbase.binders.Binder.ID_FIELD;
 
 
 /**
@@ -77,7 +76,7 @@ public class ProjectionManager {
             this.projectionFunction = projectionFunction;
             SubDescriptor subDescriptor = new SubDescriptor().setChannel(channel).setDurableID(name);
             this.subscription = new ProjectionSubscription(server, subDescriptor, this::doHandle);
-            this.binder = server.getBinder(binderName);
+            this.binder = server.getBinder(binderName).getNow(null);
             this.context = server.getVertx().getOrCreateContext();
         }
 
@@ -117,7 +116,7 @@ public class ProjectionManager {
                         // Duplicate detection
                         BsonObject lastSeqs = null;
                         if (doc == null) {
-                            doc = new BsonObject().put(ID_FIELD, docID);
+                            doc = new BsonObject().put("TODO - This bound to a random field", docID);
                         } else {
                             lastSeqs = doc.getBsonObject(PROJECTION_STATE_FIELD);
                             if (lastSeqs != null) {

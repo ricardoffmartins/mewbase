@@ -1,7 +1,6 @@
 package io.mewbase.binders;
 
 
-
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
@@ -12,22 +11,22 @@ import java.util.stream.Stream;
 public interface BinderStore {
 
     /**
-     * Create a new binder of the given name.
+     * Open a new binder of the given name.
      *
-     * The return future will complete exceptionally if the store
-     *  - fails to create the new binder on the backing store
-     *  - already contains a binder of this name
+     * If the binder doesnt already exist the binder wil be created.
      *
-     * @param name of the Binder to create
-     * @return succesfull cf if Binder is created otherwise complet
+     * The return future will complete exceptionally if the store fails to create the new binder on the backing store
+     *
+     * @param name of the Binder to open or create and open
+     * @return succesfull  if Binder is created otherwise complet
      */
-    CompletableFuture<Void> create(String name);
+    CompletableFuture<Binder> open(String name);
 
     /**
      * Get a Binder with the given name
      *
      * @param  name of the document within the binder
-     * @return a CompleteableFuture of the binder or a failed future.
+     * @return a CompleteableFuture of the binder or a failed future if the binder doesnt exist.
      */
     CompletableFuture<Binder> get(String name);
 
@@ -41,7 +40,7 @@ public interface BinderStore {
     /**
      * Return a stream of all of the names of the binders
      *
-     * @return a stream of all of the current binder names
+     * @return a stream of all of the current binder names.
      */
     Stream<String> binderNames();
 
@@ -52,5 +51,13 @@ public interface BinderStore {
      * @return a CompleteableFuture with a Boolean set to true if successful
      */
     CompletableFuture<Void> delete(String name);
+
+
+    /**
+     * Close the store in an orderly way ensuring that the binders are all closed and flushed to backing store.
+     *
+     * @return
+     */
+    CompletableFuture<Boolean> close();
 
 }

@@ -3,22 +3,31 @@ package io.mewbase.binders.impl.lmdb;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.binders.Binder;
 import io.mewbase.util.AsyncResCF;
+import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 
+import org.lmdbjava.CursorIterator;
 import org.lmdbjava.Dbi;
+import org.lmdbjava.Env;
 import org.lmdbjava.Txn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Predicate;
+
 import java.util.stream.Stream;
 
 import static java.nio.ByteBuffer.allocateDirect;
+import static org.lmdbjava.CursorIterator.IteratorType.FORWARD;
+import static org.lmdbjava.DbiFlags.MDB_CREATE;
+
 
 
 /**
@@ -28,24 +37,47 @@ public class LmdbBinder implements Binder {
 
     private final static Logger logger = LoggerFactory.getLogger(LmdbBinder.class);
 
-    private final LmdbBinderFactory binderFactory;
     private final String name;
 
-    private Dbi<ByteBuffer> db;
-    private AsyncResCF<Void> startRes;
     private final WorkerExecutor exec;
 
-    public LmdbBinder(LmdbBinderFactory binderFactory, String name) {
-        this.binderFactory = binderFactory;
+    private final Env<ByteBuffer> env;
+    private Dbi<ByteBuffer> dbi;
+
+    public LmdbBinder(String name, Env<ByteBuffer> env, Vertx vertx) {
+        this.env = env;
         this.name = name;
-        exec = binderFactory.getSingleWorkerExecutor();
+        this.exec = vertx.createSharedWorkerExecutor(LmdbBinderStore.LMDB_DOCMANAGER_POOL_NAME, 1);
+        // create the db if it doesnt exists
+        this.dbi =  env.openDbi(name,MDB_CREATE);
     }
 
-    @Override
-    public Stream<BsonObject> getMatching(Predicate<BsonObject> filter) {
-        // TODO Add all docs in binder to a stream.
-        // return new LmdbReadStream(binderFactory, db, filter, exec);
-        return new ArrayList<BsonObject>().stream();
+
+    public Stream<String> getIds() {
+
+        List<String> result = new LinkedList<String>();
+
+        final Txn txn = env.txnRead(); // set up a read transaction
+        final CursorIterator<ByteBuffer> cursorItr = dbi.iterate(txn, FORWARD);
+        final Iterator<CursorIterator.KeyVal<ByteBuffer>> itr = cursorItr.iterable().iterator();
+        boolean hasNext = itr.hasNext();
+        txn.reset();
+
+        while ( hasNext ) {
+            txn.renew();
+            final CursorIterator.KeyVal<ByteBuffer> kv = itr.next();
+            // Copy bytes from LMDB managed memory to vert.x buffers
+            Buffer keyBuffer = Buffer.buffer(kv.key().remaining());
+            keyBuffer.setBytes(0,kv.key());
+            Buffer valueBuffer = Buffer.buffer(kv.val().remaining());
+            valueBuffer.setBytes(0, kv.val());
+            hasNext = itr.hasNext();
+            txn.reset(); // got data so release the txn
+            BsonObject doc = new BsonObject(valueBuffer);
+            String docId = new String(keyBuffer.getBytes());
+        }
+        txn.close();
+        return result.stream();
     }
 
     @Override
@@ -54,9 +86,9 @@ public class LmdbBinder implements Binder {
         exec.executeBlocking(fut -> {
             // in order to do a read we have to do it under a txn so use
             // try with resource to get the auto close magic.
-            try (Txn<ByteBuffer> txn = binderFactory.getEnv().txnRead()) {
+            try (Txn<ByteBuffer> txn = env.txnRead()) {
                 ByteBuffer key = getKey(id);
-                final ByteBuffer found = db.get(txn, key);
+                final ByteBuffer found = dbi.get(txn, key);
                 if (found != null) {
                     // copy to local Vert.x buffer from the LMDB mem managed array
                     Buffer buffer = Buffer.buffer(txn.val().remaining());
@@ -79,7 +111,7 @@ public class LmdbBinder implements Binder {
             byte[] valBytes = doc.encode().getBytes();
             final ByteBuffer val = allocateDirect(valBytes.length);
             val.put(valBytes).flip();
-            db.put(key, val);
+            dbi.put(key, val);
             fut.complete(null);
         }, res);
         return res;
@@ -90,46 +122,30 @@ public class LmdbBinder implements Binder {
         AsyncResCF<Boolean> res = new AsyncResCF<>();
         exec.executeBlocking(fut -> {
             ByteBuffer key = getKey(id);
-            boolean deleted = db.delete(key);
+            boolean deleted = dbi.delete(key);
             fut.complete(deleted);
         }, res);
         return res;
     }
 
-//    @Override
-//    public CompletableFuture<Void> close() {
-//        AsyncResCF<Void> res = new AsyncResCF<>();
-//        exec.executeBlocking(fut -> {
-//            db.close();
-//            binderFactory.getEnv().sync(true);
-//            fut.complete(null);
-//        }, res);
-//        return res;
-//    }
-
-
-//    @Override
-//    public synchronized CompletableFuture<Void> start() {
-//        // TODO test this! - Deals with race where start is called before previous start is complete
-//        if (startRes == null) {
-//            startRes = new AsyncResCF<>();
-//            exec.executeBlocking(fut -> {
-//                logger.trace("Opening lmdb database " + name);
-//                db = binderFactory.getEnv().openDbi(name, DbiFlags.MDB_CREATE );
-//                logger.trace("Opened lmdb database " + name);
-//                fut.complete(null);
-//            }, startRes);
-//        }
-//        return startRes;
-//    }
+    public CompletableFuture<Void> close() {
+        AsyncResCF<Void> res = new AsyncResCF<>();
+        exec.executeBlocking(fut -> {
+            dbi.close();
+            env.sync(true);
+            fut.complete(null);
+        }, res);
+        return res;
+    }
 
     @Override
     public String getName() {
         return name;
     }
 
+
     private ByteBuffer getKey(String id) {
-        final ByteBuffer key = allocateDirect(binderFactory.getEnv().getMaxKeySize());
+        final ByteBuffer key = allocateDirect(env.getMaxKeySize());
         key.put(id.getBytes(StandardCharsets.UTF_8)).flip();
         return key;
     }

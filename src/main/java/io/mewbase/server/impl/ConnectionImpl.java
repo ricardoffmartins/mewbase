@@ -317,7 +317,7 @@ public class ConnectionImpl implements ServerFrameHandler {
                 missingField(Protocol.FINDBYID_BINDER, Protocol.FINDBYID_FRAME);
                 return;
             }
-            Binder binder = server.getBinder(binderName);
+            Binder binder = null;
             if (binder != null) {
                 CompletableFuture<BsonObject> cf = binder.get(docID);
                 cf.thenAccept(doc -> {
@@ -396,7 +396,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         authoriseThenHandle(Protocol.LIST_BINDERS_FRAME, frame, () -> {
             BsonObject resp = new BsonObject();
             resp.put(Protocol.RESPONSE_OK, true);
-            BsonArray arr = new BsonArray(server.listBinders());
+            BsonArray arr = new BsonArray();
             resp.put(Protocol.LISTBINDERS_BINDERS, arr);
             writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
         });
@@ -412,18 +412,19 @@ public class ConnectionImpl implements ServerFrameHandler {
                 missingField(Protocol.CREATEBINDER_NAME, Protocol.CREATE_BINDER_FRAME);
                 return;
             }
-            CompletableFuture<Boolean> cf = server.createBinder(binderName);
-            cf.handle((res, t) -> {
-                if (t != null) {
-                    //sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", frame);
-                } else {
-                    BsonObject resp = new BsonObject();
-                    resp.put(Protocol.RESPONSE_OK, true);
-                    resp.put(Protocol.CREATEBINDER_RESPONSE_EXISTS, !res);
-                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
-                }
-                return null;
-            });
+//            try {
+//                CompletableFuture<Boolean> cf = server.getBinder(binderName).get();
+//            cf.handle((res, t) -> {
+//                if (t != null) {
+//                    //sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", frame);
+//                } else {
+//                    BsonObject resp = new BsonObject();
+//                    resp.put(Protocol.RESPONSE_OK, true);
+//                    resp.put(Protocol.CREATEBINDER_RESPONSE_EXISTS, !res);
+//                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
+//                }
+//                return null;
+ //           });
         });
 
     }
@@ -604,7 +605,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         user = new UnauthorizedUser();
 
         for (QueryExecution queryState : queryStates.values()) {
-            queryState.close();
+          //  queryState.close();
         }
         queryStates.clear();
         closed = true;

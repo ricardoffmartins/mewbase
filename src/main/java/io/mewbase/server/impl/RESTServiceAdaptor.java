@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * TODO content types
@@ -72,14 +73,14 @@ public class RESTServiceAdaptor {
             BsonObject params = new BsonObject(rc.pathParams());
             RESTServiceAdaptorQueryExecution qe = new RESTServiceAdaptorQueryExecution(query, params, rc.response(),
                     server.getMewbaseOptions().getQueryMaxUnackedBytes());
-            rc.response().closeHandler(v -> qe.close());
+            rc.response(); // qe.close());
             // TODO Query execution over a vanilla Java 8 Stream
            // qe.start();
         });
     }
 
-    public void exposeFindByID(String binderName, String uri) {
-        Binder binder = server.getBinder(binderName);
+    public void exposeFindByID(String binderName, String uri) throws ExecutionException, InterruptedException {
+        Binder binder = server.getBinder(binderName).get();
         if (binder == null) {
             throw new IllegalArgumentException("No such binder " + binder);
         }

@@ -24,7 +24,7 @@ public class QueryTest extends ServerTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(QueryTest.class);
 
-    // TODO - Replace with Event Source
+
     // protected Producer prod;
 
     @Override
@@ -36,7 +36,7 @@ public class QueryTest extends ServerTestBase {
 
 
     protected void setupBinders() throws Exception {
-        server.createBinder(TEST_BINDER1).get();
+       // server.createBinder(TEST_BINDER1).get();
     }
 
     @Test
@@ -121,9 +121,9 @@ public class QueryTest extends ServerTestBase {
 
 
     protected void installInsertProjection() {
-        server.buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy(ev -> true)
-                .identifiedBy(ev -> ev.getString("id"))
-                .as((basket, del) -> del.event()).create();
+//        server.buildProjection("testproj").projecting(TEST_CHANNEL_1).onto(TEST_BINDER1).filteredBy(ev -> true)
+//                .identifiedBy(ev -> ev.getString("id"))
+//                .as((basket, del) -> del.event()).create();
     }
 
     protected String getID(int id) {

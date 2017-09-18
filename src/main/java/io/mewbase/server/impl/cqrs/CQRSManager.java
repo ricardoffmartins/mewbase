@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Created by tim on 10/01/17.
@@ -114,11 +115,11 @@ public class CQRSManager {
 
     }
 
-    synchronized void registerQuery(QueryImpl query) {
+    synchronized void registerQuery(QueryImpl query) throws ExecutionException, InterruptedException {
         if (queries.containsKey(query.getName())) {
             throw new IllegalArgumentException("Query " + query.getName() + " already registered");
         }
-        Binder binder = server.getBinder(query.getBinderName());
+        Binder binder = server.getBinder(query.getBinderName()).get();
         if (binder == null) {
             throw new IllegalArgumentException("No such binder " + query.getBinderName());
         }

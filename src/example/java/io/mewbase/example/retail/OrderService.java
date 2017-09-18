@@ -1,5 +1,6 @@
 package io.mewbase.example.retail;
 
+import io.mewbase.binders.BinderStore;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
 import io.mewbase.binders.Binder;
@@ -171,14 +172,11 @@ public class OrderService  {
     public void setupServer(Mewbase mewbase) throws Exception {
 
 
-        mewbase.createBinder(BASKETS_BINDER_NAME).get();
-
-        Binder basketsBinder = mewbase.getBinder(BASKETS_BINDER_NAME);
 
         mewbase.buildProjection("maintain_basket")                    // projection name
                 .projecting(ORDERS_CHANNEL_NAME)                                    // channel name
                 .filteredBy(ev -> new Event(ev).getEventType().equals(ADD_ITEM_EVENT_TYPE)) // event filter
-                .onto(basketsBinder.getName())                                     // binder name
+                .onto(BASKETS_BINDER_NAME)                                     // binder name
                 .identifiedBy(ev -> new AddItemEvent(ev).getCustomerID())          // document id selector; how to obtain the doc id from the event bson
                 .as((b, del) -> {
                     // projection function
@@ -209,16 +207,16 @@ public class OrderService  {
                     event.setCustomerID(command.getCustomerID());
                     //CommandContext.putFields(command, event, "customerID");
                     // Retrieve the basket and add it to the event
-                    basketsBinder.get("customerID").whenComplete((basket, t) -> {
-                        if (t == null) {
-                            String orderID = UUID.randomUUID().toString();
-                            event.setOrderID(orderID);
-                            event.setOrder(basket);
-                            ctx.publishEvent(event.getBsonObject()).complete();
-                        } else {
-                            // TODO fail context
-                        }
-                    });
+//                    basketsBinder.get("customerID").whenComplete((basket, t) -> {
+//                        if (t == null) {
+//                            String orderID = UUID.randomUUID().toString();
+//                            event.setOrderID(orderID);
+//                            event.setOrder(basket);
+//                            ctx.publishEvent(event.getBsonObject()).complete();
+//                        } else {
+//                            // TODO fail context
+//                        }
+//                    });
                 })
                 .create();
 

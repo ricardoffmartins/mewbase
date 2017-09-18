@@ -28,12 +28,13 @@ public class ProjectionTest extends ServerTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(ProjectionTest.class);
 
+    private static final String TEST_BINDER1 = "TestBinder";
     private static final String TEST_PROJECTION_NAME1 = "testproj";
     private static final String TEST_BASKET_ID = "basket1234";
 
 
     protected void setupChannelsAndBinders() throws Exception {
-       // server.createChannel(TEST_CHANNEL_1).get();
+
         server.createBinder(TEST_BINDER1).get();
     }
 
@@ -60,22 +61,22 @@ public class ProjectionTest extends ServerTestBase {
         AtomicInteger cnt = new AtomicInteger();
         AtomicReference<Projection> projRef = new AtomicReference<>();
         AtomicBoolean paused = new AtomicBoolean();
-        Projection projection = server.buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1)
-                .onto(TEST_BINDER1).filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
-                .as((basket, del) -> {
-                    testContext.assertFalse(paused.get());
-                    if (cnt.incrementAndGet() == 5) {
-                        projRef.get().pause();
-                        paused.set(true);
-                        vertx.setTimer(200, tid -> {
-                            paused.set(false);
-                            projRef.get().resume();
-                        });
-                    }
-                    return BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID"));
-                })
-                .create();
-        projRef.set(projection);
+//        Projection projection = server.buildProjection(TEST_PROJECTION_NAME1).projecting(TEST_CHANNEL_1)
+//                .onto(TEST_BINDER1).filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
+//                .as((basket, del) -> {
+//                    testContext.assertFalse(paused.get());
+//                    if (cnt.incrementAndGet() == 5) {
+//                        projRef.get().pause();
+//                        paused.set(true);
+//                        vertx.setTimer(200, tid -> {
+//                            paused.set(false);
+//                            projRef.get().resume();
+//                        });
+//                    }
+//                    return BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID"));
+//                })
+//                .create();
+  //      projRef.set(projection);
        // Producer prod = client.createProducer(TEST_CHANNEL_1);
        // prod.publish(new BsonObject().put("basketID", TEST_BASKET_ID).put("productID", "prod1").put("quantity", 10)).get();
         waitUntilNumItems(10);
@@ -144,12 +145,15 @@ public class ProjectionTest extends ServerTestBase {
     }
 
     private Projection registerProjection(String projectionName) {
-        return server.buildProjection(projectionName).projecting(TEST_CHANNEL_1).onto(TEST_BINDER1)
-                .filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
-                .as((basket, del) ->
-                        BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
-                .create();
+//        return server.buildProjection(projectionName).projecting(TEST_CHANNEL_1).onto(TEST_BINDER1)
+//                .filteredBy(ev -> true).identifiedBy(ev -> ev.getString("basketID"))
+//                .as((basket, del) ->
+//                        BsonPath.add(basket, del.event().getInteger("quantity"), "products", del.event().getString("productID")))
+//                .create();
+        // Todo
+        return null;
     }
+
 
     private void waitUntilNumItems(int numItems) {
         waitUntil(() -> {
