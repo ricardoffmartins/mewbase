@@ -6,7 +6,7 @@
 
     <groupId>io.mewbase</groupId>
     <artifactId>mewbase</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2.1</version>
 
     <dependencies>
         <dependency>
