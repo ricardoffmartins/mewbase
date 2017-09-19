@@ -4,6 +4,7 @@ package io.mewbase.eventsource.impl.nats;
 
 import io.mewbase.eventsource.EventSink;
 
+import io.mewbase.server.MewbaseOptions;
 import io.nats.stan.Connection;
 import io.nats.stan.ConnectionFactory;
 
@@ -21,15 +22,22 @@ public class NatsEventSink implements EventSink {
 
     private final static Logger logger = LoggerFactory.getLogger(NatsEventSink.class);
 
-    final String userName = "TestClient";
-    final String clusterName = "test-cluster";
-    final ConnectionFactory cf = new ConnectionFactory(clusterName,userName);
-    Connection nats = null;
 
-    // TODO - Handle params and defaults
+    private final Connection nats;
+
 
     public NatsEventSink() {
-        cf.setNatsUrl("nats://localhost:4222");
+        this(new MewbaseOptions());
+    }
+
+    public NatsEventSink(MewbaseOptions mewbaseOptions) {
+        final String userName = mewbaseOptions.getSinkUserName();;
+        final String clusterName = mewbaseOptions.getSinkClusterName();
+        final String url = mewbaseOptions.getSinkUrl();
+
+        final ConnectionFactory cf = new ConnectionFactory(clusterName,userName);
+        cf.setNatsUrl(url);
+
         try {
             cf.setClientId(UUID.randomUUID().toString());
             nats = cf.createConnection();
