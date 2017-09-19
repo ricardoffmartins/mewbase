@@ -51,17 +51,17 @@ public class RESTAdaptorTest extends ServerTestBase {
         String commandName = "testcommand";
         String customerID = "customer123";
 
-        CommandHandler handler = server.buildCommandHandler(commandName)
-//                .emittingTo(TEST_CHANNEL_1)
-//                .as((command, context) -> {
-//                    testContext.assertEquals(customerID, command.getBsonObject("pathParams").getString("customerID"));
-//                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
-//                    context.complete();
-//                })
-                .create();
-
-        assertNotNull(handler);
-        assertEquals(commandName, handler.getName());
+//        CommandHandler handler = server.buildCommandHandler(commandName)
+////                .emittingTo(TEST_CHANNEL_1)
+////                .as((command, context) -> {
+////                    testContext.assertEquals(customerID, command.getBsonObject("pathParams").getString("customerID"));
+////                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
+////                    context.complete();
+////                })
+//                .create();
+//
+//        assertNotNull(handler);
+//        assertEquals(commandName, handler.getName());
 
     //    Async async = testContext.async(2);
 
@@ -89,17 +89,17 @@ public class RESTAdaptorTest extends ServerTestBase {
     @Test
     public void testSimpleCommand(TestContext testContext) throws Exception {
         String commandName = "testcommand";
-        CommandHandler handler = server.buildCommandHandler(commandName)
-//                .emittingTo(TEST_CHANNEL_1)
-//                .as((command, context) -> {
-//                    testContext.assertNull(command.getBsonObject("pathParams"));
-//                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
-//                    context.complete();
-//                })
-                .create();
-
-        assertNotNull(handler);
-        assertEquals(commandName, handler.getName());
+//        CommandHandler handler = server.buildCommandHandler(commandName)
+////                .emittingTo(TEST_CHANNEL_1)
+////                .as((command, context) -> {
+////                    testContext.assertNull(command.getBsonObject("pathParams"));
+////                    context.publishEvent(new BsonObject().put("eventField", command.getString("commandField")));
+////                    context.complete();
+////                })
+//                .create();
+//
+//        assertNotNull(handler);
+//        assertEquals(commandName, handler.getName());
 
   //      Async async = testContext.async(2);
 

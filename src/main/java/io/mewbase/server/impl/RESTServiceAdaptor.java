@@ -72,7 +72,7 @@ public class RESTServiceAdaptor {
         router.route(HttpMethod.GET, uri).handler(rc -> {
             BsonObject params = new BsonObject(rc.pathParams());
             RESTServiceAdaptorQueryExecution qe = new RESTServiceAdaptorQueryExecution(query, params, rc.response(),
-                    server.getMewbaseOptions().getQueryMaxUnackedBytes());
+                    256);
             rc.response(); // qe.close());
             // TODO Query execution over a vanilla Java 8 Stream
            // qe.start();

@@ -15,8 +15,8 @@ public class SSLTest extends ServerTestBase {
     // Serves as an example of setting up an SSL connection.
 
 //    @Override
-//    protected ServerOptions createServerOptions() {
-//        ServerOptions serverOptions = super.createServerOptions();
+//    protected ServerOptions createMewbaseOptions() {
+//        ServerOptions serverOptions = super.createMewbaseOptions();
 //        serverOptions.getNetServerOptions().setSsl(true).setPemKeyCertOptions(
 //                new PemKeyCertOptions()
 //                        .setKeyPath(KEY_PATH)

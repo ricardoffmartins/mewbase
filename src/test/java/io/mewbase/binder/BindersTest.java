@@ -1,13 +1,12 @@
 package io.mewbase.binder;
 
-import io.mewbase.ServerTestBase;
+import io.mewbase.MewbaseTestBase;
 import io.mewbase.binders.BinderStore;
 import io.mewbase.binders.impl.lmdb.LmdbBinderStore;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.binders.Binder;
 
 
-import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,8 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+
 
 import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.*;
@@ -27,20 +25,16 @@ import static org.junit.Assert.*;
  * Created by tim on 14/10/16.
  */
 @RunWith(VertxUnitRunner.class)
-public class BindersTest extends ServerTestBase {
+public class BindersTest extends MewbaseTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(BindersTest.class);
 
     private final static String BINDER_NAME = "TestBinderName";
 
-    @Override
-    protected void tearDown(TestContext context) throws Exception {
-        super.tearDown(context);
-    }
 
     @Test
     public void testCreateBinderStore() throws Exception {
-        BinderStore store = new LmdbBinderStore(createServerOptions(),vertx);
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
         store.binderNames().forEach( bn-> System.out.println(bn));
         assertEquals(store.binderNames().count(),0L);
         store.close();
@@ -51,7 +45,7 @@ public class BindersTest extends ServerTestBase {
     public void testOpenBinders() throws Exception {
 
         // set up the store and add some binders
-        BinderStore store = new LmdbBinderStore(createServerOptions(),vertx);
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
 
         final int numBinders = 10;
         CompletableFuture[] all = new CompletableFuture[numBinders];
@@ -75,7 +69,7 @@ public class BindersTest extends ServerTestBase {
 
    @Test
    public void testSimplePutGet() throws Exception {
-       BinderStore store = new LmdbBinderStore(createServerOptions(),vertx);
+       BinderStore store = new LmdbBinderStore(createMewbaseOptions());
        Binder binder = store.open(BINDER_NAME).get();
        BsonObject docPut = createObject();
        assertNull(binder.put("id1234", docPut).get());
@@ -85,7 +79,7 @@ public class BindersTest extends ServerTestBase {
 
     @Test
     public void testFindNoEntry() throws Exception {
-        BinderStore store = new LmdbBinderStore(createServerOptions(),vertx);
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
         Binder binder = store.open(BINDER_NAME).get();
         assertNull(binder.get("id1234").get());
     }
@@ -150,16 +144,6 @@ public class BindersTest extends ServerTestBase {
 
 
 
-
-    private void addDocs(String binderName, int numDocs) throws Exception {
-        for (int i = 0; i < numDocs; i++) {
-            BsonObject docPut = createObject();
-            docPut.put("docNum", i);
-            Binder binder = server.getBinder(binderName).get();
-            assertNull(binder.put(getID(i), docPut).get());
-        }
-    }
-
     private String getID(int id) {
         return String.format("id-%05d", id);
     }
@@ -170,9 +154,6 @@ public class BindersTest extends ServerTestBase {
         return obj;
     }
 
-    protected boolean createBinder(String binderName) throws Exception {
-        server.createBinder(binderName).get();
-        return true;
-    }
+
 
 }

@@ -45,6 +45,9 @@ public class LmdbBinderStore implements BinderStore {
     private final WorkerExecutor exec;
     private Env<ByteBuffer> env;
 
+
+    public LmdbBinderStore() { this(new MewbaseOptions()); }
+
     public LmdbBinderStore(MewbaseOptions mewbaseOptions) {
         this(mewbaseOptions, Vertx.vertx());
     }
@@ -62,7 +65,7 @@ public class LmdbBinderStore implements BinderStore {
 
         AsyncResCF<Void> res = new AsyncResCF<>();
         exec.executeBlocking(fut -> {
-                    logger.trace("Starting LMDB binder store with docs dir: " + mewbaseOptions.getDocsDir());
+                    logger.trace("Starting LMDB binder store with docs dir: " + docsDir);
                     File fDocsDir = new File(docsDir);
                     createIfDoesntExists(fDocsDir);
                     this.env = Env.<ByteBuffer>create()
@@ -134,7 +137,7 @@ public class LmdbBinderStore implements BinderStore {
                 exec.close();
             }
             fut.complete(true);
-            logger.trace("Closed LMDB binder store");
+            logger.trace("Closed LMDB binder store at " + docsDir);
         }, res);
         return res;
     }

@@ -1,9 +1,11 @@
 package io.mewbase;
 
+import io.mewbase.server.MewbaseOptions;
 import io.vertx.ext.unit.junit.RepeatRule;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
@@ -19,6 +21,7 @@ public class MewbaseTestBase {
 
     @Rule
     public RepeatRule repeatRule = new RepeatRule();
+
 
     protected void waitUntil(BooleanSupplier supplier) {
         waitUntil(supplier, 10000);
@@ -77,4 +80,8 @@ public class MewbaseTestBase {
         return UUID.randomUUID().toString();
     }
 
+
+    protected MewbaseOptions createMewbaseOptions() throws Exception {
+        return new MewbaseOptions().setDocsDir(testFolder.newFolder().getPath());
+    }
 }

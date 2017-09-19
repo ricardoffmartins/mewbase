@@ -292,7 +292,7 @@ public class ConnectionImpl implements ServerFrameHandler {
                 //writeQueryError(Client.ERR_NO_SUCH_QUERY, "No such query " + queryName, queryID);
             } else {
                 QueryExecution qe = new ConnectionQueryExecution(this, queryID, query, params,
-                        server.getMewbaseOptions().getQueryMaxUnackedBytes());
+                        256);
                 queryStates.put(queryID, qe);
                 // TODO Query execution as Streams
                 // qe.start();

@@ -7,6 +7,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.eventsource.impl.nats.NatsEventSource;
 import io.mewbase.eventsource.impl.nats.NatsEventProducer;
 
+import io.mewbase.server.MewbaseOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
@@ -28,11 +29,9 @@ public class EventSourceTest extends ServerTestBase {
 //    }
 
 
-
-
     @Test
     public void testConnectToEventSource() throws Exception {
-        EventSource es = new NatsEventSource();
+        EventSource es = new NatsEventSource(new MewbaseOptions());
         es.close();
         assert (true);
     }
@@ -49,7 +48,7 @@ public class EventSourceTest extends ServerTestBase {
         final BsonObject bsonEvent = new BsonObject().put("data", inputUUID);
 
         final CountDownLatch latch = new CountDownLatch(1);
-        EventSource es = new NatsEventSource();
+        EventSource es = new NatsEventSource(new MewbaseOptions());
         Subscription subs = es.subscribe(testChannelName,  event ->  {
                         BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
                         assert(inputUUID.equals(bson.getString("data")));
@@ -116,7 +115,7 @@ public class EventSourceTest extends ServerTestBase {
 
         prod.sendNumberedEvents((long)START_EVENT_NUMBER, (long)MID_EVENT_NUMBER);
 
-        EventSource es = new NatsEventSource();
+        EventSource es = new NatsEventSource(new MewbaseOptions());
         es.subscribeFromMostRecent(testChannelName, event -> {
             BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
             long thisEventNum = MID_EVENT_NUMBER + (eventsToTest - latch.getCount());

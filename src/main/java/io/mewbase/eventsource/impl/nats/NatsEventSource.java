@@ -5,6 +5,7 @@ import io.mewbase.eventsource.EventHandler;
 import io.mewbase.eventsource.EventSource;
 import io.mewbase.eventsource.Subscription;
 
+import io.mewbase.server.MewbaseOptions;
 import io.nats.stan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,22 +15,30 @@ import java.util.UUID;
 
 
 /**
- * These tests assume that there is an instance of Nats Streaming Server running on localhost:4222
+ * An Event Source implemented by the Nats Streaming Server.
  */
 
 public class NatsEventSource implements EventSource {
 
     private final static Logger logger = LoggerFactory.getLogger(NatsEventSource.class);
 
-    final String userName = "TestClient";
-    final String clusterName = "test-cluster";
-    final ConnectionFactory cf = new ConnectionFactory(clusterName,userName);
-    Connection nats = null;
 
-    // TODO - Handle params and defaults
+    private final Connection nats;
+
 
     public NatsEventSource() {
-        cf.setNatsUrl("nats://localhost:4222");
+        this(new MewbaseOptions());
+    }
+
+    public NatsEventSource(MewbaseOptions mewbaseOptions) {
+
+        final String userName = mewbaseOptions.getSourceUserName();
+        final String clusterName = mewbaseOptions.getSourceClusterName();
+        final String url = mewbaseOptions.getSourceUrl();
+
+        final ConnectionFactory cf = new ConnectionFactory(clusterName,userName);
+        cf.setNatsUrl(url);
+
         try {
             cf.setClientId(UUID.randomUUID().toString());
             nats = cf.createConnection();
@@ -41,7 +50,6 @@ public class NatsEventSource implements EventSource {
 
 
     private Subscription subscribeWithOptions(String channelName, EventHandler eventHandler, SubscriptionOptions opts) {
-
         MessageHandler handler = message -> {
             eventHandler.onEvent(new NatsEvent(message));
         };
@@ -53,6 +61,7 @@ public class NatsEventSource implements EventSource {
         }
         return subs;
     }
+
 
     @Override
     public Subscription subscribe(String channelName, EventHandler eventHandler) {
