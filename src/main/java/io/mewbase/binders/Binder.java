@@ -3,6 +3,7 @@ package io.mewbase.binders;
 import io.mewbase.bson.BsonObject;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -21,7 +22,14 @@ public interface Binder {
      *
      * @return the IDs of all of the documents in the binder
      */
-    Stream<String> getIds();
+    CompletableFuture<Stream<String>> getIds();
+
+    /**
+     * Get all of the IDs of documents in this Binder that match the filter over the Bson document
+     *
+     * @return the IDs of all of the documents in the binder mathcing the filter (predicate)
+     */
+    CompletableFuture<Stream<String>> getIdsWithFilter(Predicate<BsonObject> filter);
 
     /**
      * Get a document with the given id

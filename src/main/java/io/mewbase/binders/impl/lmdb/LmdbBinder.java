@@ -3,6 +3,7 @@ package io.mewbase.binders.impl.lmdb;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.binders.Binder;
 import io.mewbase.util.AsyncResCF;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
@@ -22,6 +23,7 @@ import java.util.List;
 
 import java.util.concurrent.CompletableFuture;
 
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static java.nio.ByteBuffer.allocateDirect;
@@ -53,32 +55,50 @@ public class LmdbBinder implements Binder {
     }
 
 
-    public Stream<String> getIds() {
-
-        List<String> result = new LinkedList<String>();
-
-        final Txn txn = env.txnRead(); // set up a read transaction
-        final CursorIterator<ByteBuffer> cursorItr = dbi.iterate(txn, FORWARD);
-        final Iterator<CursorIterator.KeyVal<ByteBuffer>> itr = cursorItr.iterable().iterator();
-        boolean hasNext = itr.hasNext();
-        txn.reset();
-
-        while ( hasNext ) {
-            txn.renew();
-            final CursorIterator.KeyVal<ByteBuffer> kv = itr.next();
-            // Copy bytes from LMDB managed memory to vert.x buffers
-            Buffer keyBuffer = Buffer.buffer(kv.key().remaining());
-            keyBuffer.setBytes(0,kv.key());
-            Buffer valueBuffer = Buffer.buffer(kv.val().remaining());
-            valueBuffer.setBytes(0, kv.val());
-            hasNext = itr.hasNext();
-            txn.reset(); // got data so release the txn
-            BsonObject doc = new BsonObject(valueBuffer);
-            String docId = new String(keyBuffer.getBytes());
-        }
-        txn.close();
-        return result.stream();
+    @Override
+    public String getName() {
+        return name;
     }
+
+    @Override
+    public CompletableFuture<Stream<String>> getIds() {
+        return getIdsWithFilter(b -> true);
+    }
+
+    @Override
+    public CompletableFuture<Stream<String>> getIdsWithFilter(Predicate<BsonObject> filter) {
+
+        AsyncResCF<Stream<String>> res = new AsyncResCF<>();
+        exec.executeBlocking(fut -> {
+
+            LinkedList<String> matchingIds = new LinkedList<String>();
+
+            final Txn txn = env.txnRead(); // set up a read transaction
+            final CursorIterator<ByteBuffer> cursorItr = dbi.iterate(txn, FORWARD);
+            final Iterator<CursorIterator.KeyVal<ByteBuffer>> itr = cursorItr.iterable().iterator();
+            boolean hasNext = itr.hasNext();
+            txn.reset();
+
+            while (hasNext) {
+                txn.renew();
+                final CursorIterator.KeyVal<ByteBuffer> kv = itr.next();
+                // Copy bytes from LMDB managed memory to vert.x buffers
+                final Buffer keyBuffer = Buffer.buffer(kv.key().remaining());
+                keyBuffer.setBytes(0, kv.key());
+                final Buffer valueBuffer = Buffer.buffer(kv.val().remaining());
+                valueBuffer.setBytes(0, kv.val());
+                hasNext = itr.hasNext(); // iterator makes reference to the txn
+                txn.reset(); // got data so release the txn
+                final BsonObject doc = new BsonObject(valueBuffer);
+                final String docId = new String(keyBuffer.getBytes());
+                if (filter.test(doc)) matchingIds.addLast(docId);
+            }
+            txn.close();
+            fut.complete(matchingIds.stream());
+        }, res);
+        return res;
+    }
+
 
     @Override
     public CompletableFuture<BsonObject> get(String id) {
@@ -87,7 +107,7 @@ public class LmdbBinder implements Binder {
             // in order to do a read we have to do it under a txn so use
             // try with resource to get the auto close magic.
             try (Txn<ByteBuffer> txn = env.txnRead()) {
-                ByteBuffer key = getKey(id);
+                ByteBuffer key = makeKeyBuffer(id);
                 final ByteBuffer found = dbi.get(txn, key);
                 if (found != null) {
                     // copy to local Vert.x buffer from the LMDB mem managed array
@@ -98,7 +118,7 @@ public class LmdbBinder implements Binder {
                 } else {
                     fut.complete(null);
                 }
-            } // do not try, do!
+            }
         }, res);
         return res;
     }
@@ -107,7 +127,7 @@ public class LmdbBinder implements Binder {
     public CompletableFuture<Void> put(String id, BsonObject doc) {
         AsyncResCF<Void> res = new AsyncResCF<>();
         exec.executeBlocking(fut -> {
-            ByteBuffer key = getKey(id);
+            ByteBuffer key = makeKeyBuffer(id);
             byte[] valBytes = doc.encode().getBytes();
             final ByteBuffer val = allocateDirect(valBytes.length);
             val.put(valBytes).flip();
@@ -121,7 +141,7 @@ public class LmdbBinder implements Binder {
     public CompletableFuture<Boolean> delete(String id) {
         AsyncResCF<Boolean> res = new AsyncResCF<>();
         exec.executeBlocking(fut -> {
-            ByteBuffer key = getKey(id);
+            ByteBuffer key = makeKeyBuffer(id);
             boolean deleted = dbi.delete(key);
             fut.complete(deleted);
         }, res);
@@ -138,16 +158,14 @@ public class LmdbBinder implements Binder {
         return res;
     }
 
-    @Override
-    public String getName() {
-        return name;
-    }
 
 
-    private ByteBuffer getKey(String id) {
+
+    private ByteBuffer makeKeyBuffer(String id) {
         final ByteBuffer key = allocateDirect(env.getMaxKeySize());
         key.put(id.getBytes(StandardCharsets.UTF_8)).flip();
         return key;
     }
+
 
 }

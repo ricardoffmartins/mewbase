@@ -7,6 +7,7 @@ import io.mewbase.bson.BsonObject;
 import io.mewbase.binders.Binder;
 
 
+import io.mewbase.server.MewbaseOptions;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,6 +16,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 
 import static java.util.stream.Collectors.toSet;
@@ -49,9 +53,9 @@ public class BindersTest extends MewbaseTestBase {
 
         final int numBinders = 10;
         CompletableFuture[] all = new CompletableFuture[numBinders];
-        for (int i = 0; i < numBinders; i++) {
+        IntStream.range(0, all.length).forEach( i -> {
             all[i] = store.open("testbinder" + i);
-        }
+        });
         CompletableFuture.allOf(all).get();
 
         Set<String> bindersSet1 = store.binderNames().collect(toSet());
@@ -64,6 +68,7 @@ public class BindersTest extends MewbaseTestBase {
         Set<String> bindersSet2 = store.binderNames().collect(toSet());
         assertTrue(bindersSet2.contains(name));
         assertEquals(bindersSet1.size() + 1, bindersSet2.size());
+        store.close();
     }
 
 
@@ -86,60 +91,108 @@ public class BindersTest extends MewbaseTestBase {
 
     @Test
     public void testDelete() throws Exception {
-//        BsonObject docPut = createObject();
-//        assertNull(testBinder1.put("id1234", docPut).get());
-//        BsonObject docGet = testBinder1.get("id1234").get();
-//        assertEquals(docPut, docGet);
-//        assertTrue(testBinder1.delete("id1234").get());
-//        docGet = testBinder1.get("id1234").get();
-//        assertNull(docGet);
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+        Binder binder = store.open(BINDER_NAME).get();
+
+        BsonObject docPut = createObject();
+        assertNull(binder.put("id1234", docPut).get());
+        BsonObject docGet = binder.get("id1234").get();
+        assertEquals(docPut, docGet);
+        assertTrue(binder.delete("id1234").get());
+        docGet = binder.get("id1234").get();
+        assertNull(docGet);
     }
+
+
+    @Test
+    public void testGetIds() throws Exception {
+
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+        Binder binder = store.open(BINDER_NAME).get();
+
+        final int MANY_DOCS = 64;
+        final String DOC_ID_KEY = "id";
+
+        final IntStream range = IntStream.rangeClosed(1, MANY_DOCS);
+
+        range.forEach(i -> {
+            final BsonObject docPut = createObject();
+            binder.put(String.valueOf(i), docPut.put(DOC_ID_KEY, i));
+        });
+
+        Consumer<String> checker = (String id) -> {
+            try {
+                BsonObject b = binder.get(id).get();
+                assertNotNull(b);
+                assertEquals((int)b.getInteger(DOC_ID_KEY) , (int)Integer.parseInt(id));
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
+        };
+
+        // get all
+        Stream<String> ids = binder.getIds().get();
+        ids.forEach(checker);
+
+        // get some of the docs
+        final int HALF_THE_DOCS = MANY_DOCS / 2;
+        Stream<String> some = binder.getIdsWithFilter(bson -> {
+            try {
+                return bson.getInteger(DOC_ID_KEY) <= HALF_THE_DOCS;
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
+            return false;
+        }).get();
+
+        assertEquals(some.collect(toSet()).size(), HALF_THE_DOCS);
+
+    }
+
 
     @Test
     public void testPutGetDifferentBinders() throws Exception {
-//        createBinder("binder1");
-//        createBinder("binder2");
-//        Binder binder1 = server.getBinder("binder1");
-//        Binder binder2 = server.getBinder("binder2");
-//
-//        BsonObject docPut1 = createObject();
-//        docPut1.put("binder", "binder1");
-//        assertNull(binder1.put("id0", docPut1).get());
-//
-//        BsonObject docPut2 = createObject();
-//        docPut2.put("binder", "binder2");
-//        assertNull(binder2.put("id0", docPut2).get());
-//
-//        BsonObject docGet1 = binder1.get("id0").get();
-//        assertEquals("binder1", docGet1.remove("binder"));
-//
-//        BsonObject docGet2 = binder2.get("id0").get();
-//        assertEquals("binder2", docGet2.remove("binder"));
+
+        final String B1 = BINDER_NAME + "1";
+        final String B2 = BINDER_NAME + "2";
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+        Binder binder1 = store.open(B1).get();
+        Binder binder2 = store.open(B2).get();
+
+        BsonObject docPut1 = createObject();
+        docPut1.put("binder", "binder1");
+        assertNull(binder1.put("id0", docPut1).get());
+
+        BsonObject docPut2 = createObject();
+        docPut2.put("binder", "binder2");
+        assertNull(binder2.put("id0", docPut2).get());
+
+        BsonObject docGet1 = binder1.get("id0").get();
+        assertEquals("binder1", docGet1.remove("binder"));
+
+        BsonObject docGet2 = binder2.get("id0").get();
+        assertEquals("binder2", docGet2.remove("binder"));
 
     }
 
     @Test
-    public void testPutGetMultiple() throws Exception {
-//        int numDocs = 10;
-//        int numBinders = 10;
-//        for (int i = 0; i < numBinders; i++) {
-//            String binderName = "pgmbinder" + i;
-//            createBinder(binderName);
-//            Binder binder = server.getBinder(binderName);
-//            for (int j = 0; j < numDocs; j++) {
-//                BsonObject docPut = createObject();
-//                docPut.put("binder", binderName);
-//                assertNull(binder.put("id" + j, docPut).get());
-//            }
-//        }
-//        for (int i = 0; i < numBinders; i++) {
-//            String binderName = "pgmbinder" + i;
-//            Binder binder = server.getBinder(binderName);
-//            for (int j = 0; j < numDocs; j++) {
-//                BsonObject docGet = binder.get("id" + j).get();
-//                assertEquals(binderName, docGet.remove("binder"));
-//            }
-//        }
+    public void testBinderIsPersistent() throws Exception {
+
+        final MewbaseOptions OPTIONS = createMewbaseOptions();
+
+        BinderStore store = new LmdbBinderStore(OPTIONS);
+        Binder binder = store.open(BINDER_NAME).get();
+        BsonObject docPut = createObject();
+        binder.put("id1234", docPut).get();
+        store.close();
+
+        Thread.sleep(10);
+
+        BinderStore store2 = new LmdbBinderStore(OPTIONS);
+        Binder binder2 = store2.open(BINDER_NAME).get();
+        BsonObject docGet = binder2.get("id1234").get();
+        assertEquals(docPut, docGet);
+        store2.close();
     }
 
 
