@@ -30,6 +30,7 @@ public class NatsEventSink implements EventSink {
         this(new MewbaseOptions());
     }
 
+
     public NatsEventSink(MewbaseOptions mewbaseOptions) {
         final String userName = mewbaseOptions.getSinkUserName();;
         final String clusterName = mewbaseOptions.getSinkClusterName();
@@ -39,8 +40,10 @@ public class NatsEventSink implements EventSink {
         cf.setNatsUrl(url);
 
         try {
-            cf.setClientId(UUID.randomUUID().toString());
+            String clientUUID = UUID.randomUUID().toString();
+            cf.setClientId(clientUUID);
             nats = cf.createConnection();
+            logger.info("Created Nats EventSink connection with client UUID " + clientUUID);
         } catch (Exception exp) {
             logger.error("Error connecting to Nats Streaming Server", exp);
             throw new RuntimeException(exp);

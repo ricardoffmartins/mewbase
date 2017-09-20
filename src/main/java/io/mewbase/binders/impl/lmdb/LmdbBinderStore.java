@@ -65,7 +65,7 @@ public class LmdbBinderStore implements BinderStore {
 
         AsyncResCF<Void> res = new AsyncResCF<>();
         exec.executeBlocking(fut -> {
-                    logger.trace("Starting LMDB binder store with docs dir: " + docsDir);
+                    logger.info("Starting LMDB binder store with docs dir: " + docsDir);
                     File fDocsDir = new File(docsDir);
                     createIfDoesntExists(fDocsDir);
                     this.env = Env.<ByteBuffer>create()
@@ -137,7 +137,7 @@ public class LmdbBinderStore implements BinderStore {
                 exec.close();
             }
             fut.complete(true);
-            logger.trace("Closed LMDB binder store at " + docsDir);
+            logger.info("Closed LMDB binder store at " + docsDir);
         }, res);
         return res;
     }
