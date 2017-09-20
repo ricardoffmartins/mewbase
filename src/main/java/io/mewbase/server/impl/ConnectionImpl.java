@@ -2,10 +2,9 @@ package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonArray;
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.Client;
+
 import io.mewbase.common.SubDescriptor;
-import io.mewbase.server.Binder;
-import io.mewbase.server.Log;
+import io.mewbase.binders.Binder;
 import io.mewbase.server.MewbaseAuthProvider;
 import io.mewbase.server.MewbaseUser;
 import io.mewbase.server.impl.auth.UnauthorizedUser;
@@ -65,14 +64,14 @@ public class ConnectionImpl implements ServerFrameHandler {
             boolean versionCompatible = ServerVersionProvider.isCompatibleWith(clientVersion);
             if (!versionCompatible) {
                 final String errorMsg = "Client version not supported";
-                sendConnectErrorResponse(Client.ERR_SERVER_ERROR, errorMsg);
+                sendConnectErrorResponse(1, errorMsg);
                 logAndClose(errorMsg);
                 return;
             }
 
             BsonObject response = new BsonObject();
             if (ex != null) {
-                sendConnectErrorResponse(Client.ERR_AUTHENTICATION_FAILED, "Authentication failed");
+                sendConnectErrorResponse(1, "Authentication failed");
                 logAndClose(ex.getMessage());
             } else {
                 if (result != null) {
@@ -93,40 +92,40 @@ public class ConnectionImpl implements ServerFrameHandler {
     public void handlePublish(BsonObject frame) {
         checkContext();
 
-        authoriseThenHandle(Protocol.PUBLISH_FRAME, frame, () -> {
-            String channel = frame.getString(Protocol.PUBLISH_CHANNEL);
-            BsonObject event = frame.getBsonObject(Protocol.PUBLISH_EVENT);
-            Integer sessID = frame.getInteger(Protocol.PUBLISH_SESSID);
-            Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
+//        authoriseThenHandle(Protocol.PUBLISH_FRAME, frame, () -> {
+//            String channel = frame.getString(Protocol.PUBLISH_CHANNEL);
+//            BsonObject event = frame.getBsonObject(Protocol.PUBLISH_EVENT);
+//            Integer sessID = frame.getInteger(Protocol.PUBLISH_SESSID);
+//            Integer requestID = frame.getInteger(Protocol.REQUEST_REQUEST_ID);
+//
+//            if (channel == null) {
+//                missingField(Protocol.PUBLISH_CHANNEL, Protocol.PUBLISH_FRAME);
+//                return;
+//            }
+//            if (event == null) {
+//                missingField(Protocol.PUBLISH_EVENT, Protocol.PUBLISH_FRAME);
+//                return;
+//            }
+//            if (requestID == null) {
+//                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.PUBLISH_FRAME);
+//                return;
+//            }
+//            Log log = server.getLog(channel);
+//            if (log == null) {
+//                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, frame);
+//                return;
+//            }
+//            CompletableFuture<Long> cf = server.publishEvent(log, event);
 
-            if (channel == null) {
-                missingField(Protocol.PUBLISH_CHANNEL, Protocol.PUBLISH_FRAME);
-                return;
-            }
-            if (event == null) {
-                missingField(Protocol.PUBLISH_EVENT, Protocol.PUBLISH_FRAME);
-                return;
-            }
-            if (requestID == null) {
-                missingField(Protocol.REQUEST_REQUEST_ID, Protocol.PUBLISH_FRAME);
-                return;
-            }
-            Log log = server.getLog(channel);
-            if (log == null) {
-                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, frame);
-                return;
-            }
-            CompletableFuture<Long> cf = server.publishEvent(log, event);
-
-            cf.handle((v, ex) -> {
-                if (ex == null) {
-                    writeResponseOK(frame);
-                } else {
-                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to persist", frame);
-                }
-                return null;
-            });
-        });
+//            cf.handle((v, ex) -> {
+//                if (ex == null) {
+//                    writeResponseOK(frame);
+//                } else {
+//                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to persist", frame);
+//                }
+//                return null;
+//            });
+//        });
     }
 
     @Override
@@ -181,10 +180,10 @@ public class ConnectionImpl implements ServerFrameHandler {
 
             int subID = subSeq++;
             checkWrap(subSeq);
-            Log log = server.getLog(channel);
-            if (log == null) {
-                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, frame);
-            }
+//            Log log = server.getLog(channel);
+//            if (log == null) {
+//                sendErrorResponse(Client.ERR_NO_SUCH_CHANNEL, "no such channel " + channel, frame);
+//            }
             SubscriptionImpl subscription = new SubscriptionImpl(this, subID, subDescriptor);
             subscriptionMap.put(subID, subscription);
             BsonObject resp = new BsonObject();
@@ -210,7 +209,7 @@ public class ConnectionImpl implements ServerFrameHandler {
                 invalidField(Protocol.SUBCLOSE_SUBID, Protocol.SUBCLOSE_FRAME);
                 return;
             }
-            subscription.close();
+            //subscription.close();
             writeResponseOK(frame);
         });
 
@@ -232,8 +231,8 @@ public class ConnectionImpl implements ServerFrameHandler {
                 invalidField(Protocol.UNSUBSCRIBE_SUBID, Protocol.UNSUBSCRIBE_FRAME);
                 return;
             }
-            subscription.close();
-            subscription.unsubscribe();
+            //subscription.close();
+            //subscription.unsubscribe();
             writeResponseOK(frame);
         });
 
@@ -264,7 +263,7 @@ public class ConnectionImpl implements ServerFrameHandler {
                 invalidField(Protocol.ACKEV_SUBID, Protocol.ACKEV_FRAME);
                 return;
             }
-            subscription.handleAckEv(pos, bytes);
+            //subscription.handleAckEv(pos, bytes);
         });
     }
 
@@ -290,12 +289,13 @@ public class ConnectionImpl implements ServerFrameHandler {
             }
             QueryImpl query = server.getCqrsManager().getQuery(queryName);
             if (query == null) {
-                writeQueryError(Client.ERR_NO_SUCH_QUERY, "No such query " + queryName, queryID);
+                //writeQueryError(Client.ERR_NO_SUCH_QUERY, "No such query " + queryName, queryID);
             } else {
                 QueryExecution qe = new ConnectionQueryExecution(this, queryID, query, params,
-                        server.getServerOptions().getQueryMaxUnackedBytes());
+                        256);
                 queryStates.put(queryID, qe);
-                qe.start();
+                // TODO Query execution as Streams
+                // qe.start();
             }
         });
 
@@ -317,7 +317,7 @@ public class ConnectionImpl implements ServerFrameHandler {
                 missingField(Protocol.FINDBYID_BINDER, Protocol.FINDBYID_FRAME);
                 return;
             }
-            Binder binder = server.getBinder(binderName);
+            Binder binder = null;
             if (binder != null) {
                 CompletableFuture<BsonObject> cf = binder.get(docID);
                 cf.thenAccept(doc -> {
@@ -327,7 +327,7 @@ public class ConnectionImpl implements ServerFrameHandler {
                     writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
                 });
             } else {
-                sendErrorResponse(Client.ERR_NO_SUCH_BINDER, "No such binder " + binderName, frame);
+               // sendErrorResponse(Client.ERR_NO_SUCH_BINDER, "No such binder " + binderName, frame);
             }
         });
     }
@@ -349,7 +349,8 @@ public class ConnectionImpl implements ServerFrameHandler {
             }
             QueryExecution queryState = queryStates.get(queryID);
             if (queryState != null) {
-                queryState.handleAck(bytes);
+                // Move flow control to streams
+               // queryState.handleAck(bytes);
             }
         });
     }
@@ -377,7 +378,7 @@ public class ConnectionImpl implements ServerFrameHandler {
             CompletableFuture<Void> cf = server.getCqrsManager().callCommandHandler(commandName, command);
             cf.handle((res, t) -> {
                 if (t != null) {
-                    sendErrorResponse(Client.ERR_COMMAND_NOT_PROCESSED, t.getMessage(), frame);
+                    // sendErrorResponse(Client.ERR_COMMAND_NOT_PROCESSED, t.getMessage(), frame);
                 } else {
                     writeResponseOK(frame);
                 }
@@ -395,7 +396,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         authoriseThenHandle(Protocol.LIST_BINDERS_FRAME, frame, () -> {
             BsonObject resp = new BsonObject();
             resp.put(Protocol.RESPONSE_OK, true);
-            BsonArray arr = new BsonArray(server.listBinders());
+            BsonArray arr = new BsonArray();
             resp.put(Protocol.LISTBINDERS_BINDERS, arr);
             writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
         });
@@ -411,18 +412,19 @@ public class ConnectionImpl implements ServerFrameHandler {
                 missingField(Protocol.CREATEBINDER_NAME, Protocol.CREATE_BINDER_FRAME);
                 return;
             }
-            CompletableFuture<Boolean> cf = server.createBinder(binderName);
-            cf.handle((res, t) -> {
-                if (t != null) {
-                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", frame);
-                } else {
-                    BsonObject resp = new BsonObject();
-                    resp.put(Protocol.RESPONSE_OK, true);
-                    resp.put(Protocol.CREATEBINDER_RESPONSE_EXISTS, !res);
-                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
-                }
-                return null;
-            });
+//            try {
+//                CompletableFuture<Boolean> cf = server.getBinder(binderName).get();
+//            cf.handle((res, t) -> {
+//                if (t != null) {
+//                    //sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create binder", frame);
+//                } else {
+//                    BsonObject resp = new BsonObject();
+//                    resp.put(Protocol.RESPONSE_OK, true);
+//                    resp.put(Protocol.CREATEBINDER_RESPONSE_EXISTS, !res);
+//                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
+//                }
+//                return null;
+ //           });
         });
 
     }
@@ -434,7 +436,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         authoriseThenHandle(Protocol.LIST_CHANNELS_FRAME, frame, () -> {
             BsonObject resp = new BsonObject();
             resp.put(Protocol.RESPONSE_OK, true);
-            BsonArray arr = new BsonArray(server.listChannels());
+            BsonArray arr = new BsonArray( /*server.listChannels() */);
             resp.put(Protocol.LISTCHANNELS_CHANNELS, arr);
             writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
         });
@@ -450,18 +452,18 @@ public class ConnectionImpl implements ServerFrameHandler {
                 missingField(Protocol.CREATECHANNEL_NAME, Protocol.CREATE_CHANNEL_FRAME);
                 return;
             }
-            CompletableFuture<Boolean> cf = server.createChannel(channelName);
-            cf.handle((res, t) -> {
-                if (t != null) {
-                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create channel", frame);
-                } else {
-                    BsonObject resp = new BsonObject();
-                    resp.put(Protocol.RESPONSE_OK, true);
-                    resp.put(Protocol.CREATECHANNEL_RESPONSE_EXISTS, !res);
-                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
-                }
-                return null;
-            });
+//            CompletableFuture<Boolean> cf = server.createChannel(channelName);
+//            cf.handle((res, t) -> {
+//                if (t != null) {
+//                    sendErrorResponse(Client.ERR_SERVER_ERROR, "failed to create channel", frame);
+//                } else {
+//                    BsonObject resp = new BsonObject();
+//                    resp.put(Protocol.RESPONSE_OK, true);
+//                    resp.put(Protocol.CREATECHANNEL_RESPONSE_EXISTS, !res);
+//                    writeResponse0(Protocol.RESPONSE_FRAME, frame, resp);
+//                }
+//                return null;
+//            });
         });
     }
 
@@ -488,11 +490,11 @@ public class ConnectionImpl implements ServerFrameHandler {
             if (ex != null) {
                 String msg = "Authorisation failed";
                 logger.error(msg, ex);
-                sendErrorResponse(Client.ERR_SERVER_ERROR, msg, frame);
+                //sendErrorResponse(Client.ERR_SERVER_ERROR, msg, frame);
                 close();
             } else {
                 if (!res) {
-                    sendErrorResponse(Client.ERR_NOT_AUTHORISED, "User is not authorised", frame);
+                    //sendErrorResponse(Client.ERR_NOT_AUTHORISED, "User is not authorised", frame);
                     close();
                 } else {
                     // OK
@@ -603,7 +605,7 @@ public class ConnectionImpl implements ServerFrameHandler {
         user = new UnauthorizedUser();
 
         for (QueryExecution queryState : queryStates.values()) {
-            queryState.close();
+          //  queryState.close();
         }
         queryStates.clear();
         closed = true;

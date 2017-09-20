@@ -2,10 +2,9 @@ package io.mewbase.example.shopping;
 
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
-import io.mewbase.client.Client;
-import io.mewbase.client.ClientOptions;
+
 import io.mewbase.server.Server;
-import io.mewbase.server.ServerOptions;
+import io.mewbase.server.MewbaseOptions;
 
 /**
  * Created by tim on 08/11/16.
@@ -27,11 +26,13 @@ public class ShoppingBasketExample {
     private void example() throws Exception {
 
         // Setup and start a server
-        ServerOptions options = new ServerOptions();
+        MewbaseOptions options = new MewbaseOptions();
         Server server = Server.newServer(options);
         server.start().get();
         server.createBinder("baskets").get();
-        server.createChannel("orders").get();
+
+        // TODO - replace when we work out how to do this with the abstracted channels
+        // server.createChannel("orders").get();
 
         // Register a projection that will respond to add_item events and increase/decrease the quantity of the item in the basket
         server.buildProjection("maintain_basket")                             // projection name
@@ -44,25 +45,26 @@ public class ShoppingBasketExample {
                 .create();
 
         // Create a client
-        Client client = Client.newClient(new ClientOptions());
+        //Client client = Client.newClient(new ClientOptions());
 
         // Send some add/remove events
 
         BsonObject event = new BsonObject().put("eventType", "add_item").put("basketID", "basket1111");
 
-        client.publish("orders", event.copy().put("productID", "prod1234").put("quantity", 2));
-        client.publish("orders", event.copy().put("productID", "prod2341").put("quantity", 1));
-        client.publish("orders", event.copy().put("productID", "prod5432").put("quantity", 3));
-        client.publish("orders", event.copy().put("productID", "prod5432").put("quantity", -1));
+        // TODO with new Streaming Server
+       // client.publish("orders", event.copy().put("productID", "prod1234").put("quantity", 2));
+       // client.publish("orders", event.copy().put("productID", "prod2341").put("quantity", 1));
+       // client.publish("orders", event.copy().put("productID", "prod5432").put("quantity", 3));
+       // client.publish("orders", event.copy().put("productID", "prod5432").put("quantity", -1));
 
         Thread.sleep(1000);
 
         // Now get the basket
-        BsonObject basket = client.findByID("baskets", "basket1111").get();
+       // BsonObject basket = client.findByID("baskets", "basket1111").get();
 
-        System.out.println("Basket is: " + basket);
+       // System.out.println("Basket is: " + basket);
 
-        client.close().get();
+       // client.close().get();
         server.stop().get();
     }
 }

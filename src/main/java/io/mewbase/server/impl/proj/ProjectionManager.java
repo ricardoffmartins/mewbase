@@ -1,11 +1,11 @@
 package io.mewbase.server.impl.proj;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.MewException;
+
 import io.mewbase.common.Delivery;
 import io.mewbase.common.SubDescriptor;
 import io.mewbase.common.impl.DeliveryImpl;
-import io.mewbase.server.Binder;
+import io.mewbase.binders.Binder;
 import io.mewbase.server.Projection;
 import io.mewbase.server.ProjectionBuilder;
 import io.mewbase.server.impl.Protocol;
@@ -13,6 +13,7 @@ import io.mewbase.server.impl.ServerImpl;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Context;
 import io.vertx.core.shareddata.Lock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,8 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
-import static io.mewbase.server.Binder.ID_FIELD;
 
 
 /**
@@ -77,7 +76,7 @@ public class ProjectionManager {
             this.projectionFunction = projectionFunction;
             SubDescriptor subDescriptor = new SubDescriptor().setChannel(channel).setDurableID(name);
             this.subscription = new ProjectionSubscription(server, subDescriptor, this::doHandle);
-            this.binder = server.getBinder(binderName);
+            this.binder = server.getBinder(binderName).getNow(null);
             this.context = server.getVertx().getOrCreateContext();
         }
 
@@ -117,7 +116,7 @@ public class ProjectionManager {
                         // Duplicate detection
                         BsonObject lastSeqs = null;
                         if (doc == null) {
-                            doc = new BsonObject().put(ID_FIELD, docID);
+                            doc = new BsonObject().put("TODO - This bound to a random field", docID);
                         } else {
                             lastSeqs = doc.getBsonObject(PROJECTION_STATE_FIELD);
                             if (lastSeqs != null) {
@@ -152,12 +151,12 @@ public class ProjectionManager {
                     // 4. acknowledge and release lock if was processed
                     .thenAccept(processed -> {
                         if (processed) {
-                            subscription.acknowledge(seq);
+                           // subscription.acknowledge(seq);
                         }
                         try {
                             cfLock.get().release();
                         } catch (Exception e) {
-                            throw new MewException(e);
+                            throw new RuntimeException(e);
                         }
                     })
 
@@ -175,12 +174,12 @@ public class ProjectionManager {
 
         @Override
         public void pause() {
-            subscription.pause();
+            /// subscription.pause();
         }
 
         @Override
         public void resume() {
-            subscription.resume();
+            //subscription.resume();
         }
 
     }

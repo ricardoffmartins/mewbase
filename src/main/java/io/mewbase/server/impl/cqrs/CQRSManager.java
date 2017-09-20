@@ -1,11 +1,10 @@
 package io.mewbase.server.impl.cqrs;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.client.MewException;
-import io.mewbase.server.Binder;
+
+import io.mewbase.binders.Binder;
 import io.mewbase.server.CommandContext;
 import io.mewbase.server.CommandHandlerBuilder;
-import io.mewbase.server.Log;
 import io.mewbase.server.impl.ServerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Created by tim on 10/01/17.
@@ -39,11 +39,13 @@ public class CQRSManager {
         if (commandHandlers.containsKey(commandHandler.getName())) {
             throw new IllegalArgumentException("Command handler " + commandHandler.getName() + " already registered");
         }
-        Log log = server.getLog(commandHandler.getChannelName());
-        if (log == null) {
-            throw new IllegalArgumentException("No such channel" + commandHandler.getChannelName());
-        }
-        commandHandler.setLog(log);
+
+        // TODO - Use new EventSource
+       // Log log = server.getLog(commandHandler.getChannelName());
+//        if (log == null) {
+//            throw new IllegalArgumentException("No such channel" + commandHandler.getChannelName());
+//        }
+       // commandHandler.setLog(log);
         commandHandlers.put(commandHandler.getName(), commandHandler);
     }
 
@@ -55,7 +57,7 @@ public class CQRSManager {
         if (commandHandler == null) {
             String msg = "No handler for " + commandName;
             logger.trace(msg);
-            cfCommand.completeExceptionally(new MewException(msg));
+            cfCommand.completeExceptionally(new Exception(msg));
         } else {
 
             // TODO do command handlers need idempotency built in?
@@ -74,10 +76,11 @@ public class CQRSManager {
                     // TODO this should be in a transaction
                     CompletableFuture[] cfArr = new CompletableFuture[context.eventsToPublish.size()];
                     int i = 0;
-                    for (BsonObject event : context.eventsToPublish) {
-                        CompletableFuture<Long> cfPub = server.publishEvent(commandHandler.getLog(), event);
-                        cfArr[i++] = cfPub;
-                    }
+                    // TDOD - EventSource
+//                    for (BsonObject event : context.eventsToPublish) {
+//                        CompletableFuture<Long> cfPub = server.publishEvent(commandHandler.getLog(), event);
+//                        cfArr[i++] = cfPub;
+//                    }
                     CompletableFuture<Void> all = CompletableFuture.allOf(cfArr);
                     all.whenComplete((v2, t2) -> {
                         if (t2 != null) {
@@ -112,11 +115,11 @@ public class CQRSManager {
 
     }
 
-    synchronized void registerQuery(QueryImpl query) {
+    synchronized void registerQuery(QueryImpl query) throws ExecutionException, InterruptedException {
         if (queries.containsKey(query.getName())) {
             throw new IllegalArgumentException("Query " + query.getName() + " already registered");
         }
-        Binder binder = server.getBinder(query.getBinderName());
+        Binder binder = server.getBinder(query.getBinderName()).get();
         if (binder == null) {
             throw new IllegalArgumentException("No such binder " + query.getBinderName());
         }

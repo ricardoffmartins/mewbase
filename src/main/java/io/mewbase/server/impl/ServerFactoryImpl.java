@@ -1,7 +1,7 @@
 package io.mewbase.server.impl;
 
 import io.mewbase.server.Server;
-import io.mewbase.server.ServerOptions;
+import io.mewbase.server.MewbaseOptions;
 import io.mewbase.server.spi.ServerFactory;
 import io.vertx.core.Vertx;
 
@@ -10,12 +10,12 @@ import io.vertx.core.Vertx;
  */
 public class ServerFactoryImpl implements ServerFactory {
     @Override
-    public Server newServer(ServerOptions serverOptions) {
-        return new ServerImpl(serverOptions);
+    public Server newServer(MewbaseOptions mewbaseOptions) {
+        return new ServerImpl(mewbaseOptions);
     }
 
     @Override
-    public Server newServer(Vertx vertx, ServerOptions serverOptions) {
-        return new ServerImpl(vertx, false, serverOptions);
+    public Server newServer(Vertx vertx, MewbaseOptions mewbaseOptions) {
+        return new ServerImpl(vertx, false, mewbaseOptions);
     }
 }

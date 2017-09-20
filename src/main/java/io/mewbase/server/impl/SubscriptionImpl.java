@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Created by tim on 26/09/16.
  */
-public class SubscriptionImpl extends SubscriptionBase {
+public class SubscriptionImpl  {
 
     private final static Logger logger = LoggerFactory.getLogger(SubscriptionImpl.class);
 
@@ -19,13 +19,13 @@ public class SubscriptionImpl extends SubscriptionBase {
     private int unackedBytes;
 
     public SubscriptionImpl(ConnectionImpl connection, int id, SubDescriptor subDescriptor) {
-        super(connection.server(), subDescriptor);
+
         this.id = id;
         this.connection = connection;
-        this.maxUnackedBytes = connection.server().getServerOptions().getSubscriptionMaxUnackedBytes();
+        this.maxUnackedBytes = 256;
     }
 
-    @Override
+
     protected void onReceiveFrame(long pos, BsonObject frame) {
         frame = frame.copy();
         frame.put(Protocol.RECEV_SUBID, id);
@@ -33,19 +33,12 @@ public class SubscriptionImpl extends SubscriptionBase {
         Buffer buff = connection.writeResponse(Protocol.RECEV_FRAME, frame);
         unackedBytes += buff.length();
         if (unackedBytes > maxUnackedBytes) {
-            readStream.pause();
+            // TODO - Possibly use Event source or is Superceeded by Subscription
+            // readStream.pause();
         }
     }
 
-    protected void handleAckEv(long pos, int bytes) {
-        checkContext();
-        unackedBytes -= bytes;
-        // Low watermark to prevent thrashing
-        if (unackedBytes < maxUnackedBytes / 2) {
-            readStream.resume();
-        }
-        afterAcknowledge(pos);
-    }
+
 
 
 }

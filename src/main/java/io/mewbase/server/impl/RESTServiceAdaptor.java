@@ -1,7 +1,7 @@
 package io.mewbase.server.impl;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.server.Binder;
+import io.mewbase.binders.Binder;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryImpl;
 import io.mewbase.util.AsyncResCF;
@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * TODO content types
@@ -71,14 +72,15 @@ public class RESTServiceAdaptor {
         router.route(HttpMethod.GET, uri).handler(rc -> {
             BsonObject params = new BsonObject(rc.pathParams());
             RESTServiceAdaptorQueryExecution qe = new RESTServiceAdaptorQueryExecution(query, params, rc.response(),
-                    server.getServerOptions().getQueryMaxUnackedBytes());
-            rc.response().closeHandler(v -> qe.close());
-            qe.start();
+                    256);
+            rc.response(); // qe.close());
+            // TODO Query execution over a vanilla Java 8 Stream
+           // qe.start();
         });
     }
 
-    public void exposeFindByID(String binderName, String uri) {
-        Binder binder = server.getBinder(binderName);
+    public void exposeFindByID(String binderName, String uri) throws ExecutionException, InterruptedException {
+        Binder binder = server.getBinder(binderName).get();
         if (binder == null) {
             throw new IllegalArgumentException("No such binder " + binder);
         }
@@ -125,7 +127,7 @@ public class RESTServiceAdaptor {
             response.write("[");
         }
 
-        private int toAckBytes;
+
 
         @Override
         protected Buffer writeQueryResult(BsonObject document, boolean last) {
@@ -141,21 +143,18 @@ public class RESTServiceAdaptor {
                 response.end();
             } else {
                 if (!response.writeQueueFull()) {
-                    sendAck(buff.length());
+                    // TODO move flow control to underlying reactive stream
+                    // sendAck(buff.length());
                 } else {
-                    toAckBytes += buff.length();
-                    response.drainHandler(v -> {
-                        sendAck(toAckBytes);
-                        toAckBytes = 0;
-                    });
+                   // toAckBytes += buff.length();
+                   // response.drainHandler(v -> {
+                    //    toAckBytes = 0;
+                    //});
                 }
             }
             return buff;
         }
 
-        // TODO better flow control
-        private void sendAck(int bytes) {
-            context.runOnContext(v -> handleAck(bytes));
-        }
+
     }
 }

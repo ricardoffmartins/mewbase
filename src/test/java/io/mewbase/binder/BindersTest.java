@@ -1,125 +1,163 @@
 package io.mewbase.binder;
 
-import io.mewbase.ServerTestBase;
-import io.mewbase.bson.BsonArray;
+import io.mewbase.MewbaseTestBase;
+import io.mewbase.binders.BinderStore;
+import io.mewbase.binders.impl.lmdb.LmdbBinderStore;
 import io.mewbase.bson.BsonObject;
-import io.mewbase.server.Binder;
-import io.mewbase.server.DocReadStream;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
+import io.mewbase.binders.Binder;
+
+
+import io.mewbase.server.MewbaseOptions;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-import static junit.framework.TestCase.assertFalse;
+
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.*;
 
 /**
- * TODO we should distinguish between testing on the Mewbase interface and at the client
  * <p>
  * Created by tim on 14/10/16.
  */
 @RunWith(VertxUnitRunner.class)
-public class BindersTest extends ServerTestBase {
+public class BindersTest extends MewbaseTestBase {
 
     private final static Logger logger = LoggerFactory.getLogger(BindersTest.class);
 
-    protected DocReadStream stream;
-    protected Binder testBinder1;
+    private final static String BINDER_NAME = "TestBinderName";
 
-    @Override
-    protected void tearDown(TestContext context) throws Exception {
-        if (stream != null) {
-            stream.close();
-        }
-        super.tearDown(context);
-    }
-
-    @Override
-    protected void setupChannelsAndBinders() throws Exception {
-        server.createBinder(TEST_BINDER1).get();
-        server.createBinder(TEST_BINDER2).get();
-        testBinder1 = server.getBinder(TEST_BINDER1);
-    }
 
     @Test
-    public void testListBinders() throws Exception {
-        int numBinders = 10;
-        CompletableFuture[] all = new CompletableFuture[numBinders];
-        for (int i = 0; i < numBinders; i++) {
-            all[i] = server.createBinder("testbinder" + i);
-        }
-        CompletableFuture.allOf(all).get();
-        BsonArray binders1 = client.listBinders().get();
+    public void testCreateBinderStore() throws Exception {
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+        store.binderNames().forEach( bn-> System.out.println(bn));
+        assertEquals(store.binderNames().count(),0L);
+        store.close();
+    }
 
-        Set<String> bindersSet1 = new HashSet<>(binders1.getList());
+
+    @Test
+    public void testOpenBinders() throws Exception {
+
+        // set up the store and add some binders
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+
+        final int numBinders = 10;
+        CompletableFuture[] all = new CompletableFuture[numBinders];
+        IntStream.range(0, all.length).forEach( i -> {
+            all[i] = store.open("testbinder" + i);
+        });
+        CompletableFuture.allOf(all).get();
+
+        Set<String> bindersSet1 = store.binderNames().collect(toSet());
         for (int i = 0; i < numBinders; i++) {
             assertTrue(bindersSet1.contains("testbinder" + i));
         }
 
-        final String otherBinderName = "someotherbinder";
-
-        // Create a new one
-        server.createBinder(otherBinderName).get();
-        BsonArray binders2 = client.listBinders().get();
-        Set<String> bindersSet2 = new HashSet<>(binders2.getList());
-        assertTrue(bindersSet2.contains(otherBinderName));
+        final String name = "AnotherBinder";
+        store.open(name).get();
+        Set<String> bindersSet2 = store.binderNames().collect(toSet());
+        assertTrue(bindersSet2.contains(name));
         assertEquals(bindersSet1.size() + 1, bindersSet2.size());
+        store.close();
     }
 
-    @Test
-    public void testCreateBinder() throws Exception {
-        final String binderName = "somebinder";
-        CompletableFuture<Boolean> cf = client.createBinder(binderName);
-        assertTrue(cf.get());
 
-        List<String> binderNames = server.listBinders();
-        Set<String> bindersSet = new HashSet<>(binderNames);
-        assertTrue(bindersSet.contains(binderName));
-
-        CompletableFuture<Boolean> cf2 = client.createBinder(binderName);
-        assertFalse(cf2.get());
-    }
-
-    @Test
-    public void testSimplePutGet() throws Exception {
-        BsonObject docPut = createObject();
-        assertNull(testBinder1.put("id1234", docPut).get());
-        BsonObject docGet = testBinder1.get("id1234").get();
-        assertEquals(docPut, docGet);
+   @Test
+   public void testSimplePutGet() throws Exception {
+       BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+       Binder binder = store.open(BINDER_NAME).get();
+       BsonObject docPut = createObject();
+       assertNull(binder.put("id1234", docPut).get());
+       BsonObject docGet = binder.get("id1234").get();
+       assertEquals(docPut, docGet);
     }
 
     @Test
     public void testFindNoEntry() throws Exception {
-        assertNull(testBinder1.get("id1234").get());
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+        Binder binder = store.open(BINDER_NAME).get();
+        assertNull(binder.get("id1234").get());
     }
 
     @Test
     public void testDelete() throws Exception {
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+        Binder binder = store.open(BINDER_NAME).get();
+
         BsonObject docPut = createObject();
-        assertNull(testBinder1.put("id1234", docPut).get());
-        BsonObject docGet = testBinder1.get("id1234").get();
+        assertNull(binder.put("id1234", docPut).get());
+        BsonObject docGet = binder.get("id1234").get();
         assertEquals(docPut, docGet);
-        assertTrue(testBinder1.delete("id1234").get());
-        docGet = testBinder1.get("id1234").get();
+        assertTrue(binder.delete("id1234").get());
+        docGet = binder.get("id1234").get();
         assertNull(docGet);
     }
 
+
+    @Test
+    public void testGetIds() throws Exception {
+
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+        Binder binder = store.open(BINDER_NAME).get();
+
+        final int MANY_DOCS = 64;
+        final String DOC_ID_KEY = "id";
+
+        final IntStream range = IntStream.rangeClosed(1, MANY_DOCS);
+
+        range.forEach(i -> {
+            final BsonObject docPut = createObject();
+            binder.put(String.valueOf(i), docPut.put(DOC_ID_KEY, i));
+        });
+
+        Consumer<String> checker = (String id) -> {
+            try {
+                BsonObject b = binder.get(id).get();
+                assertNotNull(b);
+                assertEquals((int)b.getInteger(DOC_ID_KEY) , (int)Integer.parseInt(id));
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
+        };
+
+        // get all
+        Stream<String> ids = binder.getIds().get();
+        ids.forEach(checker);
+
+        // get some of the docs
+        final int HALF_THE_DOCS = MANY_DOCS / 2;
+        Stream<String> some = binder.getIdsWithFilter(bson -> {
+            try {
+                return bson.getInteger(DOC_ID_KEY) <= HALF_THE_DOCS;
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
+            return false;
+        }).get();
+
+        assertEquals(some.collect(toSet()).size(), HALF_THE_DOCS);
+
+    }
+
+
     @Test
     public void testPutGetDifferentBinders() throws Exception {
-        createBinder("binder1");
-        createBinder("binder2");
-        Binder binder1 = server.getBinder("binder1");
-        Binder binder2 = server.getBinder("binder2");
+
+        final String B1 = BINDER_NAME + "1";
+        final String B2 = BINDER_NAME + "2";
+        BinderStore store = new LmdbBinderStore(createMewbaseOptions());
+        Binder binder1 = store.open(B1).get();
+        Binder binder2 = store.open(B2).get();
 
         BsonObject docPut1 = createObject();
         docPut1.put("binder", "binder1");
@@ -138,150 +176,26 @@ public class BindersTest extends ServerTestBase {
     }
 
     @Test
-    public void testPutGetMultiple() throws Exception {
-        int numDocs = 10;
-        int numBinders = 10;
-        for (int i = 0; i < numBinders; i++) {
-            String binderName = "pgmbinder" + i;
-            createBinder(binderName);
-            Binder binder = server.getBinder(binderName);
-            for (int j = 0; j < numDocs; j++) {
-                BsonObject docPut = createObject();
-                docPut.put("binder", binderName);
-                assertNull(binder.put("id" + j, docPut).get());
-            }
-        }
-        for (int i = 0; i < numBinders; i++) {
-            String binderName = "pgmbinder" + i;
-            Binder binder = server.getBinder(binderName);
-            for (int j = 0; j < numDocs; j++) {
-                BsonObject docGet = binder.get("id" + j).get();
-                assertEquals(binderName, docGet.remove("binder"));
-            }
-        }
-    }
+    public void testBinderIsPersistent() throws Exception {
 
-    @Test
-    public void testRestart() throws Exception {
+        final MewbaseOptions OPTIONS = createMewbaseOptions();
+
+        BinderStore store = new LmdbBinderStore(OPTIONS);
+        Binder binder = store.open(BINDER_NAME).get();
         BsonObject docPut = createObject();
-        assertNull(testBinder1.put("id1234", docPut).get());
-        BsonObject docGet = testBinder1.get("id1234").get();
+        binder.put("id1234", docPut).get();
+        store.close();
+
+        Thread.sleep(10);
+
+        BinderStore store2 = new LmdbBinderStore(OPTIONS);
+        Binder binder2 = store2.open(BINDER_NAME).get();
+        BsonObject docGet = binder2.get("id1234").get();
         assertEquals(docPut, docGet);
-        // We don't use the restart() method as this recreates the binders
-        stopServerAndClient();
-        startServer();
-        testBinder1 = server.getBinder(TEST_BINDER1);
-        docGet = testBinder1.get("id1234").get();
-        assertEquals(docPut, docGet);
+        store2.close();
     }
 
-    @Test
-    public void testStream(TestContext testContext) throws Exception {
 
-        // Add some docs
-        int numDocs = 100;
-        addDocs(TEST_BINDER1, numDocs);
-
-        // Add some docs in another binder
-        addDocs(TEST_BINDER2, numDocs);
-
-        stream = testBinder1.getMatching(doc -> true);
-
-        Async async = testContext.async();
-
-        AtomicInteger docCount = new AtomicInteger();
-        stream.handler(doc -> {
-            int expectedNum = docCount.getAndIncrement();
-            int docNum = doc.getInteger("docNum");
-            assertEquals(expectedNum, docNum);
-            if (expectedNum == numDocs - 1) {
-                async.complete();
-            }
-        });
-
-        stream.start();
-    }
-
-    @Test
-    public void testStreamWithFilter(TestContext testContext) throws Exception {
-
-        // Add some docs
-        int numDocs = 100;
-        addDocs(TEST_BINDER1, numDocs);
-
-        // Add some docs in another binder
-        addDocs(TEST_BINDER2, numDocs);
-
-        stream = testBinder1.getMatching(doc -> {
-            int docNum = doc.getInteger("docNum");
-            return docNum >= 10 && docNum < 90;
-        });
-
-        Async async = testContext.async();
-
-        AtomicInteger docCount = new AtomicInteger(10);
-        stream.handler(doc -> {
-            int expectedNum = docCount.getAndIncrement();
-            int docNum = doc.getInteger("docNum");
-            assertEquals(expectedNum, docNum);
-            if (expectedNum == 89) {
-                async.complete();
-            }
-        });
-
-        stream.start();
-    }
-
-    @Test
-    public void testStreamPauseResume(TestContext testContext) throws Exception {
-
-        // Add some docs
-        int numDocs = 100;
-        addDocs(TEST_BINDER1, numDocs);
-
-        // Add some docs in another binder
-        addDocs(TEST_BINDER2, numDocs);
-
-        stream = testBinder1.getMatching(doc -> true);
-
-        Async async = testContext.async();
-
-        AtomicInteger docCount = new AtomicInteger();
-        AtomicBoolean paused = new AtomicBoolean();
-        stream.handler(doc -> {
-            testContext.assertFalse(paused.get());
-            int expectedNum = docCount.getAndIncrement();
-            int docNum = doc.getInteger("docNum");
-            assertEquals(expectedNum, docNum);
-
-            if (expectedNum == numDocs / 2) {
-                stream.pause();
-                paused.set(true);
-                vertx.setTimer(100, tid -> {
-                    paused.set(false);
-                    stream.resume();
-                });
-            }
-            if (expectedNum == numDocs - 1) {
-                async.complete();
-            }
-        });
-
-        stream.start();
-    }
-
-    // TODO
-    // Test binders in binders_binder but not in actual storage and vice versa
-    // etc
-
-    private void addDocs(String binderName, int numDocs) throws Exception {
-        for (int i = 0; i < numDocs; i++) {
-            BsonObject docPut = createObject();
-            docPut.put("docNum", i);
-            Binder binder = server.getBinder(binderName);
-            assertNull(binder.put(getID(i), docPut).get());
-        }
-    }
 
     private String getID(int id) {
         return String.format("id-%05d", id);
@@ -293,8 +207,6 @@ public class BindersTest extends ServerTestBase {
         return obj;
     }
 
-    protected boolean createBinder(String binderName) throws Exception {
-        return server.createBinder(binderName).get();
-    }
+
 
 }

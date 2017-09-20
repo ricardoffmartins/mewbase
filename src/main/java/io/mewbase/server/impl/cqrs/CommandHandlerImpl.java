@@ -3,7 +3,6 @@ package io.mewbase.server.impl.cqrs;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.server.CommandContext;
 import io.mewbase.server.CommandHandler;
-import io.mewbase.server.Log;
 
 import java.util.function.BiConsumer;
 
@@ -15,7 +14,7 @@ public class CommandHandlerImpl implements CommandHandler {
     private final String name;
     private String channelName;
     private BiConsumer<BsonObject, CommandContext> handler;
-    private Log log;
+    //private Log log;
 
     public CommandHandlerImpl(String name) {
         this.name = name;
@@ -51,11 +50,5 @@ public class CommandHandlerImpl implements CommandHandler {
 
     }
 
-    public Log getLog() {
-        return log;
-    }
 
-    public void setLog(Log log) {
-        this.log = log;
-    }
 }

@@ -1,7 +1,7 @@
 package io.mewbase.server.spi;
 
 import io.mewbase.server.Server;
-import io.mewbase.server.ServerOptions;
+import io.mewbase.server.MewbaseOptions;
 import io.vertx.core.Vertx;
 
 /**
@@ -9,7 +9,7 @@ import io.vertx.core.Vertx;
  */
 public interface ServerFactory {
 
-    Server newServer(ServerOptions serverOptions);
+    Server newServer(MewbaseOptions mewbaseOptions);
 
-    Server newServer(Vertx vertx, ServerOptions serverOptions);
+    Server newServer(Vertx vertx, MewbaseOptions mewbaseOptions);
 }

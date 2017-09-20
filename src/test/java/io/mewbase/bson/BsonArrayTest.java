@@ -19,7 +19,7 @@
 package io.mewbase.bson;
 
 import io.mewbase.TestUtils;
-import io.mewbase.client.MewException;
+
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -860,7 +860,7 @@ public class BsonArrayTest {
         try {
             new BsonArray(invalid);
             fail();
-        } catch (MewException e) {
+        } catch (Exception e) {
             // OK
         }
     }

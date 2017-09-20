@@ -6,17 +6,18 @@ import io.vertx.core.Vertx;
 
 import java.util.concurrent.CompletableFuture;
 
+
 /**
  * Created by tim on 21/09/16.
  */
 public interface Server extends Mewbase {
 
-    static Server newServer(ServerOptions serverOptions) {
-        return factory.newServer(serverOptions);
+    static Server newServer(MewbaseOptions mewbaseOptions) {
+        return factory.newServer(mewbaseOptions);
     }
 
-    static Server newServer(Vertx vertx, ServerOptions serverOptions) {
-        return factory.newServer(vertx, serverOptions);
+    static Server newServer(Vertx vertx, MewbaseOptions mewbaseOptions) {
+        return factory.newServer(vertx, mewbaseOptions);
     }
 
     CompletableFuture<Void> start();

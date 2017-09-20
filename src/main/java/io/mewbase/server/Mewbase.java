@@ -1,9 +1,11 @@
 package io.mewbase.server;
 
+import io.mewbase.binders.Binder;
 import io.vertx.core.http.HttpMethod;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 /**
  * Created by tim on 15/12/16.
@@ -12,22 +14,12 @@ public interface Mewbase {
 
     // Binder related operations
 
-    CompletableFuture<Boolean> createBinder(String binderName);
+    CompletableFuture<Binder> createBinder(String binderName);
 
-    Binder getBinder(String name);
+    CompletableFuture<Binder> getBinder(String name);
 
-    List<String> listBinders();
+    Stream<String> listBinders();
 
-    // Channel related operations
-
-
-    CompletableFuture<Boolean> createChannel(String channelName);
-
-    Channel getChannel(String channelName);
-
-    List<String> listChannels();
-
-    SubsFilterBuilder buildSubsFilter(String channelName);
 
     // Projection related operations
 
@@ -37,9 +29,11 @@ public interface Mewbase {
 
     Projection getProjection(String projectionName);
 
+
     // Command handler related operations
 
     CommandHandlerBuilder buildCommandHandler(String commandName);
+
 
     // Query related operations
 

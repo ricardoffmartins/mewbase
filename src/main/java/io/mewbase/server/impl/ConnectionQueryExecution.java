@@ -24,9 +24,9 @@ public class ConnectionQueryExecution extends QueryExecution {
         return connection.writeQueryResult(doc, queryID, last);
     }
 
-    @Override
+
     public void close() {
-        super.close();
+       // super.close();
         connection.removeQueryState(queryID);
     }
 }

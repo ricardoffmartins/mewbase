@@ -1,7 +1,7 @@
 package io.mewbase.server.impl.cqrs;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.server.Binder;
+import io.mewbase.binders.Binder;
 import io.mewbase.server.Query;
 import io.mewbase.server.QueryContext;
 
