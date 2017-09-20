@@ -34,7 +34,7 @@ public class LmdbBinderStore implements BinderStore {
 
     private final Vertx vertx;
 
-    public static final String LMDB_DOCMANAGER_POOL_NAME = "mewbase.binderpool";
+    public static final String LMDB_DOCMANAGER_POOL_NAME = "binderstore";
 
     private final ConcurrentMap<String, Binder> binders = new ConcurrentHashMap<>();
 

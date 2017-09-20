@@ -49,9 +49,12 @@ public class LmdbBinder implements Binder {
     public LmdbBinder(String name, Env<ByteBuffer> env, Vertx vertx) {
         this.env = env;
         this.name = name;
-        this.exec = vertx.createSharedWorkerExecutor(LmdbBinderStore.LMDB_DOCMANAGER_POOL_NAME, 1);
+        // Each Binder has a thread on which it executes blocking calls to the particular dbi
+        // this is because LMDB transaction must take place on the same thread.
+        this.exec = vertx.createSharedWorkerExecutor(name, 1);
         // create the db if it doesnt exists
         this.dbi =  env.openDbi(name,MDB_CREATE);
+        logger.trace("Started Binder named " + name);
     }
 
 
@@ -131,7 +134,7 @@ public class LmdbBinder implements Binder {
             byte[] valBytes = doc.encode().getBytes();
             final ByteBuffer val = allocateDirect(valBytes.length);
             val.put(valBytes).flip();
-            dbi.put(key, val);
+            dbi.put(key, val);  // TODO Check if this syncs to disk
             fut.complete(null);
         }, res);
         return res;
@@ -157,8 +160,6 @@ public class LmdbBinder implements Binder {
         }, res);
         return res;
     }
-
-
 
 
     private ByteBuffer makeKeyBuffer(String id) {
