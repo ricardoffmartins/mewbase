@@ -1,6 +1,4 @@
-package io.mewbase.common;
-
-import io.mewbase.bson.BsonObject;
+package io.mewbase.server.impl.proj;
 
 /**
  * Created by tim on 22/09/16.

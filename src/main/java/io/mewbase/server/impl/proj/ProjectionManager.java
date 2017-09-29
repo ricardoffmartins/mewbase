@@ -2,9 +2,6 @@ package io.mewbase.server.impl.proj;
 
 import io.mewbase.bson.BsonObject;
 
-import io.mewbase.common.Delivery;
-import io.mewbase.common.SubDescriptor;
-import io.mewbase.common.impl.DeliveryImpl;
 import io.mewbase.binders.Binder;
 import io.mewbase.server.Projection;
 import io.mewbase.server.ProjectionBuilder;
@@ -183,7 +180,7 @@ public class ProjectionManager {
 
     Projection registerProjection(String name, String channel, Function<BsonObject, Boolean> eventFilter,
                                   String binderName, Function<BsonObject, String> docIDSelector,
-                                  BiFunction<BsonObject, Delivery, BsonObject> projectionFunction) {
+                                  BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction) {
         if (projections.containsKey(name)) {
             throw new IllegalArgumentException("Projection " + name + " already registered");
         }

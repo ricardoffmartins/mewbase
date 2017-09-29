@@ -178,10 +178,10 @@ public class OrderService  {
                 .filteredBy(ev -> new Event(ev).getEventType().equals(ADD_ITEM_EVENT_TYPE)) // event filter
                 .onto(BASKETS_BINDER_NAME)                                     // binder name
                 .identifiedBy(ev -> new AddItemEvent(ev).getCustomerID())          // document id selector; how to obtain the doc id from the event bson
-                .as((b, del) -> {
+                .as((b, event) -> {
                     // projection function
                     Basket basket = new Basket(b);
-                    AddItemEvent aie = new AddItemEvent(del.event());
+                    AddItemEvent aie = new AddItemEvent(event);
                     return basket.incrementQuantity(aie.getProductID(), aie.getQuantity());
                 })
                 .create();
