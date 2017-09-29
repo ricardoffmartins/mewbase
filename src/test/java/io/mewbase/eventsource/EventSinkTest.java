@@ -63,8 +63,8 @@ public class EventSinkTest extends ServerTestBase {
     @Test
     public void testManyEventsInOrder() throws Exception {
 
-        // Test local event producer to inject events in the event source.
-        final String testChannelName = "TestMultiEventChannel";
+        // Test local eventSink to inject events in the event source.
+        final String testChannelName = "Channel1";
         EventSink eSink = new NatsEventSink();
 
         final int START_EVENT_NUMBER = 1;
