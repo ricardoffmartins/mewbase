@@ -8,11 +8,7 @@ import java.time.Instant;
 
 public interface Event {
 
-    default BsonObject getBson() {
-        return new BsonObject(Buffer.buffer(getData()));
-    }
-
-    byte[] getData();
+    BsonObject getBson();
 
     Instant getInstant();
 

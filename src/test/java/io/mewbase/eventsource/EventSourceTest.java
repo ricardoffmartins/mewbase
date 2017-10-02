@@ -84,7 +84,7 @@ public class EventSourceTest extends ServerTestBase {
 
         EventSource es = new NatsEventSource();
         es.subscribe(testChannelName, event -> {
-                BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+                BsonObject bson =  event.getBson();
                 long thisEventNum = END_EVENT_NUMBER - latch.getCount();
                 assert(bson.getLong("num") == thisEventNum);
                 latch.countDown();
@@ -117,7 +117,7 @@ public class EventSourceTest extends ServerTestBase {
 
         EventSource es = new NatsEventSource(new MewbaseOptions());
         es.subscribeFromMostRecent(testChannelName, event -> {
-            BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+            BsonObject bson = event.getBson();
             long thisEventNum = MID_EVENT_NUMBER + (eventsToTest - latch.getCount());
             assert(bson.getLong("num") == thisEventNum);
             latch.countDown();
@@ -150,7 +150,7 @@ public class EventSourceTest extends ServerTestBase {
 
         EventSource es = new NatsEventSource();
         es.subscribeFromEventNumber(testChannelName, MID_EVENT_NUMBER, event -> {
-            BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+            BsonObject bson = event.getBson();
             long thisEventNum = MID_EVENT_NUMBER + (eventsToTest - latch.getCount());
             assert(bson.getLong("num") == thisEventNum);
             latch.countDown();
@@ -189,7 +189,7 @@ public class EventSourceTest extends ServerTestBase {
 
         EventSource es = new NatsEventSource();
         es.subscribeFromInstant(testChannelName, then, event -> {
-            BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+            BsonObject bson  = event.getBson();
             long thisEventNum = MID_EVENT_NUMBER + 1 + (eventsToTest - latch.getCount());
             assert(bson.getLong("num") == thisEventNum);
             latch.countDown();
@@ -220,7 +220,7 @@ public class EventSourceTest extends ServerTestBase {
 
         EventSource es = new NatsEventSource();
         es.subscribeAll(testChannelName,  event -> {
-            BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+            BsonObject bson = event.getBson();
             long thisEventNum = START_EVENT_NUMBER + eventsToTest - latch.getCount();
             assert(bson.getLong("num") == thisEventNum);
             latch.countDown();

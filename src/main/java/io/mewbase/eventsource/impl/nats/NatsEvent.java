@@ -1,9 +1,12 @@
 package io.mewbase.eventsource.impl.nats;
 
+import io.mewbase.bson.BsonObject;
 import io.mewbase.eventsource.Event;
 import io.nats.stan.Message;
+import io.vertx.core.buffer.Buffer;
 
 import java.time.Instant;
+
 
 class NatsEvent implements Event {
 
@@ -14,7 +17,9 @@ class NatsEvent implements Event {
     }
 
     @Override
-    public byte[] getData() { return msg.getData(); }
+    public BsonObject getBson() {
+            return new BsonObject(Buffer.buffer(msg.getData()));
+    }
 
     @Override
     public Instant getInstant()  { return msg.getInstant(); }
