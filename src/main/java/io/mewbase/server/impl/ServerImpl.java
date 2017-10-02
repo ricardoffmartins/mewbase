@@ -3,12 +3,14 @@ package io.mewbase.server.impl;
 import io.mewbase.binders.Binder;
 import io.mewbase.binders.BinderStore;
 import io.mewbase.binders.impl.lmdb.LmdbBinderStore;
+import io.mewbase.projection.Projection;
+import io.mewbase.projection.ProjectionBuilder;
 import io.mewbase.server.*;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
 import io.mewbase.server.impl.file.af.AFFileAccess;
 
-import io.mewbase.server.impl.proj.ProjectionManager;
+import io.mewbase.projection.impl.ProjectionManager;
 
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
@@ -19,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
 /**

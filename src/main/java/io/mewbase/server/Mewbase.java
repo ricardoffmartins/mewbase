@@ -1,6 +1,8 @@
 package io.mewbase.server;
 
 import io.mewbase.binders.Binder;
+import io.mewbase.projection.Projection;
+import io.mewbase.projection.ProjectionBuilder;
 import io.vertx.core.http.HttpMethod;
 
 import java.util.List;

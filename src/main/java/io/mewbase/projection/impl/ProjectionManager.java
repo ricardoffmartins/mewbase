@@ -1,10 +1,10 @@
-package io.mewbase.server.impl.proj;
+package io.mewbase.projection.impl;
 
 import io.mewbase.bson.BsonObject;
 
 import io.mewbase.binders.Binder;
-import io.mewbase.server.Projection;
-import io.mewbase.server.ProjectionBuilder;
+import io.mewbase.projection.Projection;
+import io.mewbase.projection.ProjectionBuilder;
 import io.mewbase.server.impl.ServerImpl;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Context;

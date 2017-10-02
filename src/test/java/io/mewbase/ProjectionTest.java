@@ -1,9 +1,6 @@
 package io.mewbase;
 
-import io.mewbase.bson.BsonObject;
-import io.mewbase.bson.BsonPath;
-import io.mewbase.server.Projection;
-import io.mewbase.server.impl.ServerImpl;
+import io.mewbase.projection.Projection;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
