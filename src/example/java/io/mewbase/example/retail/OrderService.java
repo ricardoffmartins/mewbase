@@ -172,19 +172,18 @@ public class OrderService  {
     public void setupServer(Mewbase mewbase) throws Exception {
 
 
-
-        mewbase.buildProjection("maintain_basket")                    // projection name
-                .projecting(ORDERS_CHANNEL_NAME)                                    // channel name
-                .filteredBy(ev -> new Event(ev).getEventType().equals(ADD_ITEM_EVENT_TYPE)) // event filter
-                .onto(BASKETS_BINDER_NAME)                                     // binder name
-                .identifiedBy(ev -> new AddItemEvent(ev).getCustomerID())          // document id selector; how to obtain the doc id from the event bson
-                .as((b, event) -> {
-                    // projection function
-                    Basket basket = new Basket(b);
-                    AddItemEvent aie = new AddItemEvent(event);
-                    return basket.incrementQuantity(aie.getProductID(), aie.getQuantity());
-                })
-                .create();
+//        mewbase.buildProjection("maintain_basket")                    // projection name
+//                .projecting(ORDERS_CHANNEL_NAME)                                    // channel name
+//                .filteredBy(ev -> new Event(ev).getEventType().equals(ADD_ITEM_EVENT_TYPE)) // event filter
+//                .onto(BASKETS_BINDER_NAME)                                     // binder name
+//                .identifiedBy(ev -> new AddItemEvent(ev).getCustomerID())          // document id selector; how to obtain the doc id from the event bson
+//                .as((b, event) -> {
+//                    // projection function
+//                    Basket basket = new Basket(b);
+//                    AddItemEvent aie = new AddItemEvent(event);
+//                    return basket.incrementQuantity(aie.getProductID(), aie.getQuantity());
+//                })
+//                .create();
 
 
         mewbase.buildCommandHandler("addItem")

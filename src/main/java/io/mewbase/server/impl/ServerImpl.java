@@ -34,7 +34,7 @@ public class ServerImpl implements Server {
     private final boolean ownVertx;
     private final Vertx vertx;
 
-    private final ProjectionManager projectionManager;
+    //private final ProjectionManager projectionManager;
 
     private final CQRSManager cqrsManager;
 
@@ -56,7 +56,7 @@ public class ServerImpl implements Server {
 
         this.faf = new AFFileAccess(vertx);
 
-        this.projectionManager = new ProjectionManager(this);
+        // this.projectionManager = new ProjectionManager(this);
         this.cqrsManager = new CQRSManager(this);
 
         this.restServiceAdaptor = new RESTServiceAdaptor(this);
@@ -98,37 +98,38 @@ public class ServerImpl implements Server {
     // Binder related API
 
 
-    @Override
-    public CompletableFuture<Binder> createBinder(String name) {
-        return binderStore.open(name);
-    }
+//    @Override
+//    public CompletableFuture<Binder> createBinder(String name) {
+//        return binderStore.open(name);
+//    }
+//
+//    @Override
+//    public CompletableFuture<Binder> getBinder(String name) {
+//        return binderStore.get(name);
+//    }
+//
+//    @Override
+//    public Stream<String> listBinders() {
+//        return binderStore.binderNames();
+//    }
+//
 
-    @Override
-    public CompletableFuture<Binder> getBinder(String name) {
-        return binderStore.get(name);
-    }
 
-    @Override
-    public Stream<String> listBinders() {
-        return binderStore.binderNames();
-    }
+//    @Override
+//    public ProjectionBuilder buildProjection(String projectionName) {
+//        return projectionManager.buildProjection(projectionName);
+//    }
 
+//    @Override
+//    public List<String> listProjections() {
+//        return projectionManager.listProjectionNames();
+//    }
+//
 
-
-    @Override
-    public ProjectionBuilder buildProjection(String projectionName) {
-        return projectionManager.buildProjection(projectionName);
-    }
-
-    @Override
-    public List<String> listProjections() {
-        return projectionManager.listProjectionNames();
-    }
-
-    @Override
-    public Projection getProjection(String projectionName) {
-        return projectionManager.getProjection(projectionName);
-    }
+//    @Override
+//    public Projection getProjection(String projectionName) {
+//        return projectionManager.getProjection(projectionName);
+//    }
 
     // CQRS related API
     @Override

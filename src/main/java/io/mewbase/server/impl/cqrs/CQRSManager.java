@@ -1,5 +1,7 @@
 package io.mewbase.server.impl.cqrs;
 
+import io.mewbase.binders.BinderStore;
+import io.mewbase.binders.impl.lmdb.LmdbBinderStore;
 import io.mewbase.bson.BsonObject;
 
 import io.mewbase.binders.Binder;
@@ -24,6 +26,8 @@ public class CQRSManager {
     private final static Logger logger = LoggerFactory.getLogger(CQRSManager.class);
 
     private final ServerImpl server;
+
+    private final BinderStore store = new LmdbBinderStore();
     private final Map<String, CommandHandlerImpl> commandHandlers = new ConcurrentHashMap<>();
     private final Map<String, QueryImpl> queries = new ConcurrentHashMap<>();
 
@@ -119,7 +123,7 @@ public class CQRSManager {
         if (queries.containsKey(query.getName())) {
             throw new IllegalArgumentException("Query " + query.getName() + " already registered");
         }
-        Binder binder = server.getBinder(query.getBinderName()).get();
+        Binder binder = store.open(query.getBinderName()).get();
         if (binder == null) {
             throw new IllegalArgumentException("No such binder " + query.getBinderName());
         }

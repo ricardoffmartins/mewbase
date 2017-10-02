@@ -3,6 +3,7 @@ package io.mewbase.projection.impl;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.projection.Projection;
 import io.mewbase.projection.ProjectionBuilder;
+import io.mewbase.projection.ProjectionFactory;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -12,17 +13,24 @@ import java.util.function.Function;
  */
 public class ProjectionBuilderImpl implements ProjectionBuilder {
 
-    private final String projectionName;
-    private final ProjectionManager projectionManager;
+    private final ProjectionFactory factory;
+
+    private String projectionName;
     private String channelName;
     private Function<BsonObject, Boolean> eventFilter = doc -> true;
     private String binderName;
     private Function<BsonObject, String> docIDSelector;
     private BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction;
 
-    public ProjectionBuilderImpl(String projectionName, ProjectionManager projectionManager) {
+
+    ProjectionBuilderImpl(ProjectionFactory factory) {
+        this.factory = factory;
+    }
+
+    @Override
+    public ProjectionBuilder named(String name) {
         this.projectionName = projectionName;
-        this.projectionManager = projectionManager;
+        return this;
     }
 
     @Override
@@ -57,6 +65,9 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
 
     @Override
     public Projection create() {
+        if (projectionName == null) {
+            throw new IllegalStateException("Please specify a projection name");
+        }
         if (channelName == null) {
             throw new IllegalStateException("Please specify a channel name");
         }
@@ -72,8 +83,9 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
         if (projectionFunction == null) {
             throw new IllegalStateException("Please specify a projection function");
         }
-
-        return projectionManager.registerProjection(projectionName, channelName, eventFilter, binderName,
-                docIDSelector, projectionFunction);
+        // use the factory
+        return null;
+        // TODO projectionManager.registerProjection(projectionName, channelName, eventFilter, binderName,
+        // TODO     docIDSelector, projectionFunction);
     }
 }

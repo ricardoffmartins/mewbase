@@ -7,8 +7,5 @@ public interface Projection {
 
     String getName();
 
-    void pause();
-
-    void resume();
 
 }

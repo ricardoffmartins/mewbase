@@ -1,5 +1,7 @@
 package io.mewbase.server.impl;
 
+import io.mewbase.binders.BinderStore;
+import io.mewbase.binders.impl.lmdb.LmdbBinderStore;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.binders.Binder;
 import io.mewbase.server.impl.cqrs.CQRSManager;
@@ -33,6 +35,8 @@ public class RESTServiceAdaptor {
     private HttpServer httpServer;
     private Router router;
     private CQRSManager cqrsManager;
+
+    private BinderStore store = new LmdbBinderStore();
 
     public RESTServiceAdaptor(ServerImpl server) {
         this.server = server;
@@ -80,7 +84,7 @@ public class RESTServiceAdaptor {
     }
 
     public void exposeFindByID(String binderName, String uri) throws ExecutionException, InterruptedException {
-        Binder binder = server.getBinder(binderName).get();
+        Binder binder = store.open(binderName).get();
         if (binder == null) {
             throw new IllegalArgumentException("No such binder " + binder);
         }

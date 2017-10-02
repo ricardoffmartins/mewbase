@@ -10,6 +10,8 @@ import java.util.function.Function;
  */
 public interface ProjectionBuilder {
 
+    ProjectionBuilder named(String projectionName);
+
     ProjectionBuilder projecting(String channelName);
 
     ProjectionBuilder filteredBy(Function<BsonObject, Boolean> eventFilter);

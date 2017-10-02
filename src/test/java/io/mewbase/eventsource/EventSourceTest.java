@@ -50,7 +50,7 @@ public class EventSourceTest extends ServerTestBase {
         final CountDownLatch latch = new CountDownLatch(1);
         EventSource es = new NatsEventSource(new MewbaseOptions());
         Subscription subs = es.subscribe(testChannelName,  event ->  {
-                        BsonObject bson  = new BsonObject(Buffer.buffer(event.getData()));
+                        BsonObject bson  = event.getBson();
                         assert(inputUUID.equals(bson.getString("data")));
                         latch.countDown();
                         }

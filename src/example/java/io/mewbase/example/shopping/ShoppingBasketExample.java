@@ -29,20 +29,21 @@ public class ShoppingBasketExample {
         MewbaseOptions options = new MewbaseOptions();
         Server server = Server.newServer(options);
         server.start().get();
-        server.createBinder("baskets").get();
 
-        // TODO - replace when we work out how to do this with the abstracted channels
-        // server.createChannel("orders").get();
-
-        // Register a projection that will respond to add_item events and increase/decrease the quantity of the item in the basket
-        server.buildProjection("maintain_basket")                             // projection name
-                .projecting("orders")                                           // channel name
-                .filteredBy(ev -> ev.getString("eventType").equals("add_item")) // event filter
-                .onto("baskets")                                                // binder name
-                .identifiedBy(ev -> ev.getString("basketID"))                   // document id selector; how to obtain the doc id from the event bson
-                .as((basket, event) -> // projection function
-                        BsonPath.add(basket, event.getInteger("quantity"), "products", event.getString("productID")))
-                .create();
+//        server.createBinder("baskets").get();
+//
+//        // TODO - replace when we work out how to do this with the abstracted channels
+//        // server.createChannel("orders").get();
+//
+//        // Register a projection that will respond to add_item events and increase/decrease the quantity of the item in the basket
+//        server.buildProjection("maintain_basket")                             // projection name
+//                .projecting("orders")                                           // channel name
+//                .filteredBy(ev -> ev.getString("eventType").equals("add_item")) // event filter
+//                .onto("baskets")                                                // binder name
+//                .identifiedBy(ev -> ev.getString("basketID"))                   // document id selector; how to obtain the doc id from the event bson
+//                .as((basket, event) -> // projection function
+//                        BsonPath.add(basket, event.getInteger("quantity"), "products", event.getString("productID")))
+//                .create();
 
         // Create a client
         //Client client = Client.newClient(new ClientOptions());

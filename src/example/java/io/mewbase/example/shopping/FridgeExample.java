@@ -44,21 +44,21 @@ public class FridgeExample {
         final Server server = Server.newServer(new MewbaseOptions());
         server.start().get();
 
-        server.createBinder("fridges").get();
+        // server.createBinder("fridges").get();
 
         // Register a projection that will respond to fridge door status events
-        server.buildProjection("maintain_fridge_status")              // projection name
-                .projecting("fridge.status")                                         // channel name
-                .filteredBy(ev -> ev.getString("eventType").equals("doorStatus"))     // event filter
-                .onto("fridges")                                                     // binder name
-                .identifiedBy(ev -> ev.getString("fridgeID"))                   // document id selector; how to obtain the doc id from the event bson
-                .as( (BsonObject fridge, BsonObject event) ->  { // projection function
-
-                        final String doorStatus = event.getString("status");
-                        BsonPath.set(fridge, doorStatus, "door");
-                        return fridge;
-                } )
-                .create();
+//        server.buildProjection("maintain_fridge_status")              // projection name
+//                .projecting("fridge.status")                                         // channel name
+//                .filteredBy(ev -> ev.getString("eventType").equals("doorStatus"))     // event filter
+//                .onto("fridges")                                                     // binder name
+//                .identifiedBy(ev -> ev.getString("fridgeID"))                   // document id selector; how to obtain the doc id from the event bson
+//                .as( (BsonObject fridge, BsonObject event) ->  { // projection function
+//
+//                        final String doorStatus = event.getString("status");
+//                        BsonPath.set(fridge, doorStatus, "door");
+//                        return fridge;
+//                } )
+//                .create();
 
         // run the client to exercise the server
         exampleClient();
