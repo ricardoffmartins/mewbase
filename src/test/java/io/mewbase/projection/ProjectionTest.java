@@ -52,7 +52,6 @@ public class ProjectionTest extends MewbaseTestBase {
     }
 
 
-
     @Test
     public void testSimpleProjection() throws Exception {
         registerProjection();

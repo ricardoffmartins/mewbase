@@ -51,7 +51,7 @@ public class EventSinkTest extends ServerTestBase {
                         }
                     );
 
-        eSink.publish(testChannelName,bsonEvent.encode().getBytes());
+        eSink.publish(testChannelName,bsonEvent);
 
         latch.await();
 
@@ -85,9 +85,8 @@ public class EventSinkTest extends ServerTestBase {
 
         LongStream.rangeClosed(START_EVENT_NUMBER,END_EVENT_NUMBER).forEach(l -> {
             final BsonObject bsonEvent = new BsonObject().put("num", l);
-            eSink.publish(testChannelName,bsonEvent.encode().getBytes());
+            eSink.publish(testChannelName,bsonEvent);
         } );
-
 
 
         latch.await();
