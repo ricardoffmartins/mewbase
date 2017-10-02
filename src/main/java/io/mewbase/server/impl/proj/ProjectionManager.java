@@ -2,13 +2,9 @@ package io.mewbase.server.impl.proj;
 
 import io.mewbase.bson.BsonObject;
 
-import io.mewbase.common.Delivery;
-import io.mewbase.common.SubDescriptor;
-import io.mewbase.common.impl.DeliveryImpl;
 import io.mewbase.binders.Binder;
 import io.mewbase.server.Projection;
 import io.mewbase.server.ProjectionBuilder;
-import io.mewbase.server.impl.Protocol;
 import io.mewbase.server.impl.ServerImpl;
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Context;
@@ -62,13 +58,13 @@ public class ProjectionManager {
         final ProjectionSubscription subscription;
         final Function<BsonObject, Boolean> eventFilter;
         final Function<BsonObject, String> docIDSelector;
-        final BiFunction<BsonObject, Delivery, BsonObject> projectionFunction;
+        final BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction;
         final Binder binder;
         final Context context;
 
         public ProjectionImpl(String name, String channel, String binderName, Function<BsonObject, Boolean> eventFilter,
                               Function<BsonObject, String> docIDSelector,
-                              BiFunction<BsonObject, Delivery, BsonObject> projectionFunction) {
+                              BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction) {
             this.name = name;
             this.channel = channel;
             this.eventFilter = eventFilter;
@@ -84,8 +80,8 @@ public class ProjectionManager {
             context.runOnContext(v -> this.handler(seq, frame));
         }
 
-        void handler(long seq, BsonObject frame) {
-            BsonObject event = frame.getBsonObject(Protocol.RECEV_EVENT);
+        void handler(long seq, BsonObject event) {
+
 
             // Apply event filter
             if (!eventFilter.apply(event)) {
@@ -135,10 +131,8 @@ public class ProjectionManager {
                             lastSeqs = new BsonObject();
                             doc.put(PROJECTION_STATE_FIELD, lastSeqs);
                         }
-                        Delivery delivery = new DeliveryImpl(channel, frame.getLong(Protocol.RECEV_TIMESTAMP),
-                                seq, frame.getBsonObject(Protocol.RECEV_EVENT));
 
-                        BsonObject updated = projectionFunction.apply(doc, delivery);
+                        BsonObject updated = projectionFunction.apply(doc, event);
 
                         // Update the last sequence
                         lastSeqs.put(name, seq);
@@ -186,15 +180,17 @@ public class ProjectionManager {
 
     Projection registerProjection(String name, String channel, Function<BsonObject, Boolean> eventFilter,
                                   String binderName, Function<BsonObject, String> docIDSelector,
-                                  BiFunction<BsonObject, Delivery, BsonObject> projectionFunction) {
+                                  BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction) {
         if (projections.containsKey(name)) {
             throw new IllegalArgumentException("Projection " + name + " already registered");
         }
         logger.trace("Registering projection " + name);
-        ProjectionImpl holder =
-                new ProjectionImpl(name, channel, binderName, eventFilter, docIDSelector, projectionFunction);
-        projections.put(name, holder);
-        return holder;
+        // TODO redo
+//        ProjectionImpl holder =
+//                new ProjectionImpl(name, channel, binderName, eventFilter, docIDSelector, projectionFunction);
+//        projections.put(name, holder);
+//        return holder;
+        return null;
     }
 
 }

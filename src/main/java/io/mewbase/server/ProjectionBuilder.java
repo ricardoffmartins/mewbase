@@ -1,7 +1,6 @@
 package io.mewbase.server;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.common.Delivery;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -19,7 +18,7 @@ public interface ProjectionBuilder {
 
     ProjectionBuilder identifiedBy(Function<BsonObject, String> docIDSelector);
 
-    ProjectionBuilder as(BiFunction<BsonObject, Delivery, BsonObject> projectionFunction);
+    ProjectionBuilder as(BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction);
 
     Projection create();
 }

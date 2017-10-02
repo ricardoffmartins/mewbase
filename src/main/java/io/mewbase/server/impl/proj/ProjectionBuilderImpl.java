@@ -1,7 +1,6 @@
 package io.mewbase.server.impl.proj;
 
 import io.mewbase.bson.BsonObject;
-import io.mewbase.common.Delivery;
 import io.mewbase.server.Projection;
 import io.mewbase.server.ProjectionBuilder;
 
@@ -19,7 +18,7 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
     private Function<BsonObject, Boolean> eventFilter = doc -> true;
     private String binderName;
     private Function<BsonObject, String> docIDSelector;
-    private BiFunction<BsonObject, Delivery, BsonObject> projectionFunction;
+    private BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction;
 
     public ProjectionBuilderImpl(String projectionName, ProjectionManager projectionManager) {
         this.projectionName = projectionName;
@@ -51,7 +50,7 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
     }
 
     @Override
-    public ProjectionBuilder as(BiFunction<BsonObject, Delivery, BsonObject> projectionFunction) {
+    public ProjectionBuilder as(BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction) {
         this.projectionFunction = projectionFunction;
         return this;
     }

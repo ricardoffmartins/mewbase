@@ -3,7 +3,6 @@ package io.mewbase.example.shopping;
 import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
 
-import io.mewbase.common.Delivery;
 import io.mewbase.server.Server;
 import io.mewbase.server.MewbaseOptions;
 
@@ -53,10 +52,9 @@ public class FridgeExample {
                 .filteredBy(ev -> ev.getString("eventType").equals("doorStatus"))     // event filter
                 .onto("fridges")                                                     // binder name
                 .identifiedBy(ev -> ev.getString("fridgeID"))                   // document id selector; how to obtain the doc id from the event bson
-                .as( (BsonObject fridge, Delivery del) ->  { // projection function
-                        final long time =  del.timeStamp();
-                        final String doorStatus = del.event().getString("status");
-                        BsonPath.set(fridge, time, "timeStamp");
+                .as( (BsonObject fridge, BsonObject event) ->  { // projection function
+
+                        final String doorStatus = event.getString("status");
                         BsonPath.set(fridge, doorStatus, "door");
                         return fridge;
                 } )
