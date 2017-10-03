@@ -1,8 +1,13 @@
 package io.mewbase.projection;
 
 import io.mewbase.binders.BinderStore;
+import io.mewbase.bson.BsonObject;
+import io.mewbase.eventsource.Event;
 import io.mewbase.eventsource.EventSource;
 import io.mewbase.projection.impl.ProjectionFactoryImpl;
+
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * ProjectionFactory can be used to get projection builders and wires them to the enclosed

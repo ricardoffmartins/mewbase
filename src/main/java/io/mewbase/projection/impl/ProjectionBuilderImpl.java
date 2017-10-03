@@ -1,6 +1,7 @@
 package io.mewbase.projection.impl;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.eventsource.Event;
 import io.mewbase.projection.Projection;
 import io.mewbase.projection.ProjectionBuilder;
 import io.mewbase.projection.ProjectionFactory;
@@ -13,22 +14,23 @@ import java.util.function.Function;
  */
 public class ProjectionBuilderImpl implements ProjectionBuilder {
 
-    private final ProjectionFactory factory;
+    private final ProjectionFactoryImpl factory;
 
     private String projectionName;
     private String channelName;
-    private Function<BsonObject, Boolean> eventFilter = doc -> true;
     private String binderName;
-    private Function<BsonObject, String> docIDSelector;
-    private BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction;
+
+    private Function<Event, Boolean> eventFilter = doc -> true;
+    private Function<Event, String> docIDSelector;
+    private BiFunction<BsonObject, Event, BsonObject> projectionFunction;
 
 
-    ProjectionBuilderImpl(ProjectionFactory factory) {
+    ProjectionBuilderImpl(ProjectionFactoryImpl factory) {
         this.factory = factory;
     }
 
     @Override
-    public ProjectionBuilder named(String name) {
+    public ProjectionBuilder named(String projectionName) {
         this.projectionName = projectionName;
         return this;
     }
@@ -40,7 +42,7 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
     }
 
     @Override
-    public ProjectionBuilder filteredBy(Function<BsonObject, Boolean> eventFilter) {
+    public ProjectionBuilder filteredBy(Function<Event, Boolean> eventFilter) {
         this.eventFilter = eventFilter;
         return this;
     }
@@ -52,13 +54,13 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
     }
 
     @Override
-    public ProjectionBuilder identifiedBy(Function<BsonObject, String> docIDSelector) {
+    public ProjectionBuilder identifiedBy(Function<Event, String> docIDSelector) {
         this.docIDSelector = docIDSelector;
         return this;
     }
 
     @Override
-    public ProjectionBuilder as(BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction) {
+    public ProjectionBuilder as(BiFunction<BsonObject, Event, BsonObject> projectionFunction) {
         this.projectionFunction = projectionFunction;
         return this;
     }
@@ -71,11 +73,11 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
         if (channelName == null) {
             throw new IllegalStateException("Please specify a channel name");
         }
-        if (eventFilter == null) {
-            throw new IllegalStateException("Please specify an event filter");
-        }
         if (binderName == null) {
             throw new IllegalStateException("Please specify a binder name");
+        }
+        if (eventFilter == null) {
+            throw new IllegalStateException("Please specify an event filter");
         }
         if (docIDSelector == null) {
             throw new IllegalStateException("Please specify a document ID filter");
@@ -83,9 +85,18 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
         if (projectionFunction == null) {
             throw new IllegalStateException("Please specify a projection function");
         }
-        // use the factory
-        return null;
-        // TODO projectionManager.registerProjection(projectionName, channelName, eventFilter, binderName,
-        // TODO     docIDSelector, projectionFunction);
+
+        // got all of the parts in place. Now check for names
+        if ( factory.isRegistered(projectionName) ) {
+            throw new IllegalStateException("Non unique projection name " + projectionName);
+        }
+
+        // Use the factory to internal create the Projection.
+        return factory.createProjection(projectionName,
+                                        channelName,
+                                        binderName,
+                                        eventFilter,
+                                        docIDSelector,
+                                        projectionFunction);
     }
 }

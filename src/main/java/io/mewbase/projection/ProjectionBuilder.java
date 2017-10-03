@@ -1,6 +1,7 @@
 package io.mewbase.projection;
 
 import io.mewbase.bson.BsonObject;
+import io.mewbase.eventsource.Event;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -14,13 +15,13 @@ public interface ProjectionBuilder {
 
     ProjectionBuilder projecting(String channelName);
 
-    ProjectionBuilder filteredBy(Function<BsonObject, Boolean> eventFilter);
+    ProjectionBuilder filteredBy(Function<Event, Boolean> eventFilter);
 
     ProjectionBuilder onto(String binderName);
 
-    ProjectionBuilder identifiedBy(Function<BsonObject, String> docIDSelector);
+    ProjectionBuilder identifiedBy(Function<Event, String> docIDSelector);
 
-    ProjectionBuilder as(BiFunction<BsonObject, BsonObject, BsonObject> projectionFunction);
+    ProjectionBuilder as(BiFunction<BsonObject, Event, BsonObject> projectionFunction);
 
     Projection create();
 }

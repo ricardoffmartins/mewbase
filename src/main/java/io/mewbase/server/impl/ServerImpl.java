@@ -1,16 +1,11 @@
 package io.mewbase.server.impl;
 
-import io.mewbase.binders.Binder;
 import io.mewbase.binders.BinderStore;
 import io.mewbase.binders.impl.lmdb.LmdbBinderStore;
-import io.mewbase.projection.Projection;
-import io.mewbase.projection.ProjectionBuilder;
 import io.mewbase.server.*;
 import io.mewbase.server.impl.cqrs.CQRSManager;
 import io.mewbase.server.impl.cqrs.QueryBuilderImpl;
 import io.mewbase.server.impl.file.af.AFFileAccess;
-
-import io.mewbase.projection.impl.ProjectionManager;
 
 import io.mewbase.util.AsyncResCF;
 import io.vertx.core.Vertx;
@@ -19,9 +14,7 @@ import io.vertx.core.http.HttpMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
 
 /**
  * Created by tim on 22/09/16.
