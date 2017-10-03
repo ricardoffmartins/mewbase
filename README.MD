@@ -125,9 +125,9 @@ This project has a lot of scope and there's a lot to do with some serious engine
 If you'd like to get involved and be a part of it, please say hi in our
 [google group](https://groups.google.com/forum/#!forum/mewbase).
 
-We also have an IRC channel for general chat on freenode: Come and say hi!
+We also have a gitter channel for general chat. Come and say hi!
 
-irc.freenode.net#mewbase 
+[Gitter channel](https://gitter.im/mewbase)
 
 ## Roadmap
 
@@ -137,7 +137,12 @@ Roadmap and other pages are on the [wiki](https://github.com/Tesco/mewbase/wiki)
 
 Mewbase can be run embedded in any Java application (see examples).
 
-It can also be run as a standalone server, to do this:
+The current version of Mewbase depends on an instance of a [nats-streaming](https://nats.io/documentation/streaming/nats-streaming-intro/) server instance.  Assuming you have [docker](https://www.docker.com/) locally installed, the quickest and easiest way to up and running is via following commands:
+
+    docker pull nats-streaming
+    docker run -p 4222:4222 -p 8222:8222 -d nats-streaming
+
+Meebase can then be built and run as a standalone server, to do this:
 
     mvn clean package
 
