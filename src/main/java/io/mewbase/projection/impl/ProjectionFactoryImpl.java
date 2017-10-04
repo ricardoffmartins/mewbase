@@ -54,7 +54,7 @@ public class ProjectionFactoryImpl implements ProjectionFactory {
                                 final Function<Event, String> docIDSelector,
                                 final BiFunction<BsonObject, Event, BsonObject> projectionFunction) {
 
-        // if tis projection has been applied to a document
+        // if this projection has been applied to a document
 
         Subscription subs = source.subscribe(channelName, event -> {
             if (eventFilter.apply(event)) {

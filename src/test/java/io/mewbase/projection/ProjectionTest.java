@@ -4,8 +4,11 @@ import io.mewbase.MewbaseTestBase;
 import io.mewbase.ServerTestBase;
 import io.mewbase.binders.BinderStore;
 import io.mewbase.binders.impl.lmdb.LmdbBinderStore;
+import io.mewbase.bson.BsonObject;
 import io.mewbase.bson.BsonPath;
+import io.mewbase.eventsource.EventSink;
 import io.mewbase.eventsource.EventSource;
+import io.mewbase.eventsource.impl.nats.NatsEventSink;
 import io.mewbase.eventsource.impl.nats.NatsEventSource;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -54,7 +57,6 @@ public class ProjectionTest extends MewbaseTestBase {
     }
 
 
-
     @Test
     public void testProjectionFactory() throws Exception {
         ProjectionFactory factory = ProjectionFactory.instance(source,store);
@@ -62,7 +64,6 @@ public class ProjectionTest extends MewbaseTestBase {
         ProjectionBuilder builder = factory.builder();
         assertNotNull(builder);
     }
-
 
 
     @Test
@@ -88,19 +89,51 @@ public class ProjectionTest extends MewbaseTestBase {
 
         assertNotNull(projection);
         assertEquals(TEST_PROJECTION_NAME, projection.getName());
+        projection.stop();
     }
-
 
 
     @Test
     public void testSimpleProjectionRuns(TestContext testContext) throws Exception {
 
         // TODO Stuff from above
+        ProjectionFactory factory = ProjectionFactory.instance(source,store);
+        ProjectionBuilder builder = factory.builder();
 
-        // TODO use EventSink to send an events
-        //Producer prod = client.createProducer(TEST_CHANNEL_1);
-        //prod.publish(new BsonObject().put("basketID", TEST_BASKET_ID).put("productID", "prod1").put("quantity", 10)).get();
+        final String BASKET_ID_FIELD = "BasketID";
+        final String TEST_BASKET_ID = "TestBasket";
+        final Integer RESULT = new Integer(27);
+
+        Projection projection = builder
+                .named(TEST_PROJECTION_NAME)
+                .projecting(TEST_CHANNEL)
+                .onto(TEST_BINDER)
+                .filteredBy(event -> true)      // is the default but exercise the method
+                .identifiedBy(event -> event.getBson().getString(BASKET_ID_FIELD))
+                .as( (basket, event) -> {
+                    assertNotNull(basket);
+                    assertNotNull(event);
+                    return event.getBson().put("output",RESULT);
+                } )
+                .create();
+
+        EventSink sink = new NatsEventSink();
+        BsonObject evt = new BsonObject().put(BASKET_ID_FIELD, TEST_BASKET_ID);
+        sink.publish(TEST_CHANNEL, evt);
+
+        Thread.sleep(1000);
+        // try to recover the new document
+        store.open(TEST_BINDER).thenAccept( binder -> {
+           binder.get(TEST_BASKET_ID).thenAccept( doc -> {
+               Integer i = doc.getInteger("output");
+               assertEquals(RESULT, i);
+           });
+        });
+
+        projection.stop();
+
     }
+
 
     @Test
     public void testProjectionNames() throws Exception {
