@@ -6,8 +6,10 @@ import io.mewbase.eventsource.Event;
 import io.mewbase.eventsource.EventSource;
 import io.mewbase.projection.impl.ProjectionFactoryImpl;
 
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * ProjectionFactory can be used to get projection builders and wires them to the enclosed
@@ -34,4 +36,18 @@ public interface ProjectionFactory {
      */
     ProjectionBuilder builder();
 
+
+    /**
+     * Does this Factory contain a projection with the given name
+     * @param projectionName
+     * @return
+     */
+    boolean isProjection(String projectionName);
+
+
+    /**
+     * Return as a stream the lit of projection names.
+     * @return
+     */
+    Stream<String> projectionNames();
 }

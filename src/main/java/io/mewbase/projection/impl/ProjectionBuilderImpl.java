@@ -87,7 +87,7 @@ public class ProjectionBuilderImpl implements ProjectionBuilder {
         }
 
         // got all of the parts in place. Now check for names
-        if ( factory.isRegistered(projectionName) ) {
+        if ( factory.isProjection(projectionName) ) {
             throw new IllegalStateException("Non unique projection name " + projectionName);
         }
 
