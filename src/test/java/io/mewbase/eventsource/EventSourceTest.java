@@ -1,5 +1,6 @@
 package io.mewbase.eventsource;
 
+import io.mewbase.MewbaseTestBase;
 import io.mewbase.ServerTestBase;
 
 import io.mewbase.bson.BsonObject;
@@ -16,17 +17,13 @@ import org.junit.runner.RunWith;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * Created by Nige on 7/9/2017.
  */
 @RunWith(VertxUnitRunner.class)
-public class EventSourceTest extends ServerTestBase {
-
-//    @Override
-//    protected void setup(TestContext context) throws Exception {
-//        super.setup(context);
-//
-//    }
+public class EventSourceTest extends MewbaseTestBase {
 
 
     @Test
@@ -52,6 +49,9 @@ public class EventSourceTest extends ServerTestBase {
         Subscription subs = es.subscribe(testChannelName,  event ->  {
                         BsonObject bson  = event.getBson();
                         assert(inputUUID.equals(bson.getString("data")));
+                        long evtNum = event.getEventNumber();
+                        Instant evtTime = event.getInstant();
+                        int evtHashc = event.getCrc32();
                         latch.countDown();
                         }
                     );

@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -89,13 +90,20 @@ public class ProjectionTest extends MewbaseTestBase {
         final String TEST_BASKET_ID = "TestBasket";
         final Integer RESULT = new Integer(27);
 
+        final CountDownLatch latch = new CountDownLatch(1);
+
+
         Projection projection = builder
                 .named(TEST_PROJECTION_NAME)
                 .projecting(TEST_CHANNEL)
                 .onto(TEST_BINDER)
                 .filteredBy(event -> true)
                 .identifiedBy(event -> event.getBson().getString(BASKET_ID_FIELD))
-                .as( (basket, event) -> event.getBson().put("output",RESULT))
+                .as( (basket, event) -> {
+                    BsonObject out = event.getBson().put("output",RESULT);
+                    latch.countDown();
+                    return out;
+                })
                 .create();
 
         // Send an event to the channel which the projection is subscribed to.
@@ -103,7 +111,7 @@ public class ProjectionTest extends MewbaseTestBase {
         BsonObject evt = new BsonObject().put(BASKET_ID_FIELD, TEST_BASKET_ID);
         sink.publish(TEST_CHANNEL, evt);
 
-        Thread.sleep(100);
+        latch.await();
 
         // try to recover the new document
         Binder binder = store.open(TEST_BINDER).get();
