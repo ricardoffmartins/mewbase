@@ -1,7 +1,6 @@
 package io.mewbase.eventsource.impl.nats;
 
 
-
 import io.mewbase.bson.BsonObject;
 import io.mewbase.eventsource.EventSink;
 
