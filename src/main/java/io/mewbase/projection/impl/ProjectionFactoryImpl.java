@@ -87,10 +87,10 @@ public class ProjectionFactoryImpl implements ProjectionFactory {
                             // case 3 - We now have the doc
                             if (inputDoc != null && innerExp == null) {
                                 BsonObject outputDoc = projectionFunction.apply(inputDoc, event);
-                                binder.put(docID, outputDoc);
+                                binder.put(docID, outputDoc).join();
                                 // write the number of this projections most recent event into the store.
                                 BsonObject projStateDoc = new BsonObject().put(EVENT_NUM_FIELD, event.getEventNumber());
-                                stateBinder.put(projectionName, projStateDoc);
+                                stateBinder.put(projectionName, projStateDoc).join();
                             }
                         });
                     }
