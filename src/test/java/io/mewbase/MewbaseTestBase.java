@@ -1,7 +1,9 @@
 package io.mewbase;
 
 import io.mewbase.server.MewbaseOptions;
+import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.RepeatRule;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
@@ -21,6 +23,11 @@ public class MewbaseTestBase {
 
     @Rule
     public RepeatRule repeatRule = new RepeatRule();
+
+    @After
+    public void after(TestContext context) throws Exception {
+        Thread.sleep(500);
+    }
 
 
     protected void waitUntil(BooleanSupplier supplier) {

@@ -80,6 +80,7 @@ public class BindersTest extends MewbaseTestBase {
        assertNull(binder.put("id1234", docPut).get());
        BsonObject docGet = binder.get("id1234").get();
        assertEquals(docPut, docGet);
+       store.close();
     }
 
     @Test
@@ -87,6 +88,7 @@ public class BindersTest extends MewbaseTestBase {
         BinderStore store = new LmdbBinderStore(createMewbaseOptions());
         Binder binder = store.open(BINDER_NAME).get();
         assertNull(binder.get("id1234").get());
+        store.close();
     }
 
     @Test
@@ -101,6 +103,7 @@ public class BindersTest extends MewbaseTestBase {
         assertTrue(binder.delete("id1234").get());
         docGet = binder.get("id1234").get();
         assertNull(docGet);
+        store.close();
     }
 
 
@@ -146,7 +149,7 @@ public class BindersTest extends MewbaseTestBase {
         }).get();
 
         assertEquals(some.collect(toSet()).size(), HALF_THE_DOCS);
-
+        store.close();
     }
 
 
@@ -172,7 +175,7 @@ public class BindersTest extends MewbaseTestBase {
 
         BsonObject docGet2 = binder2.get("id0").get();
         assertEquals("binder2", docGet2.remove("binder"));
-
+        store.close();
     }
 
     @Test

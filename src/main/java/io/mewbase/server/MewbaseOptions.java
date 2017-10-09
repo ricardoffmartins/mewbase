@@ -35,7 +35,7 @@ public class MewbaseOptions {
 
     // Binders
     public static final String DEFAULT_BINDERS_DIR = "mewdata/binders";
-    public static final long DEFAULT_MAX_BINDER_SIZE = 1024L * 1024L * 1024L * 1024L; // 1 Terabyte
+    public static final long DEFAULT_MAX_BINDER_SIZE = 1024L * 1024L * 1024L; //1 Gigabyte // * 1024L; // 1 Terabyte
     public static final int DEFAULT_MAX_BINDERS = 256;
 
 

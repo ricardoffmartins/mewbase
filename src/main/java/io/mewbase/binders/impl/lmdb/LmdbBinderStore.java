@@ -127,9 +127,11 @@ public class LmdbBinderStore implements BinderStore {
     public CompletableFuture<Boolean> close() {
         AsyncResCF<Boolean> res = new AsyncResCF<>();
         exec.executeBlocking(fut -> {
-            Set<CompletableFuture<Void>> all = binders().map(binder -> ((LmdbBinder)binder).close()).collect(Collectors.toSet());
+            //Set<CompletableFuture<Void>> all = binders().map(binder -> ((LmdbBinder)binder).close()).collect(Collectors.toSet());
             try {
-                CompletableFuture.allOf(all.toArray(new CompletableFuture[all.size()])).get();
+               // CompletableFuture.allOf(all.toArray(new CompletableFuture[all.size()])).get();
+                Stream<CompletableFuture<Void>> all = binders().map(binder -> ((LmdbBinder)binder).close());
+
             } catch (Exception e) {
                 logger.error("Failed to close all binders.", e);
             } finally {

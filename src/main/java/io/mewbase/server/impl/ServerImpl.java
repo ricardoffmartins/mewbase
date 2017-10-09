@@ -74,6 +74,7 @@ public class ServerImpl implements Server {
 
     @Override
     public synchronized CompletableFuture<Void> stop() {
+        this.binderStore.close();
         CompletableFuture<Void> cf = restServiceAdaptor.stop();
         if (ownVertx) {
             cf = cf.thenCompose(v -> {
